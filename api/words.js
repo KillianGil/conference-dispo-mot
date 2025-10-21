@@ -1,4 +1,9 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -6,107 +11,56 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  if (req.method === "DELETE") {
+    await redis.del("words");
+    return res.status(200).json({ success: true, message: "All words deleted." });
   }
 
-  try {
-    //
-    // --- Test de connexion KV en interne (log seulement au premier passage)
-    //
-    try {
-      const testKey = "kv_probe";
-      await kv.set(testKey, "ok");
-      const value = await kv.get(testKey);
-      console.log("🟢 Connexion KV OK:", value);
-    } catch (err) {
-      console.error("🔴 Erreur de connexion KV:", err);
+  if (req.method === "POST") {
+    const raw = await getRawBody(req);
+    const { text, x, y, color } = JSON.parse(raw || "{}");
+
+    if (!text || x === undefined || y === undefined || !color) {
+      return res.status(400).json({ error: "Missing required fields." });
     }
 
-    // --- Gestion du corps de requête (pour POST)
-    let body = req.body;
-    if (!body || typeof body === "string") {
-      try {
-        const raw = body ? body : await getRawBody(req);
-        body = JSON.parse(raw);
-      } catch {
-        body = {};
-      }
-    }
+    const wordData = {
+      text,
+      x: parseFloat(x),
+      y: parseFloat(y),
+      color,
+      timestamp: Date.now(),
+    };
 
-    // --- DELETE : vider la base
-    if (req.method === "DELETE") {
-      await kv.del("words");
-      return res
-        .status(200)
-        .json({ success: true, message: "All words deleted." });
-    }
+    await redis.rpush("words", JSON.stringify(wordData));
+    console.log("✅ Mot ajouté Upstash:", wordData);
 
-    // --- POST : ajouter un mot
-    if (req.method === "POST") {
-      const { text, x, y, color } = body;
-
-      if (!text || x === undefined || y === undefined || !color) {
-        return res
-          .status(400)
-          .json({ error: "Missing required fields.", received: body });
-      }
-
-      const wordData = {
-        text,
-        x: parseFloat(x),
-        y: parseFloat(y),
-        color,
-        timestamp: Date.now(),
-      };
-
-      await kv.rpush("words", JSON.stringify(wordData));
-
-      console.log("🟢 Mot ajouté:", wordData);
-      return res.status(201).json({ success: true });
-    }
-
-    // --- GET : récupérer les mots
-    if (req.method === "GET") {
-      const wordsList = await kv.lrange("words", 0, -1);
-
-      const words = wordsList
-        .map((w) => {
-          try {
-            const parsed = JSON.parse(w);
-            if (parsed && parsed.text && parsed.color) {
-              return {
-                ...parsed,
-                x: parseFloat(parsed.x),
-                y: parseFloat(parsed.y),
-              };
-            }
-            return null;
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean);
-
-      // Trier du plus récent au plus ancien
-      words.sort((a, b) => b.timestamp - a.timestamp);
-
-      return res.status(200).json(words);
-    }
-
-    // --- Méthode non autorisée
-    res.setHeader("Allow", ["GET", "POST", "DELETE", "OPTIONS"]);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  } catch (error) {
-    console.error(`[${req.method}_ERROR]:`, error);
-    return res.status(500).json({
-      error: `Failed to process ${req.method} request.`,
-      details: error.message,
-    });
+    return res.status(201).json({ success: true });
   }
+
+  if (req.method === "GET") {
+    const list = (await redis.lrange("words", 0, -1)) || [];
+    const words = list
+      .map((item) => {
+        try {
+          return JSON.parse(item);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    console.log("📦 Retour des mots:", words.length);
+    return res.status(200).json(words);
+  }
+
+  res.setHeader("Allow", ["GET", "POST", "DELETE", "OPTIONS"]);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }
 
-// --- Helper pour lire le corps brut d’une requête HTTP
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
