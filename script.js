@@ -242,189 +242,224 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
-    function drawWeave(withBackground = false) {
-      const container = document.getElementById("canvas-container");
-      if (!container) return;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
+    // Remplacez la fonction drawWeave par cette version corrigée :
+function drawWeave(withBackground = false) {
+    const container = document.getElementById("canvas-container");
+    if (!container) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
   
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-      if (withBackground) {
-        ctx.fillStyle = "#111827";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (withBackground) {
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+  
+    if (displayedWords.length < 2) return;
+  
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  
+    let connections = [];
+  
+    if (settings.linkMode === "chronological") {
+      const chronoWords = [...displayedWords].reverse();
+      for (let i = 1; i < chronoWords.length; i++) {
+        connections.push([chronoWords[i - 1], chronoWords[i]]);
       }
-  
-      ctx.translate(offsetX, offsetY);
-      ctx.scale(scale, scale);
-  
-      if (displayedWords.length < 2) return;
-  
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-  
-      let connections = [];
-  
-      if (settings.linkMode === "chronological") {
-        const chronoWords = [...displayedWords].reverse();
-        for (let i = 1; i < chronoWords.length; i++) {
-          connections.push([chronoWords[i - 1], chronoWords[i]]);
-        }
-      } else if (settings.linkMode === "random") {
-        displayedWords.forEach((word, index) => {
-          if (index === 0) return;
-          const availableWords = displayedWords.filter((w, i) => {
-            if (w === word) return false;
-            const count = connections.filter(
-              ([a, b]) => a === w || b === w
-            ).length;
-            return count < 2;
-          });
-          if (availableWords.length > 0) {
-            const randomWord =
-              availableWords[
-                Math.floor(Math.random() * availableWords.length)
-              ];
-            connections.push([randomWord, word]);
-          }
-        });
-      } else if (settings.linkMode === "proximity") {
-        displayedWords.forEach((word) => {
-          const distances = displayedWords
-            .filter((w) => w !== word)
-            .map((w) => ({ word: w, dist: distance(word, w) }))
-            .sort((a, b) => a.dist - b.dist)
-            .slice(0, 2);
-          distances.forEach((d) => connections.push([word, d.word]));
-        });
-      } else if (settings.linkMode === "color") {
-        displayedWords.forEach((word) => {
-          const similar = displayedWords
-            .filter((w) => w !== word)
-            .map((w) => ({
-              word: w,
-              sim: colorSimilarity(word.color, w.color),
-            }))
-            .sort((a, b) => a.sim - b.sim)
-            .slice(0, 2);
-          similar.forEach((s) => connections.push([word, s.word]));
-        });
-      } else if (settings.linkMode === "resonance") {
-        displayedWords.forEach((word) => {
-          const resonant = displayedWords.filter(
-            (w) => w !== word && hasResonance(word, w)
-          );
-          resonant.forEach((r) => connections.push([word, r]));
-        });
-      }
-  
-      connections.forEach(([word1, word2], index) => {
-        if (
-          typeof word1.x !== "number" ||
-          typeof word1.y !== "number" ||
-          typeof word2.x !== "number" ||
-          typeof word2.y !== "number" ||
-          isNaN(word1.x) ||
-          isNaN(word1.y) ||
-          isNaN(word2.x) ||
-          isNaN(word2.y)
-        )
-          return;
-  
-        let progress = 1;
-        if (
-          weavingAnimation.length > 0 &&
-          index === connections.length - 1
-        ) {
-          progress = animationProgress;
-        }
-  
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
-  
-        const baseAlpha = 0.7;
-        ctx.globalAlpha = baseAlpha;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(
-          x1 + (x2 - x1) * progress,
-          y1 + (y2 - y1) * progress
+    } else if (settings.linkMode === "random") {
+      // CORRECTION: Calcul stable basé sur un seed
+      displayedWords.forEach((word, index) => {
+        if (index === 0) return;
+        // Utiliser un hash stable du mot pour déterminer la connexion
+        const hash = word.text.split('').reduce((acc, char) => 
+          ((acc << 5) - acc) + char.charCodeAt(0), 0);
+        const targetIndex = Math.abs(hash) % index;
+        connections.push([displayedWords[targetIndex], word]);
+      });
+    } else if (settings.linkMode === "proximity") {
+      displayedWords.forEach((word) => {
+        const distances = displayedWords
+          .filter((w) => w !== word)
+          .map((w) => ({ word: w, dist: distance(word, w) }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 2);
+        distances.forEach((d) => connections.push([word, d.word]));
+      });
+    } else if (settings.linkMode === "color") {
+      displayedWords.forEach((word) => {
+        const similar = displayedWords
+          .filter((w) => w !== word)
+          .map((w) => ({
+            word: w,
+            sim: colorSimilarity(word.color, w.color),
+          }))
+          .sort((a, b) => a.sim - b.sim)
+          .slice(0, 2);
+        similar.forEach((s) => connections.push([word, s.word]));
+      });
+    } else if (settings.linkMode === "resonance") {
+      displayedWords.forEach((word) => {
+        const resonant = displayedWords.filter(
+          (w) => w !== word && hasResonance(word, w)
         );
+        resonant.forEach((r) => connections.push([word, r]));
+      });
+    }
   
-        if (settings.useGradient) {
-          const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-          gradient.addColorStop(0, word1.color);
-          gradient.addColorStop(1, word2.color);
-          ctx.strokeStyle = gradient;
-        } else {
-          ctx.strokeStyle = word2.color;
-        }
+    connections.forEach(([word1, word2], index) => {
+      if (
+        typeof word1.x !== "number" ||
+        typeof word1.y !== "number" ||
+        typeof word2.x !== "number" ||
+        typeof word2.y !== "number" ||
+        isNaN(word1.x) ||
+        isNaN(word1.y) ||
+        isNaN(word2.x) ||
+        isNaN(word2.y)
+      )
+        return;
   
-        ctx.lineWidth = settings.lineWidth;
+      let progress = 1;
+      if (
+        weavingAnimation.length > 0 &&
+        index === connections.length - 1
+      ) {
+        progress = animationProgress;
+      }
+  
+      const x1 = word1.x * width;
+      const y1 = word1.y * height;
+      const x2 = word2.x * width;
+      const y2 = word2.y * height;
+  
+      const baseAlpha = 0.7;
+      ctx.globalAlpha = baseAlpha;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(
+        x1 + (x2 - x1) * progress,
+        y1 + (y2 - y1) * progress
+      );
+  
+      if (settings.useGradient) {
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, word1.color);
+        gradient.addColorStop(1, word2.color);
+        ctx.strokeStyle = gradient;
+      } else {
+        ctx.strokeStyle = word2.color;
+      }
+  
+      ctx.lineWidth = settings.lineWidth;
+      ctx.stroke();
+  
+      if (settings.enableResonance && hasResonance(word1, word2)) {
+        const pulseIntensity =
+          0.3 + 0.2 * Math.sin(Date.now() * 0.003);
+        ctx.globalAlpha = pulseIntensity;
+        ctx.lineWidth = settings.lineWidth * 3;
+        ctx.strokeStyle = word2.color;
         ctx.stroke();
   
-        if (settings.enableResonance && hasResonance(word1, word2)) {
-          const pulseIntensity =
-            0.3 + 0.2 * Math.sin(Date.now() * 0.003);
-          ctx.globalAlpha = pulseIntensity;
-          ctx.lineWidth = settings.lineWidth * 3;
-          ctx.strokeStyle = word2.color;
-          ctx.stroke();
-  
-          ctx.globalAlpha = pulseIntensity * 1.5;
-          [
-            [x1, y1],
-            [x2, y2],
-          ].forEach(([x, y]) => {
-            ctx.beginPath();
-            ctx.arc(x, y, settings.lineWidth * 2, 0, Math.PI * 2);
-            ctx.fillStyle = word2.color;
-            ctx.fill();
-          });
-        }
-      });
-  
-      if (settings.showWords) {
-        ctx.globalAlpha = 1;
-        const isMobile = window.innerWidth < 768;
-        const fontSize = isMobile ? 12 : 14;
-        ctx.font = `${fontSize}px Inter, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-  
-        displayedWords.forEach((word) => {
-          const x = word.x * width;
-          const y = word.y * height;
-  
-          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-  
-          ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-          ctx.lineWidth = 3;
-          ctx.strokeText(word.text, x, y);
-  
-          ctx.fillStyle = word.color;
-          ctx.fillText(word.text, x, y);
-  
-          ctx.shadowColor = "transparent";
-          ctx.shadowBlur = 0;
-  
+        ctx.globalAlpha = pulseIntensity * 1.5;
+        [
+          [x1, y1],
+          [x2, y2],
+        ].forEach(([x, y]) => {
           ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = word.color;
+          ctx.arc(x, y, settings.lineWidth * 2, 0, Math.PI * 2);
+          ctx.fillStyle = word2.color;
           ctx.fill();
         });
       }
+    });
   
-      if (settings.enableResonance && connections.length > 0) {
-        requestAnimationFrame(() => drawWeave(withBackground));
-      }
+    if (settings.showWords) {
+      ctx.globalAlpha = 1;
+      const isMobile = window.innerWidth < 768;
+      const fontSize = isMobile ? 12 : 14;
+      ctx.font = `${fontSize}px Inter, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+  
+      displayedWords.forEach((word) => {
+        const x = word.x * width;
+        const y = word.y * height;
+  
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+  
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.strokeText(word.text, x, y);
+  
+        ctx.fillStyle = word.color;
+        ctx.fillText(word.text, x, y);
+  
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+  
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = word.color;
+        ctx.fill();
+      });
     }
+  
+    // CORRECTION: Animation uniquement pour la résonance
+    if (settings.enableResonance && connections.some(([w1, w2]) => hasResonance(w1, w2))) {
+      requestAnimationFrame(() => drawWeave(withBackground));
+    }
+  }
+  
+  // Amélioration de la palette auto pour plus de variété
+  const colorPalettes = {
+    auto: () => {
+      // CORRECTION: Meilleure distribution des couleurs
+      const hueRanges = [
+        [0, 30],      // Rouge-Orange
+        [30, 60],     // Orange-Jaune
+        [150, 180],   // Vert-Cyan
+        [180, 210],   // Cyan
+        [210, 270],   // Bleu
+        [270, 330],   // Violet-Magenta
+        [330, 360],   // Magenta-Rouge
+      ];
+      const range = hueRanges[Math.floor(Math.random() * hueRanges.length)];
+      const hue = range[0] + Math.random() * (range[1] - range[0]);
+      const saturation = 70 + Math.random() * 20; // 70-90%
+      const lightness = 50 + Math.random() * 15;  // 50-65%
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    },
+    bailleul: () => {
+      const colors = [
+        "hsl(30, 70%, 55%)",
+        "hsl(45, 80%, 65%)",
+        "hsl(160, 45%, 50%)",
+        "hsl(200, 30%, 60%)",
+        "hsl(15, 60%, 50%)",
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    },
+    babiole: () => {
+      const colors = [
+        "hsl(280, 90%, 65%)",
+        "hsl(180, 85%, 55%)",
+        "hsl(330, 95%, 60%)",
+        "hsl(60, 100%, 50%)",
+        "hsl(120, 80%, 55%)",
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    },
+  };
   
     // --- Calcul des statistiques ---
     function updateStats() {

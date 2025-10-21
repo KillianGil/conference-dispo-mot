@@ -190,3 +190,37 @@ body {
         max-width: calc(100vw - 2rem);
     }
 }
+
+@media (max-width: 767px) {
+    footer {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    #word-form {
+        width: 100%;
+        order: -1;
+        margin-bottom: 0.5rem;
+    }
+    
+    footer button {
+        flex: 1;
+        min-width: 44px; /* Taille tactile minimale iOS */
+    }
+    
+    #word-input {
+        min-height: 44px;
+    }
+}
+
+/* Footer encore plus compact sur très petits écrans */
+@media (max-width: 380px) {
+    footer button svg {
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    footer button {
+        padding: 0.625rem;
+    }
+}

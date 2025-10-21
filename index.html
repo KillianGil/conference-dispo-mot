@@ -77,31 +77,47 @@
       <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
       
       <!-- Mode de liaison -->
-      <div class="mb-6">
-          <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
-          <div class="space-y-2">
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="chronological" checked class="mr-3 accent-indigo-500">
-                  <span>Chronologique</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="random" class="mr-3 accent-indigo-500">
-                  <span>Aléatoire (points libres)</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="proximity" class="mr-3 accent-indigo-500">
-                  <span>Proximité spatiale</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="color" class="mr-3 accent-indigo-500">
-                  <span>Harmonie chromatique</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="resonance" class="mr-3 accent-indigo-500">
-                  <span>Résonance textuelle</span>
-              </label>
+      <!-- Remplacez la section Mode de liaison dans le modal Paramètres -->
+<div class="mb-6">
+  <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
+  <div class="space-y-2">
+      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+          <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
+          <div>
+              <div>Chronologique</div>
+              <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
           </div>
-      </div>
+      </label>
+      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+          <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
+          <div>
+              <div>Aléatoire</div>
+              <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
+          </div>
+      </label>
+      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+          <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
+          <div>
+              <div>Proximité spatiale</div>
+              <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
+          </div>
+      </label>
+      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+          <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
+          <div>
+              <div>Harmonie chromatique</div>
+              <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
+          </div>
+      </label>
+      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+          <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
+          <div>
+              <div>Résonance textuelle</div>
+              <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
+          </div>
+      </label>
+  </div>
+</div>
 
       <!-- Thème de couleurs -->
       <div class="mb-6">
