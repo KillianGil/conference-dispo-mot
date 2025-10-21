@@ -15,9 +15,8 @@ export default async function handler(req, res) {
   try {
     // --- POST ---
     if (req.method === "POST") {
-      // ✅ Vercel parse automatiquement le JSON
       const body = req.body;
-      
+
       if (!body) {
         return res.status(400).json({ error: "Empty body" });
       }
@@ -35,35 +34,65 @@ export default async function handler(req, res) {
         timestamp: Date.now(),
       };
 
-      await redis.rpush("words", JSON.stringify(wordData));
+      // ✅ Sérialisation explicite
+      const serialized = JSON.stringify(wordData);
+      console.log("📝 Serialized:", serialized);
+
+      const result = await redis.rpush("words", serialized);
       console.log("✅ Mot ajouté Redis:", wordData);
+      console.log("📊 Longueur de la liste:", result);
 
       return res.status(201).json({ success: true });
     }
 
     // --- GET ---
     if (req.method === "GET") {
-      const list = (await redis.lrange("words", 0, -1)) || [];
-      console.log("📦 Liste brute depuis Redis:", list.length);
+      console.log("🔍 GET request started");
 
-      const words = list
-        .map((item) => {
+      // Test 1: Vérifier la longueur
+      const length = await redis.llen("words");
+      console.log("📏 LLEN result:", length);
+
+      // Test 2: Récupérer TOUT sans filtrage
+      const rawList = await redis.lrange("words", 0, -1);
+      console.log("📦 LRANGE raw result:", rawList);
+      console.log("📦 Type:", typeof rawList, Array.isArray(rawList));
+
+      // Test 3: Parser chaque élément
+      const words = [];
+      if (Array.isArray(rawList)) {
+        for (let i = 0; i < rawList.length; i++) {
+          const item = rawList[i];
+          console.log(`Item ${i} type:`, typeof item);
+          console.log(`Item ${i} value:`, item);
+
           try {
-            return JSON.parse(item);
-          } catch {
-            return null;
+            // Si c'est déjà un objet, le garder tel quel
+            if (typeof item === "object" && item !== null) {
+              words.push(item);
+            }
+            // Sinon, parser le JSON
+            else if (typeof item === "string") {
+              words.push(JSON.parse(item));
+            }
+          } catch (err) {
+            console.error(`❌ Parse error item ${i}:`, err);
           }
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.timestamp - a.timestamp);
+        }
+      }
 
-      console.log("📤 Mots renvoyés:", words.length);
+      console.log("✅ Final words array:", words.length, words);
+
+      // Tri par timestamp
+      words.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
       return res.status(200).json(words);
     }
 
     // --- DELETE ---
     if (req.method === "DELETE") {
-      await redis.del("words");
+      const result = await redis.del("words");
+      console.log("🗑️ DELETE result:", result);
       return res.status(200).json({ success: true });
     }
 
@@ -71,6 +100,7 @@ export default async function handler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (error) {
     console.error("🔴 Redis API Error:", error);
+    console.error("🔴 Error stack:", error.stack);
     return res.status(500).json({ error: error.message });
   }
 }
