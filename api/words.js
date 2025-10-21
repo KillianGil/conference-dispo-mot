@@ -13,12 +13,14 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
+    // --- POST : ajouter un mot ---
     if (req.method === "POST") {
       const raw = await getRawBody(req);
       const { text, x, y, color } = JSON.parse(raw || "{}");
 
-      if (!text || x === undefined || y === undefined || !color)
+      if (!text || x === undefined || y === undefined || !color) {
         return res.status(400).json({ error: "Missing required fields." });
+      }
 
       const wordData = {
         text,
@@ -33,13 +35,20 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true });
     }
 
+    // --- GET : récupérer les mots ---
     if (req.method === "GET") {
-      const list = (await redis.lrange("words", 0, -1)) || [];
-      const words = list
+      console.log("📡 Lecture clé `words` sur Upstash…");
+
+      const list = await redis.lrange("words", 0, -1);
+      console.log("🔍 Raw list from Redis:", list);
+
+      // On tente de parser la liste récupérée
+      const words = (list || [])
         .map((item) => {
           try {
             return JSON.parse(item);
-          } catch {
+          } catch (e) {
+            console.warn("⚠️ Élément non JSON:", item);
             return null;
           }
         })
@@ -47,11 +56,14 @@ export default async function handler(req, res) {
         .sort((a, b) => b.timestamp - a.timestamp);
 
       console.log("📤 Mots lus Redis:", words.length);
+
       return res.status(200).json(words);
     }
 
+    // --- DELETE : vider la base ---
     if (req.method === "DELETE") {
       await redis.del("words");
+      console.log("🧹 Tous les mots supprimés");
       return res.status(200).json({ success: true });
     }
 
@@ -64,10 +76,4 @@ export default async function handler(req, res) {
 }
 
 async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", (chunk) => (data += chunk));
-    req.on("end", () => resolve(data));
-    req.on("error", reject);
-  });
-}
+  return
