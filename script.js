@@ -14,6 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let weavingAnimation = [];
     let animationProgress = 0;
   
+    // Zoom et pan pour mobile
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let startX, startY;
+    let lastTouchDistance = 0;
+  
     let settings = {
       linkMode: "chronological",
       showWords: true,
@@ -22,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
       colorTheme: "auto",
       enableResonance: false,
       showTimestamp: true,
+      useGradient: false,
     };
   
     // Palettes de couleurs thématiques
@@ -29,21 +38,21 @@ document.addEventListener("DOMContentLoaded", () => {
       auto: () => `hsl(${Math.random() * 360}, 80%, 60%)`,
       bailleul: () => {
         const colors = [
-          "hsl(30, 70%, 55%)", // terracotta
-          "hsl(45, 80%, 65%)", // ocre
-          "hsl(160, 45%, 50%)", // vert végétal
-          "hsl(200, 30%, 60%)", // bleu lin
-          "hsl(15, 60%, 50%)", // rouille
+          "hsl(30, 70%, 55%)",
+          "hsl(45, 80%, 65%)",
+          "hsl(160, 45%, 50%)",
+          "hsl(200, 30%, 60%)",
+          "hsl(15, 60%, 50%)",
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       },
       babiole: () => {
         const colors = [
-          "hsl(280, 90%, 65%)", // violet électrique
-          "hsl(180, 85%, 55%)", // cyan
-          "hsl(330, 95%, 60%)", // magenta
-          "hsl(60, 100%, 50%)", // jaune vif
-          "hsl(120, 80%, 55%)", // vert néon
+          "hsl(280, 90%, 65%)",
+          "hsl(180, 85%, 55%)",
+          "hsl(330, 95%, 60%)",
+          "hsl(60, 100%, 50%)",
+          "hsl(120, 80%, 55%)",
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       },
@@ -87,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function animateWeaving() {
       if (weavingAnimation.length === 0) return;
   
-      animationProgress += 0.02;
+      animationProgress += 0.03;
       if (animationProgress >= 1) {
         animationProgress = 0;
         weavingAnimation.shift();
@@ -100,6 +109,125 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
+    // --- Gestion du zoom et pan ---
+    function setupZoomAndPan() {
+      // Wheel zoom (desktop)
+      canvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        const newScale = Math.min(Math.max(0.5, scale * delta), 5);
+  
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+  
+        offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+        offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+  
+        scale = newScale;
+        drawWeave();
+      });
+  
+      // Touch zoom (mobile)
+      canvas.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          lastTouchDistance = Math.hypot(
+            touch2.clientX - touch1.clientX,
+            touch2.clientY - touch1.clientY
+          );
+        } else if (e.touches.length === 1) {
+          isDragging = true;
+          startX = e.touches[0].clientX - offsetX;
+          startY = e.touches[0].clientY - offsetY;
+        }
+      });
+  
+      canvas.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          const touch1 = e.touches[0];
+          const touch2 = e.touches[1];
+          const distance = Math.hypot(
+            touch2.clientX - touch1.clientX,
+            touch2.clientY - touch1.clientY
+          );
+  
+          if (lastTouchDistance > 0) {
+            const delta = distance / lastTouchDistance;
+            scale = Math.min(Math.max(0.5, scale * delta), 5);
+            drawWeave();
+          }
+  
+          lastTouchDistance = distance;
+        } else if (isDragging && e.touches.length === 1) {
+          e.preventDefault();
+          offsetX = e.touches[0].clientX - startX;
+          offsetY = e.touches[0].clientY - startY;
+          drawWeave();
+        }
+      });
+  
+      canvas.addEventListener("touchend", (e) => {
+        if (e.touches.length < 2) {
+          lastTouchDistance = 0;
+        }
+        if (e.touches.length === 0) {
+          isDragging = false;
+        }
+      });
+  
+      // Mouse drag (desktop)
+      canvas.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startX = e.clientX - offsetX;
+        startY = e.clientY - offsetY;
+        canvas.style.cursor = "grabbing";
+      });
+  
+      canvas.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          offsetX = e.clientX - startX;
+          offsetY = e.clientY - startY;
+          drawWeave();
+        }
+      });
+  
+      canvas.addEventListener("mouseup", () => {
+        isDragging = false;
+        canvas.style.cursor = "grab";
+      });
+  
+      canvas.addEventListener("mouseleave", () => {
+        isDragging = false;
+        canvas.style.cursor = "grab";
+      });
+  
+      // Double-tap to reset zoom (mobile)
+      let lastTap = 0;
+      canvas.addEventListener("touchend", (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          scale = 1;
+          offsetX = 0;
+          offsetY = 0;
+          drawWeave();
+        }
+        lastTap = currentTime;
+      });
+  
+      // Double-click to reset zoom (desktop)
+      canvas.addEventListener("dblclick", () => {
+        scale = 1;
+        offsetX = 0;
+        offsetY = 0;
+        drawWeave();
+      });
+    }
+  
     // --- Dessin amélioré ---
     function drawWeave(withBackground = false) {
       const container = document.getElementById("canvas-container");
@@ -107,12 +235,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
   
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
   
       if (withBackground) {
         ctx.fillStyle = "#111827";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
+  
+      // Appliquer zoom et pan
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(scale, scale);
   
       if (displayedWords.length < 2) return;
   
@@ -127,6 +260,31 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 1; i < chronoWords.length; i++) {
           connections.push([chronoWords[i - 1], chronoWords[i]]);
         }
+      } else if (settings.linkMode === "random") {
+        // Mode aléatoire avancé : choisir un point libre
+        const usedPoints = new Set();
+        displayedWords.forEach((word, index) => {
+          if (index === 0) return;
+  
+          // Trouver tous les points qui ne sont pas encore utilisés deux fois
+          const availableWords = displayedWords.filter((w, i) => {
+            if (w === word) return false;
+            const key = `${w.x}-${w.y}`;
+            const count = connections.filter(
+              ([a, b]) =>
+                (a === w || b === w)
+            ).length;
+            return count < 2; // Chaque point peut avoir max 2 connexions
+          });
+  
+          if (availableWords.length > 0) {
+            const randomWord =
+              availableWords[
+                Math.floor(Math.random() * availableWords.length)
+              ];
+            connections.push([randomWord, word]);
+          }
+        });
       } else if (settings.linkMode === "proximity") {
         displayedWords.forEach((word) => {
           const distances = displayedWords
@@ -186,7 +344,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const y2 = word2.y * height;
   
         // Ligne principale
-        ctx.globalAlpha = 0.6;
+        const baseAlpha = 0.7;
+        ctx.globalAlpha = baseAlpha;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
@@ -194,19 +353,41 @@ document.addEventListener("DOMContentLoaded", () => {
           y1 + (y2 - y1) * progress
         );
   
-        // Dégradé pour l'effet tissage
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, word1.color);
-        gradient.addColorStop(1, word2.color);
-        ctx.strokeStyle = gradient;
+        // Choisir la couleur (sans dégradé ou avec dégradé)
+        if (settings.useGradient) {
+          const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+          gradient.addColorStop(0, word1.color);
+          gradient.addColorStop(1, word2.color);
+          ctx.strokeStyle = gradient;
+        } else {
+          // Une seule couleur : celle du mot de destination
+          ctx.strokeStyle = word2.color;
+        }
+  
         ctx.lineWidth = settings.lineWidth;
         ctx.stroke();
   
-        // Effet de résonance
+        // Effet de résonance amélioré
         if (settings.enableResonance && hasResonance(word1, word2)) {
-          ctx.globalAlpha = 0.2;
-          ctx.lineWidth = settings.lineWidth * 2;
+          // Halo pulsant autour de la ligne
+          const pulseIntensity =
+            0.3 + 0.2 * Math.sin(Date.now() * 0.003);
+          ctx.globalAlpha = pulseIntensity;
+          ctx.lineWidth = settings.lineWidth * 3;
+          ctx.strokeStyle = word2.color;
           ctx.stroke();
+  
+          // Points lumineux aux extrémités
+          ctx.globalAlpha = pulseIntensity * 1.5;
+          [
+            [x1, y1],
+            [x2, y2],
+          ].forEach(([x, y]) => {
+            ctx.beginPath();
+            ctx.arc(x, y, settings.lineWidth * 2, 0, Math.PI * 2);
+            ctx.fillStyle = word2.color;
+            ctx.fill();
+          });
         }
       });
   
@@ -214,9 +395,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (settings.showWords) {
         ctx.globalAlpha = 1;
         const isMobile = window.innerWidth < 768;
-        ctx.font = isMobile
-          ? "12px Inter, sans-serif"
-          : "14px Inter, sans-serif";
+        const fontSize = isMobile ? 12 : 14;
+        ctx.font = `${fontSize}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
   
@@ -224,13 +404,24 @@ document.addEventListener("DOMContentLoaded", () => {
           const x = word.x * width;
           const y = word.y * height;
   
-          // Ombre
-          ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-          ctx.fillText(word.text, x + 1, y + 1);
+          // Ombre portée plus marquée
+          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
   
-          // Texte
+          // Texte avec contour
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+          ctx.lineWidth = 3;
+          ctx.strokeText(word.text, x, y);
+  
+          // Texte principal
           ctx.fillStyle = word.color;
           ctx.fillText(word.text, x, y);
+  
+          // Reset shadow
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
   
           // Point central
           ctx.beginPath();
@@ -238,6 +429,11 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.fillStyle = word.color;
           ctx.fill();
         });
+      }
+  
+      // Si résonance activée, relancer le dessin pour l'animation
+      if (settings.enableResonance && connections.length > 0) {
+        requestAnimationFrame(() => drawWeave(withBackground));
       }
     }
   
@@ -255,7 +451,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
   
-        // Identifier les nouveaux mots
         const newWords = fetchedWords.filter(
           (fw) =>
             !displayedWords.some(
@@ -270,7 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (newWords.length > 0) {
           updateWordList(newWords);
   
-          // Lancer l'animation de tissage pour les nouveaux mots
           if (settings.animateLines && hadWords) {
             weavingAnimation = newWords;
             animationProgress = 0;
@@ -304,7 +498,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
         const li = document.createElement("li");
         li.className = "word-item p-3 rounded-lg flex items-center";
-        li.style.backgroundColor = word.color + "20";
+        // Couleur de fond plus transparente pour meilleure lisibilité
+        li.style.backgroundColor = word.color + "15";
+        li.style.borderLeft = `3px solid ${word.color}`;
         li.dataset.text = word.text;
   
         const colorDot = document.createElement("span");
@@ -313,12 +509,11 @@ document.addEventListener("DOMContentLoaded", () => {
   
         const textSpan = document.createElement("span");
         textSpan.textContent = word.text;
-        textSpan.className = "text-gray-200 truncate flex-grow";
+        textSpan.className = "text-gray-100 truncate flex-grow font-medium";
   
         li.appendChild(colorDot);
         li.appendChild(textSpan);
   
-        // Timestamp optionnel
         if (settings.showTimestamp) {
           const timeSpan = document.createElement("span");
           const date = new Date(word.timestamp);
@@ -326,7 +521,7 @@ document.addEventListener("DOMContentLoaded", () => {
             hour: "2-digit",
             minute: "2-digit",
           });
-          timeSpan.className = "text-xs text-gray-500 ml-2";
+          timeSpan.className = "text-xs text-gray-400 ml-2 flex-shrink-0";
           li.appendChild(timeSpan);
         }
   
@@ -375,13 +570,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
   
         wordInput.value = "";
-        
-        // Feedback visuel mobile
+  
         submitButton.textContent = "✓";
         setTimeout(() => {
           submitButton.textContent = "Tisser";
         }, 800);
-        
+  
         await fetchWords();
       } catch (error) {
         console.error("Erreur d'ajout:", error);
@@ -435,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
   
-    // Afficher les mots
+    // Options d'affichage
     document
       .getElementById("show-words-toggle")
       .addEventListener("change", (e) => {
@@ -443,14 +637,12 @@ document.addEventListener("DOMContentLoaded", () => {
         drawWeave();
       });
   
-    // Animation de tissage
     document
       .getElementById("animate-lines-toggle")
       .addEventListener("change", (e) => {
         settings.animateLines = e.target.checked;
       });
   
-    // Résonance
     document
       .getElementById("resonance-toggle")
       .addEventListener("change", (e) => {
@@ -458,13 +650,19 @@ document.addEventListener("DOMContentLoaded", () => {
         drawWeave();
       });
   
-    // Timestamp
     document
       .getElementById("show-timestamp-toggle")
       .addEventListener("change", (e) => {
         settings.showTimestamp = e.target.checked;
         wordsList.innerHTML = "";
         updateWordList(displayedWords);
+      });
+  
+    document
+      .getElementById("gradient-toggle")
+      .addEventListener("change", (e) => {
+        settings.useGradient = e.target.checked;
+        drawWeave();
       });
   
     // Épaisseur des lignes
@@ -483,13 +681,27 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   
     downloadButton.addEventListener("click", () => {
+      // Reset zoom pour l'export
+      const oldScale = scale;
+      const oldOffsetX = offsetX;
+      const oldOffsetY = offsetY;
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+  
       resizeCanvas();
       drawWeave(true);
+  
       const link = document.createElement("a");
       const date = new Date().toISOString().split("T")[0];
       link.download = `tissage-bailleul-babiole-${date}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+  
+      // Restaurer le zoom
+      scale = oldScale;
+      offsetX = oldOffsetX;
+      offsetY = oldOffsetY;
       drawWeave(false);
     });
   
@@ -504,6 +716,9 @@ document.addEventListener("DOMContentLoaded", () => {
           await fetch("/api/words", { method: "DELETE" });
           displayedWords = [];
           wordsList.innerHTML = "";
+          scale = 1;
+          offsetX = 0;
+          offsetY = 0;
           drawWeave();
         } catch (err) {
           alert("La réinitialisation a échoué.");
@@ -535,8 +750,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   
     // --- Init ---
+    setupZoomAndPan();
+    canvas.style.cursor = "grab";
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
-    setInterval(fetchWords, 2000); // Réduit pour mobile
+    setInterval(fetchWords, 2000);
     fetchWords();
   });

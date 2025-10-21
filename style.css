@@ -2,7 +2,25 @@ body {
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
 }
+/* Cursor pour le canvas */
+#weave-canvas {
+    touch-action: none;
+    user-select: none;
+}
 
+/* Amélioration de la lisibilité des mots dans la liste */
+.word-item {
+    animation: fadeIn 0.4s ease-out;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.word-item:active {
+    transform: scale(0.98);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Reste identique... */
 /* Scrollbar personnalisée */
 #words-panel::-webkit-scrollbar { 
     width: 6px; 
