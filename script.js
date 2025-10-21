@@ -31,11 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const height = container.clientHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (withBackground) { ctx.fillStyle = '#111827'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-        const chronoWords = [...displayedWords].reverse();
-        if (chronoWords.length < 2) return;
+        if (displayedWords.length < 2) {
+            console.log('Not enough words to draw (need at least 2, have', displayedWords.length, ')');
+            return;
+        }
+        console.log('Drawing weave with', displayedWords.length, 'words');
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        for (let i = 1; i < chronoWords.length; i++) {
-            const prevWord = chronoWords[i - 1]; const currentWord = chronoWords[i];
+        for (let i = 1; i < displayedWords.length; i++) {
+            const prevWord = displayedWords[i - 1]; 
+            const currentWord = displayedWords[i];
             ctx.beginPath();
             ctx.moveTo(prevWord.x * width, prevWord.y * height);
             ctx.lineTo(currentWord.x * width, currentWord.y * height);
@@ -47,19 +51,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Communication avec l'API ---
     async function fetchWords() {
         try {
+            console.log('Fetching words from API...');
             const response = await fetch(`/api/words?t=${Date.now()}`); // Anti-cache
             if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
             const fetchedWords = await response.json();
-            // Comparaison robuste pour la mise à jour
-            if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
+            console.log('Received words:', fetchedWords.length);
+            
+            // Toujours mettre à jour si le nombre de mots ou le contenu change
+            const needsUpdate = displayedWords.length !== fetchedWords.length || 
+                                JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords);
+            
+            if (needsUpdate) {
+                console.log('Updating display with new words');
                 displayedWords = fetchedWords;
                 updateWordList();
                 drawWeave();
             }
-        } catch (error) { console.error("Erreur fetchWords:", error); }
+        } catch (error) { 
+            console.error("Erreur fetchWords:", error); 
+        }
     }
 
     function updateWordList() {
+        console.log('Updating word list, total words:', displayedWords.length);
         wordsList.innerHTML = '';
         displayedWords.forEach(word => {
             const li = document.createElement('li'); li.className = 'word-item p-3 rounded-lg flex items-center'; li.style.backgroundColor = word.color + '20';
@@ -75,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = wordInput.value.trim();
         if (text.length === 0) return; // Ne rien faire si le champ est vide
 
+        console.log('Submitting word:', text);
         const submitButton = wordForm.querySelector('button');
         const originalPlaceholder = wordInput.placeholder; // Sauvegarder le placeholder
         wordInput.disabled = true; submitButton.disabled = true; submitButton.textContent = '...';
@@ -86,25 +101,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch('/api/words', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newWordPayload),
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(newWordPayload),
             });
 
-            // Vérifier si le POST a réussi (statut 201 attendu avec la version API simple)
-            if (!response.ok || response.status !== 201) {
+            console.log('POST response status:', response.status);
+
+            // Vérifier si le POST a réussi (statut 201 attendu)
+            if (!response.ok) {
                  let errorMsg = `Erreur serveur (${response.status})`;
                  try {
-                     // Essayer de lire le message d'erreur JSON du serveur
                      const errorData = await response.json();
-                     errorMsg = errorData.error || errorMsg; // Utiliser le message d'erreur de l'API s'il existe
+                     errorMsg = errorData.error || errorMsg;
+                     console.error('Server error:', errorData);
                  } catch(e) {
-                    // Si la réponse n'est pas du JSON, utiliser le message HTTP standard
+                    console.error('Could not parse error response');
                  }
-                 throw new Error(errorMsg); // Lancer l'erreur pour l'attraper dans le bloc catch
+                 throw new Error(errorMsg);
             }
             
-            // Si le POST réussit (statut 201 confirmé)
-            wordInput.value = ''; // On vide l'input
-            await fetchWords();   // On force immédiatement la mise à jour de la liste
+            // Récupérer la liste mise à jour directement depuis la réponse du POST
+            const updatedWords = await response.json();
+            console.log('Received updated words from POST:', updatedWords.length);
+            
+            // Mettre à jour immédiatement l'affichage avec les données reçues
+            displayedWords = updatedWords;
+            updateWordList();
+            drawWeave();
+            
+            // Vider l'input seulement après succès
+            wordInput.value = '';
 
         } catch (error) {
             console.error("Erreur d'ajout:", error);
@@ -134,4 +161,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchWords, 1500); // Récupère les mots des autres utilisateurs toutes les 1.5s
     fetchWords(); // Récupère les mots au chargement initial
 });
-

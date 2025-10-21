@@ -46,9 +46,9 @@ export default async function handler(req, res) {
       }
       const wordData = { text, x, y, color, timestamp: Date.now() };
 
-      console.log("Attempting to lpush to 'words' key:", wordData);
-      await kv.lpush('words', JSON.stringify(wordData));
-      console.log("lpush successful. Fetching updated list...");
+      console.log("Attempting to rpush to 'words' key:", wordData);
+      await kv.rpush('words', JSON.stringify(wordData));
+      console.log("rpush successful. Fetching updated list...");
 
       // Récupérer la liste complète après l'ajout
       const wordsList = await kv.lrange('words', 0, -1);
