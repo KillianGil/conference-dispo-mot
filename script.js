@@ -291,9 +291,42 @@ document.addEventListener("DOMContentLoaded", () => {
             const resonant = displayedWords.filter(
               (w) => w !== word && hasResonance(word, w)
             );
-            resonant.forEach((r) => connections.push([word, r]));
+            
+            // Si aucune résonance trouvée, connecter au mot le plus proche
+            if (resonant.length === 0) {
+              const closest = displayedWords
+                .filter((w) => w !== word)
+                .map((w) => ({ word: w, dist: distance(word, w) }))
+                .sort((a, b) => a.dist - b.dist)[0];
+              if (closest) {
+                connections.push([word, closest.word]);
+              }
+            } else {
+              resonant.forEach((r) => connections.push([word, r]));
+            }
           });
         }
+      
+        // CORRECTION : Vérifier et connecter les mots isolés
+        const connectedWords = new Set();
+        connections.forEach(([w1, w2]) => {
+          connectedWords.add(w1);
+          connectedWords.add(w2);
+        });
+      
+        // Pour chaque mot non connecté, le relier au plus proche
+        displayedWords.forEach((word) => {
+          if (!connectedWords.has(word)) {
+            const closest = displayedWords
+              .filter((w) => w !== word)
+              .map((w) => ({ word: w, dist: distance(word, w) }))
+              .sort((a, b) => a.dist - b.dist)[0];
+            if (closest) {
+              connections.push([word, closest.word]);
+              connectedWords.add(word);
+            }
+          }
+        });
       
         connections.forEach(([word1, word2], index) => {
           if (
@@ -374,20 +407,15 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       
-        // CORRECTION : Animation continue si la résonance est activée
         if (settings.enableResonance) {
-          // Vérifier s'il y a des connexions avec résonance
           const hasResonantConnections = connections.some(([w1, w2]) => hasResonance(w1, w2));
           if (hasResonantConnections) {
-            // Annuler l'ancienne frame si elle existe
             if (animationFrame) {
               cancelAnimationFrame(animationFrame);
             }
-            // Demander une nouvelle frame
             animationFrame = requestAnimationFrame(() => drawWeave(withBackground));
           }
         } else {
-          // Si la résonance est désactivée, annuler l'animation
           if (animationFrame) {
             cancelAnimationFrame(animationFrame);
             animationFrame = null;
