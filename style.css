@@ -1,0 +1,72 @@
+body { 
+    font-family: 'Inter', sans-serif; 
+}
+#words-panel::-webkit-scrollbar { 
+    width: 8px; 
+}
+#words-panel::-webkit-scrollbar-track { 
+    background: #1f2937; 
+}
+#words-panel::-webkit-scrollbar-thumb { 
+    background-color: #4b5563; 
+    border-radius: 20px; 
+    border: 3px solid #1f2937; 
+}
+.word-item { 
+    animation: fadeIn 0.5s ease-out; 
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Styles for Panel Toggle --- */
+#toggle-panel-button {
+    /* Mobile position */
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+#toggle-panel-button svg {
+    transition: transform 0.3s ease;
+}
+
+/* Desktop position */
+@media (min-width: 768px) {
+    #toggle-panel-button {
+        top: 50%;
+        left: -20px;
+        transform: translateY(-50%);
+    }
+}
+
+/* --- Styles for Panel Transitions --- */
+#main-container.panel-hidden #words-panel {
+    /* Desktop: slide out */
+    @media (min-width: 768px) {
+        width: 0;
+        padding-left: 0;
+        padding-right: 0;
+        transform: translateX(-100%);
+        border-right-width: 0;
+    }
+    /* Mobile: collapse up */
+    @media (max-width: 767px) {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-bottom-width: 0;
+    }
+}
+
+/* Arrow rotation */
+#main-container.panel-hidden #toggle-panel-button svg {
+    /* Desktop: flip arrow */
+     @media (min-width: 768px) {
+        transform: rotate(180deg);
+     }
+     /* Mobile: flip arrow */
+     @media (max-width: 767px) {
+        transform: rotate(-180deg);
+     }
+}

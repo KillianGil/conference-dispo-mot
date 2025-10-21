@@ -12,55 +12,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- qrcode-generator library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        #words-panel::-webkit-scrollbar { width: 8px; }
-        #words-panel::-webkit-scrollbar-track { background: #1f2937; }
-        #words-panel::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 20px; border: 3px solid #1f2937; }
-        .word-item { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Styles for panel transitions */
-        #main-container.panel-hidden #words-panel {
-            /* Desktop: slide out */
-            @media (min-width: 768px) {
-                width: 0;
-                padding-left: 0;
-                padding-right: 0;
-                transform: translateX(-100%);
-            }
-            /* Mobile: collapse up */
-            @media (max-width: 767px) {
-                max-height: 0;
-                padding-top: 0;
-                padding-bottom: 0;
-                border-bottom-width: 0;
-            }
-        }
-        
-        #toggle-panel-button svg {
-             transition: transform 0.3s ease;
-        }
-
-        #main-container.panel-hidden #toggle-panel-button svg {
-            /* Desktop: flip arrow */
-             @media (min-width: 768px) {
-                transform: rotate(180deg);
-             }
-             /* Mobile: flip arrow */
-             @media (max-width: 767px) {
-                transform: rotate(-180deg);
-             }
-        }
-    </style>
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="h-full flex flex-col text-gray-200 overflow-hidden">
 
     <!-- Header -->
-    <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-4 text-center z-20">
+    <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-4 text-center z-20 flex-shrink-0">
         <h1 class="text-2xl md:text-3xl font-bold text-white">Tissage Collaboratif d'Idées</h1>
         <p class="text-gray-400 text-sm mt-1">Hélène Bailleul & Cécile Babiole</p>
     </header>
@@ -72,26 +30,29 @@
             <h2 class="text-xl font-bold mb-4 text-white">La Trame des Mots</h2>
             <ul id="words-list" class="space-y-2 flex-grow"></ul>
         </div>
+        
         <!-- Right Panel: Canvas -->
         <div id="canvas-container" class="flex-grow relative bg-black/50 w-full transition-all duration-300 ease-in-out h-3/5 md:h-auto">
+             <!-- Toggle Button is now inside the canvas container for better positioning -->
+            <button id="toggle-panel-button" class="absolute z-10 bg-gray-700 hover:bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center text-white transition-all duration-300 ease-in-out" title="Afficher/Cacher le panneau">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" class="hidden md:block" /> <!-- Desktop Arrow Left -->
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" class="block md:hidden" />   <!-- Mobile Arrow Up -->
+               </svg>
+           </button>
             <canvas id="weave-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
         </div>
-
-        <!-- Toggle Button -->
-        <button id="toggle-panel-button" class="absolute z-10 bg-gray-700 hover:bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center text-white top-1/2 left-1/2 md:left-auto md:top-1/2 transform -translate-x-1/2 -translate-y-1/2 md:-translate-x-1/2 md:-translate-y-1/2 transition-all duration-300 ease-in-out" title="Afficher/Cacher le panneau">
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" class="hidden md:block" /> <!-- Desktop Arrow Left -->
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" class="block md:hidden" />   <!-- Mobile Arrow Up -->
-            </svg>
-        </button>
     </div>
 
-    <!-- Footer: Input Form & QR Code Button -->
-    <footer class="bg-gray-800/50 backdrop-blur-sm border-t border-gray-700 p-4 flex items-center justify-center gap-4 z-20">
+    <!-- Footer: Input Form & Action Buttons -->
+    <footer class="bg-gray-800/50 backdrop-blur-sm border-t border-gray-700 p-4 flex items-center justify-center gap-2 sm:gap-4 z-20 flex-shrink-0">
         <form id="word-form" class="flex-grow max-w-lg flex gap-2">
             <input type="text" id="word-input" placeholder="Partagez un mot, une idée..." class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-transparent border transition">
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg transition duration-200">Tisser</button>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition duration-200">Tisser</button>
         </form>
+        <button id="download-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Télécharger l'œuvre">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        </button>
         <button id="qr-code-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Afficher le QR Code pour participer">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5" /></svg>
         </button>
@@ -107,194 +68,8 @@
         </div>
     </div>
 
-    <script>
-        // DOM Elements
-        const canvas = document.getElementById('weave-canvas');
-        const ctx = canvas.getContext('2d');
-        const wordsList = document.getElementById('words-list');
-        const wordForm = document.getElementById('word-form');
-        const wordInput = document.getElementById('word-input');
-        const mainContainer = document.getElementById('main-container');
-        const togglePanelButton = document.getElementById('toggle-panel-button');
-        const wordsPanel = document.getElementById('words-panel');
-
-        let words = [];
-        let lastWordsCount = 0;
-        let hue = Math.random();
-        
-        // --- Canvas Setup ---
-        function resizeCanvas() {
-            const container = document.getElementById('canvas-container');
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = container.clientWidth * dpr;
-            canvas.height = container.clientHeight * dpr;
-            ctx.scale(dpr, dpr);
-            drawWeave();
-        }
-
-        function drawWeave() {
-            const container = document.getElementById('canvas-container');
-            if (!container) return;
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            
-            ctx.clearRect(0, 0, width, height);
-            
-            if (words.length < 2) return;
-
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            for (let i = 1; i < words.length; i++) {
-                const prevWord = words[i - 1];
-                const currentWord = words[i];
-
-                ctx.beginPath();
-                ctx.moveTo(prevWord.x * width, prevWord.y * height);
-                ctx.lineTo(currentWord.x * width, currentWord.y * height);
-                ctx.strokeStyle = currentWord.color;
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.8;
-                ctx.stroke();
-            }
-        }
-
-        // --- Vercel API Communication ---
-        async function fetchWords() {
-            try {
-                const response = await fetch('/api/words');
-                if (!response.ok) throw new Error('Failed to fetch words');
-                const fetchedWords = await response.json();
-                
-                if (JSON.stringify(fetchedWords) !== JSON.stringify(words.slice().reverse())) {
-                    words = fetchedWords.reverse();
-                    updateWordList();
-                    drawWeave();
-                }
-
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        function updateWordList() {
-            wordsList.innerHTML = '';
-            [...words].reverse().forEach(word => {
-                const li = document.createElement('li');
-                li.className = 'word-item p-3 rounded-lg flex items-center';
-                li.style.backgroundColor = word.color + '20';
-
-                const colorDot = document.createElement('span');
-                colorDot.className = 'w-3 h-3 rounded-full mr-3 flex-shrink-0';
-                colorDot.style.backgroundColor = word.color;
-                
-                const textSpan = document.createElement('span');
-                textSpan.textContent = word.text;
-                textSpan.className = 'text-gray-200 truncate';
-
-                li.appendChild(colorDot);
-                li.appendChild(textSpan);
-                wordsList.appendChild(li);
-            });
-        }
-
-        // --- Form Submission ---
-        wordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = wordInput.value.trim();
-            if (text.length === 0 || text.length > 50) return;
-
-            wordInput.disabled = true;
-
-            const goldenRatioConjugate = 0.618033988749895;
-            hue += goldenRatioConjugate;
-            hue %= 1;
-            const newColor = `hsl(${hue * 360}, 80%, 60%)`;
-
-            const newWord = {
-                text: text,
-                x: Math.random(),
-                y: Math.random(),
-                color: newColor,
-            };
-
-            try {
-                await fetch('/api/words', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newWord),
-                });
-                wordInput.value = '';
-                fetchWords(); 
-            } catch (error) {
-                console.error("Error adding document: ", error);
-            } finally {
-                wordInput.disabled = false;
-                wordInput.focus();
-            }
-        });
-
-        // --- Panel Toggle Logic ---
-        togglePanelButton.addEventListener('click', () => {
-            mainContainer.classList.toggle('panel-hidden');
-            
-            // Adjust button position for mobile
-            if (window.innerWidth < 768) {
-                if (mainContainer.classList.contains('panel-hidden')) {
-                    togglePanelButton.style.top = '0';
-                    togglePanelButton.style.transform = 'translate(-50%, 50%)';
-                } else {
-                    togglePanelButton.style.top = '40%'; // Back to 40% (h-2/5)
-                    togglePanelButton.style.transform = 'translate(-50%, -50%)';
-                }
-            }
-        });
-
-        wordsPanel.addEventListener('transitionend', () => {
-             // Only resize if the panel is not hidden, to avoid weird redraws
-             if (!mainContainer.classList.contains('panel-hidden')) {
-                 resizeCanvas();
-             }
-        });
-
-
-        // --- QR Code Modal Logic ---
-        const qrButton = document.getElementById('qr-code-button');
-        const qrModal = document.getElementById('qr-modal');
-        const closeModalButton = document.getElementById('close-modal-button');
-        
-        function showQrCode() {
-            const qr = qrcode(0, 'L');
-            qr.addData(window.location.href);
-            qr.make();
-            document.getElementById('qrcode-display').innerHTML = qr.createImgTag(6, 8);
-            qrModal.classList.remove('hidden');
-        }
-        
-        function hideQrCode() {
-             qrModal.classList.add('hidden');
-        }
-
-        qrButton.addEventListener('click', showQrCode);
-        closeModalButton.addEventListener('click', hideQrCode);
-        qrModal.addEventListener('click', (e) => {
-            if (e.target === qrModal) hideQrCode();
-        });
-
-        // --- Initial Setup & Polling ---
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-            // Reset mobile toggle button position on resize
-            if (window.innerWidth >= 768) {
-                 togglePanelButton.style.top = '50%';
-                 togglePanelButton.style.transform = 'translate(-50%, -50%)';
-            }
-        });
-        resizeCanvas();
-        
-        setInterval(fetchWords, 2000);
-        fetchWords();
-    </script>
+    <!-- Custom JavaScript -->
+    <script src="script.js" defer></script>
 </body>
 </html>
 
