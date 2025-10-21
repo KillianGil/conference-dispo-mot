@@ -68,12 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/api/words?t=${Date.now()}`); // Anti-cache
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.details || `Erreur ${response.status}`);
+                let errorDetails = `Erreur HTTP ${response.status}`;
+                try {
+                    const err = await response.json();
+                    errorDetails = err.details || err.error || errorDetails;
+                } catch (e) { /* Ignore if response is not JSON */ }
+                throw new Error(errorDetails);
             }
             const fetchedWords = await response.json(); // API renvoie [plus récent, ..., plus ancien]
 
-            // Mise à jour uniquement si nécessaire
+            // Mise à jour uniquement si nécessaire pour éviter clignotements
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
@@ -81,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Erreur fetchWords:", error);
-            // Optionnel : afficher une erreur à l'utilisateur si la récupération échoue
+            // On pourrait afficher une notification discrète ici si besoin
         }
     }
 
@@ -115,6 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
         wordInput.disabled = true;
         submitButton.disabled = true;
         submitButton.textContent = '...';
+        // Enlever le style d'erreur précédent au cas où
+        wordInput.classList.remove('ring-2', 'ring-red-500', 'placeholder-red-400');
+        wordInput.placeholder = originalPlaceholder;
+
 
         const goldenRatioConjugate = 0.618033988749895;
         hue += goldenRatioConjugate;
@@ -130,22 +138,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(newWordPayload),
             });
 
-            // Vérifier si le POST a réussi (statut 201)
+            // Vérification CLAIRE si le POST a réussi (statut 201 attendu)
             if (!response.ok || response.status !== 201) {
                 let errorData;
                 try {
                     errorData = await response.json();
+                    // Utiliser le message d'erreur fourni par l'API s'il existe
+                    throw new Error(errorData.error || `Erreur serveur (${response.status})`);
                 } catch (jsonError) {
-                    // Si la réponse n'est pas du JSON valide
-                    throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+                    // Si la réponse n'est pas JSON ou si errorData.error n'existe pas
+                    throw new Error(`Erreur réseau (${response.status})`);
                 }
-                throw new Error(errorData.error || `Échec de la soumission (statut ${response.status})`);
             }
             
-            // Si le POST réussit, vider l'input et rafraîchir la liste
-            wordInput.value = '';
-            await fetchWords(); // On redemande la liste complète pour être sûr
+            // Si le POST a réussi (statut 201), utiliser la liste renvoyée par l'API
+            const updatedWords = await response.json();
+            displayedWords = updatedWords;
+            updateWordList();
+            drawWeave();
 
+            wordInput.value = ''; // Vider le champ SEULEMENT si tout a réussi
             // La logique de limitation est désactivée
 
         } catch (error) {
@@ -153,15 +165,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Afficher l'erreur dans le placeholder pour le diagnostic
             wordInput.placeholder = error.message;
             wordInput.classList.add('ring-2', 'ring-red-500', 'placeholder-red-400');
-            setTimeout(() => {
-                wordInput.classList.remove('ring-2', 'ring-red-500', 'placeholder-red-400');
-                wordInput.placeholder = originalPlaceholder;
-            }, 5000); // Augmenté à 5s pour avoir le temps de lire
+            // Pas besoin de setTimeout ici, l'erreur reste visible jusqu'à la prochaine tentative
         } finally {
-            // Réactiver le formulaire dans tous les cas
+            // Réactiver le formulaire dans tous les cas pour permettre une nouvelle tentative
             wordInput.disabled = false;
             submitButton.disabled = false;
             submitButton.textContent = 'Tisser';
+            if (!wordInput.classList.contains('ring-red-500')) {
+                // Remettre le placeholder seulement si aucune erreur n'est affichée
+                wordInput.placeholder = originalPlaceholder;
+            }
             wordInput.focus();
         }
     });
@@ -184,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
                 if (!response.ok) throw new Error('La réinitialisation a échoué.');
-                await fetchWords(); // Rafraîchir après suppression
+                await fetchWords(); // Rafraîchir après suppression pour vider l'affichage
             } catch (error) {
                 console.error("Reset failed:", error);
                 alert(error.message);
