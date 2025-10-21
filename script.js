@@ -128,14 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
         hue += goldenRatioConjugate;
         hue %= 1;
         const newColor = `hsl(${hue * 360}, 80%, 60%)`;
-
-        // **CORRECTIF : Le timestamp est maintenant créé ici, côté client**
+        
+        // Le serveur s'occupe de créer le timestamp. On n'envoie que les données nécessaires.
         const newWord = { 
             text, 
             x: Math.random(), 
             y: Math.random(), 
-            color: newColor,
-            timestamp: Date.now() 
+            color: newColor
         };
 
         try {
