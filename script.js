@@ -151,14 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // **CORRECTIF FINAL** : Le serveur renvoie la liste complète (statut 201), on l'utilise
-            const updatedWords = await response.json(); // Récupérer la liste renvoyée par le POST
-            displayedWords = updatedWords;             // Mettre à jour notre liste locale
-            updateWordList();                          // Mettre à jour l'affichage de la liste
-            drawWeave();                               // Redessiner le canvas
-
-            wordInput.value = ''; // Vider le champ SEULEMENT si tout a réussi
-            // La logique de limitation est désactivée
+            // Le POST a réussi, on vide l'input et on force le rafraîchissement
+            wordInput.value = '';
+            await fetchWords(); // Force la récupération de la liste à jour
 
         } catch (error) {
             console.error("Erreur d'ajout:", error);
@@ -173,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.textContent = 'Tisser';
             if (!wordInput.classList.contains('ring-red-500')) {
                 // Remettre le placeholder seulement si aucune erreur n'est affichée
-                 wordInput.placeholder = originalPlaceholder; // Restaurer le placeholder initial
+                wordInput.placeholder = originalPlaceholder;
             }
             wordInput.focus();
         }
@@ -226,3 +221,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchWords, 1500); // Récupère les mots des autres utilisateurs toutes les 1.5s
     fetchWords(); // Récupère les mots au chargement initial
 });
+
