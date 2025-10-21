@@ -10,26 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('download-button');
     const resetButton = document.getElementById('reset-button');
 
-    // The single source of truth for our words. Stored [newest, ... , oldest]
+    // La seule source de vérité pour les mots. [plus récent, ..., plus ancien]
     let displayedWords = [];
     let hue = Math.random();
 
-    /*
-    // --- Submission Limit (Temporarily Disabled for Testing) ---
-    const SUBMISSION_COUNT_KEY = 'tissageSubmissionCount';
-    let submissionCount = parseInt(localStorage.getItem(SUBMISSION_COUNT_KEY) || '0');
+    // --- Limite de soumission désactivée pour les tests ---
+    // const SUBMISSION_COUNT_KEY = 'tissageSubmissionCount';
+    // let submissionCount = 0;
+    // function checkSubmissionLimit() { ... }
 
-    function checkSubmissionLimit() {
-        if (submissionCount >= 999) { // Limit disabled
-            wordInput.placeholder = 'Merci pour votre participation !';
-            wordInput.disabled = true;
-            wordForm.querySelector('button').disabled = true;
-            wordForm.querySelector('button').classList.add('opacity-50', 'cursor-not-allowed');
-        }
-    }
-    */
-
-    // --- Canvas Setup ---
+    // --- Configuration du Canvas ---
     function resizeCanvas() {
         const container = document.getElementById('canvas-container');
         if (!container) return;
@@ -72,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Vercel API Communication ---
+    // --- Communication avec l'API Vercel ---
     async function fetchWords() {
         try {
             const response = await fetch(`/api/words?t=${Date.now()}`);
@@ -82,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fetchedWords = await response.json();
 
+            // On met à jour seulement si la liste a changé
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
@@ -110,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Form Submission ---
+    // --- Soumission du Formulaire ---
     wordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = wordInput.value.trim();
@@ -141,13 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || 'Échec de la soumission');
             }
             
-            // This is the most reliable way: after posting, fetch the definitive truth from the server.
-            await fetchWords();
+            // **LA SOLUTION EST ICI**
+            // Le serveur renvoie la liste complète et à jour. On l'utilise directement.
+            const updatedWords = await response.json();
+            displayedWords = updatedWords;
+            updateWordList();
+            drawWeave();
 
             wordInput.value = '';
-            // submissionCount++; // Limit disabled
-            // localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount); // Limit disabled
-            // checkSubmissionLimit(); // Limit disabled
+            // La logique de limitation est désactivée pour les tests.
 
         } catch (error) {
             console.error("Error adding word: ", error);
@@ -158,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 wordInput.placeholder = originalPlaceholder;
             }, 4000);
         } finally {
-            // Re-enable the form regardless of the submission count, as it's disabled.
             wordInput.disabled = false;
             submitButton.disabled = false;
             submitButton.textContent = 'Tisser';
@@ -166,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- UI Logic (Panel, Download, QR, Reset) ---
+    // --- Logique de l'Interface ---
     togglePanelButton.addEventListener('click', () => mainContainer.classList.toggle('panel-hidden'));
 
     downloadButton.addEventListener('click', () => {
@@ -180,12 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetButton.addEventListener('click', async () => {
-        if (confirm("Êtes-vous sûr de vouloir supprimer tous les mots et réinitialiser l'œuvre ? Cette action est irréversible.")) {
+        if (confirm("Êtes-vous sûr de vouloir supprimer tous les mots ?")) {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
                 if (!response.ok) throw new Error('La réinitialisation a échoué.');
-                // localStorage.removeItem(SUBMISSION_COUNT_KEY); // Limit disabled
-                window.location.reload();
+                // Pas besoin de recharger, la prochaine récupération de données videra l'affichage.
+                fetchWords();
             } catch (error) {
                 console.error("Reset failed:", error);
                 alert(error.message);
@@ -208,11 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalButton.addEventListener('click', hideQrCode);
     qrModal.addEventListener('click', (e) => { if (e.target === qrModal) hideQrCode(); });
 
-    // --- Initial Setup & Polling for other users' updates ---
+    // --- Démarrage et Polling ---
     window.addEventListener('resize', resizeCanvas);
-    // checkSubmissionLimit(); // Limit disabled
     resizeCanvas();
-    setInterval(fetchWords, 1500); // Check for others' words every 1.5 seconds
-    fetchWords(); // Initial fetch
+    setInterval(fetchWords, 1500); // Récupère les mots des autres utilisateurs
+    fetchWords(); // Récupère les mots au chargement
 });
 
