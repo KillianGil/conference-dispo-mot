@@ -7,7 +7,28 @@ body {
     touch-action: none;
     user-select: none;
 }
+.word-item {
+    animation: fadeIn 0.4s ease-out;
+    transition: all 0.3s ease;
+}
 
+.word-item:hover {
+    transform: translateX(4px);
+}
+
+/* Stats panel */
+#stats-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#stats-panel::-webkit-scrollbar-track {
+    background: #1f2937;
+}
+
+#stats-panel::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 20px;
+}
 /* Amélioration de la lisibilité des mots dans la liste */
 .word-item {
     animation: fadeIn 0.4s ease-out;
@@ -151,6 +172,17 @@ body {
     }
 }
 
+/* Mobile stats panel */
+@media (max-width: 640px) {
+    #stats-panel {
+        top: auto;
+        bottom: 80px;
+        right: 0.5rem;
+        left: 0.5rem;
+        width: auto;
+        max-width: none;
+    }
+}
 /* Modal responsive */
 @media (max-width: 640px) {
     #settings-modal > div,

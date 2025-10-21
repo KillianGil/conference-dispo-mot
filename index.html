@@ -63,6 +63,9 @@
     <button id="settings-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Paramètres">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
   </button>
+  <button id="stats-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Statistiques">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+</button>
 
     <script src="script.js" defer></script>
     <!-- Modal Paramètres -->
@@ -170,6 +173,20 @@
      
   </div>
 </div>
+</div>
+<!-- Panneau Statistiques -->
+<div id="stats-panel" class="fixed top-20 right-4 bg-gray-800 rounded-2xl shadow-2xl p-6 w-80 max-w-[calc(100vw-2rem)] hidden z-50 max-h-[calc(100vh-6rem)] overflow-y-auto">
+  <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-white flex items-center">
+          📊 Statistiques
+      </h3>
+      <button id="close-stats-button" class="text-gray-400 hover:text-white transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+  </div>
+  <div id="stats-content">
+      <p class="text-gray-400 text-sm">Chargement...</p>
+  </div>
 </div>
 </body>
 </html>
