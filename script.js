@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // To draw lines chronologically, we need to reverse the list.
         const chronoWords = [...displayedWords].reverse();
         if (chronoWords.length < 2) return;
 
@@ -78,12 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const err = await response.json();
                 throw new Error(err.details || 'Failed to fetch words');
             }
-            const fetchedWords = await response.json(); // API returns [newest, ..., oldest]
+            const fetchedWords = await response.json(); 
 
             const lastKnownTimestamp = displayedWords.length > 0 ? displayedWords[0].timestamp : 0;
             const latestTimestamp = fetchedWords.length > 0 ? fetchedWords[0].timestamp : 0;
 
-            // More efficient check: only update if there's a newer word or the count differs.
             if (latestTimestamp > lastKnownTimestamp || fetchedWords.length !== displayedWords.length) {
                 displayedWords = fetchedWords;
                 updateWordList();
@@ -96,11 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateWordList() {
         wordsList.innerHTML = '';
-        // displayedWords is already in the correct order [newest, ..., oldest] for display.
         displayedWords.forEach(word => {
             const li = document.createElement('li');
             li.className = 'word-item p-3 rounded-lg flex items-center';
-            li.style.backgroundColor = word.color + '20'; // Add transparency to the color
+            li.style.backgroundColor = word.color + '20';
             const colorDot = document.createElement('span');
             colorDot.className = 'w-3 h-3 rounded-full mr-3 flex-shrink-0';
             colorDot.style.backgroundColor = word.color;
@@ -120,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text.length === 0 || text.length > 50) return;
 
         const submitButton = wordForm.querySelector('button');
+        const originalPlaceholder = wordInput.placeholder;
         wordInput.disabled = true;
         submitButton.disabled = true;
         submitButton.textContent = '...';
@@ -129,13 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hue %= 1;
         const newColor = `hsl(${hue * 360}, 80%, 60%)`;
         
-        // Le serveur s'occupe de créer le timestamp. On n'envoie que les données nécessaires.
-        const newWord = { 
-            text, 
-            x: Math.random(), 
-            y: Math.random(), 
-            color: newColor
-        };
+        const newWord = { text, x: Math.random(), y: Math.random(), color: newColor };
 
         try {
             const response = await fetch('/api/words', {
@@ -146,21 +138,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Server error:', errorData);
-                throw new Error(errorData.error || 'Failed to submit word');
+                // Affiche l'erreur du serveur directement à l'utilisateur.
+                throw new Error(errorData.error || 'Échec de la soumission');
             }
 
             wordInput.value = '';
             submissionCount++;
             localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount);
             checkSubmissionLimit();
-            await fetchWords(); // Fetch immediately for instant feedback
+            await fetchWords();
         } catch (error) {
             console.error("Error adding word: ", error);
-            wordInput.classList.add('ring-2', 'ring-red-500');
+            wordInput.placeholder = error.message; // Affiche l'erreur dans le champ.
+            wordInput.classList.add('ring-2', 'ring-red-500', 'placeholder-red-400');
             setTimeout(() => {
-                wordInput.classList.remove('ring-2', 'ring-red-500');
-            }, 2500);
+                wordInput.classList.remove('ring-2', 'ring-red-500', 'placeholder-red-400');
+                wordInput.placeholder = originalPlaceholder;
+            }, 4000);
         } finally {
             if (submissionCount < 2) {
                 wordInput.disabled = false;
@@ -175,13 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
     togglePanelButton.addEventListener('click', () => mainContainer.classList.toggle('panel-hidden'));
 
     downloadButton.addEventListener('click', () => {
-        resizeCanvas(); // Ensure canvas is sized correctly before download
-        drawWeave(true); // Redraw with a solid background
+        resizeCanvas();
+        drawWeave(true);
         const link = document.createElement('a');
         link.download = `tissage-collaboratif-${new Date().toISOString().split('T')[0]}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        drawWeave(false); // Redraw back to transparent for the live view
+        drawWeave(false);
     });
 
     const qrButton = document.getElementById('qr-code-button');
@@ -203,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
     checkSubmissionLimit();
     resizeCanvas();
-    setInterval(fetchWords, 1500); // Poll for updates from other users
-    fetchWords(); // Initial fetch
+    setInterval(fetchWords, 1500);
+    fetchWords();
 });
 
