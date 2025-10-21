@@ -11,18 +11,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 👉 parse manuellement le body s'il est vide
+    //
+    // --- Test de connexion KV en interne (log seulement au premier passage)
+    //
+    try {
+      const testKey = "kv_probe";
+      await kv.set(testKey, "ok");
+      const value = await kv.get(testKey);
+      console.log("🟢 Connexion KV OK:", value);
+    } catch (err) {
+      console.error("🔴 Erreur de connexion KV:", err);
+    }
+
+    // --- Gestion du corps de requête (pour POST)
     let body = req.body;
     if (!body || typeof body === "string") {
       try {
-        const textData = body ? body : await getRawBody(req);
-        body = JSON.parse(textData);
-      } catch (err) {
-        // ignore si ce n’est pas un JSON valide
+        const raw = body ? body : await getRawBody(req);
+        body = JSON.parse(raw);
+      } catch {
         body = {};
       }
     }
 
+    // --- DELETE : vider la base
     if (req.method === "DELETE") {
       await kv.del("words");
       return res
@@ -30,13 +42,14 @@ export default async function handler(req, res) {
         .json({ success: true, message: "All words deleted." });
     }
 
+    // --- POST : ajouter un mot
     if (req.method === "POST") {
       const { text, x, y, color } = body;
+
       if (!text || x === undefined || y === undefined || !color) {
-        return res.status(400).json({
-          error: "Missing required fields.",
-          received: body, // 🧩 Pour debug visible
-        });
+        return res
+          .status(400)
+          .json({ error: "Missing required fields.", received: body });
       }
 
       const wordData = {
@@ -48,42 +61,40 @@ export default async function handler(req, res) {
       };
 
       await kv.rpush("words", JSON.stringify(wordData));
-      return res.status(201).json({ success: true, data: wordData });
+
+      console.log("🟢 Mot ajouté:", wordData);
+      return res.status(201).json({ success: true });
     }
 
+    // --- GET : récupérer les mots
     if (req.method === "GET") {
       const wordsList = await kv.lrange("words", 0, -1);
 
       const words = wordsList
-        .map((word) => {
+        .map((w) => {
           try {
-            if (typeof word === "string") {
-              const parsed = JSON.parse(word);
-              if (
-                typeof parsed.text === "string" &&
-                parsed.color &&
-                parsed.x !== undefined &&
-                parsed.y !== undefined
-              ) {
-                return {
-                  ...parsed,
-                  x: parseFloat(parsed.x),
-                  y: parseFloat(parsed.y),
-                };
-              }
+            const parsed = JSON.parse(w);
+            if (parsed && parsed.text && parsed.color) {
+              return {
+                ...parsed,
+                x: parseFloat(parsed.x),
+                y: parseFloat(parsed.y),
+              };
             }
             return null;
-          } catch (e) {
-            console.warn("Invalid data found in KV, skipping:", word);
+          } catch {
             return null;
           }
         })
         .filter(Boolean);
 
+      // Trier du plus récent au plus ancien
       words.sort((a, b) => b.timestamp - a.timestamp);
+
       return res.status(200).json(words);
     }
 
+    // --- Méthode non autorisée
     res.setHeader("Allow", ["GET", "POST", "DELETE", "OPTIONS"]);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (error) {
@@ -94,23 +105,12 @@ export default async function handler(req, res) {
     });
   }
 }
-try {
-  const testKey = "kv_probe";
-  await kv.set(testKey, "ok");
-  const value = await kv.get(testKey);
-  console.log("🟢 KV test value:", value);
-} catch (err) {
-  console.error("🔴 Erreur de connexion KV:", err);
-}
-/**
- * 🧠 Petit helper pour lire le corps brut d'une requête HTTP
- */
+
+// --- Helper pour lire le corps brut d’une requête HTTP
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
-    req.on("data", (chunk) => {
-      data += chunk;
-    });
+    req.on("data", (chunk) => (data += chunk));
     req.on("end", () => resolve(data));
     req.on("error", reject);
   });
