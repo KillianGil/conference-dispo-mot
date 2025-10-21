@@ -80,6 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fetchedWords = await response.json();
 
+            // --- FIX FOR RESET ---
+            // If the server has no words but we locally have words, it means a reset happened.
+            if (fetchedWords.length === 0 && displayedWords.length > 0) {
+                // A reset was triggered. Reload the page to clear the state and submission count.
+                localStorage.removeItem(SUBMISSION_COUNT_KEY);
+                window.location.reload();
+                return; // Stop execution, the page will reload.
+            }
+
             // Use a robust check to see if the data has changed.
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
@@ -140,16 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || 'Échec de la soumission');
             }
 
-            // ** THE FIX IS HERE: Optimistic Update **
-            // The API returns the word it just created. We use it directly.
-            const { word: newWordFromServer } = await response.json();
-
-            // Add the new word to the top of our local list
-            displayedWords.unshift(newWordFromServer);
-            
-            // Immediately update the UI without waiting for the next poll
-            updateWordList();
-            drawWeave();
+            // ** FIX FOR SYNCHRONIZATION **
+            // No more optimistic update. We rely on fetchWords for consistency.
+            // We successfully posted, so we immediately fetch the new state.
+            await fetchWords();
 
             wordInput.value = '';
             submissionCount++;
@@ -192,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
                 if (!response.ok) throw new Error('La réinitialisation a échoué.');
+                // The user who clicks reset will also have their page reloaded.
                 localStorage.removeItem(SUBMISSION_COUNT_KEY);
                 window.location.reload();
             } catch (error) {
