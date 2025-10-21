@@ -11,6 +11,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 👉 parse manuellement le body s'il est vide
+    let body = req.body;
+    if (!body || typeof body === "string") {
+      try {
+        const textData = body ? body : await getRawBody(req);
+        body = JSON.parse(textData);
+      } catch (err) {
+        // ignore si ce n’est pas un JSON valide
+        body = {};
+      }
+    }
+
     if (req.method === "DELETE") {
       await kv.del("words");
       return res
@@ -19,9 +31,12 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { text, x, y, color } = req.body;
+      const { text, x, y, color } = body;
       if (!text || x === undefined || y === undefined || !color) {
-        return res.status(400).json({ error: "Missing required fields." });
+        return res.status(400).json({
+          error: "Missing required fields.",
+          received: body, // 🧩 Pour debug visible
+        });
       }
 
       const wordData = {
@@ -33,7 +48,7 @@ export default async function handler(req, res) {
       };
 
       await kv.rpush("words", JSON.stringify(wordData));
-      return res.status(201).json({ success: true });
+      return res.status(201).json({ success: true, data: wordData });
     }
 
     if (req.method === "GET") {
@@ -65,9 +80,7 @@ export default async function handler(req, res) {
         })
         .filter(Boolean);
 
-      // tri du plus récent au plus ancien
       words.sort((a, b) => b.timestamp - a.timestamp);
-
       return res.status(200).json(words);
     }
 
@@ -80,4 +93,18 @@ export default async function handler(req, res) {
       details: error.message,
     });
   }
+}
+
+/**
+ * 🧠 Petit helper pour lire le corps brut d'une requête HTTP
+ */
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk) => {
+      data += chunk;
+    });
+    req.on("end", () => resolve(data));
+    req.on("error", reject);
+  });
 }
