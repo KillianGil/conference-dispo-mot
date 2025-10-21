@@ -4,47 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tissage Collaboratif d'Idées</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- qrcode-generator library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
-    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="h-full flex flex-col text-gray-200 overflow-hidden">
 
-    <!-- Header -->
     <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 p-4 text-center z-20 flex-shrink-0">
         <h1 class="text-2xl md:text-3xl font-bold text-white">Tissage Collaboratif d'Idées</h1>
         <p class="text-gray-400 text-sm mt-1">Hélène Bailleul & Cécile Babiole</p>
     </header>
 
-    <!-- Main Content -->
     <div id="main-container" class="flex-grow flex flex-col md:flex-row min-h-0 relative">
-        <!-- Left Panel: Words List -->
         <div id="words-panel" class="w-full md:w-1/3 lg:w-1/4 bg-gray-900/80 md:border-r border-gray-700 flex flex-col p-4 md:p-6 overflow-y-auto transition-all duration-300 ease-in-out h-2/5 md:h-auto border-b md:border-b-0">
             <h2 class="text-xl font-bold mb-4 text-white">La Trame des Mots</h2>
             <ul id="words-list" class="space-y-2 flex-grow"></ul>
         </div>
         
-        <!-- Right Panel: Canvas -->
         <div id="canvas-container" class="flex-grow relative bg-black/50 w-full transition-all duration-300 ease-in-out h-3/5 md:h-auto">
-             <!-- Toggle Button is now inside the canvas container for better positioning -->
             <button id="toggle-panel-button" class="absolute z-10 bg-gray-700 hover:bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center text-white transition-all duration-300 ease-in-out" title="Afficher/Cacher le panneau">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" class="hidden md:block" /> <!-- Desktop Arrow Left -->
-                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" class="block md:hidden" />   <!-- Mobile Arrow Up -->
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" class="hidden md:block" />
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" class="block md:hidden" />
                </svg>
            </button>
             <canvas id="weave-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
         </div>
     </div>
 
-    <!-- Footer: Input Form & Action Buttons -->
     <footer class="bg-gray-800/50 backdrop-blur-sm border-t border-gray-700 p-4 flex items-center justify-center gap-2 sm:gap-4 z-20 flex-shrink-0">
         <form id="word-form" class="flex-grow max-w-lg flex gap-2">
             <input type="text" id="word-input" placeholder="Partagez un mot, une idée..." class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-transparent border transition">
@@ -56,13 +46,11 @@
         <button id="qr-code-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Afficher le QR Code pour participer">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5" /></svg>
         </button>
-        <!-- NEW: Reset Button -->
         <button id="reset-button" class="bg-red-800 hover:bg-red-700 text-white font-bold p-3 rounded-lg transition duration-200" title="Réinitialiser l'œuvre (supprime tout)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
     </footer>
     
-    <!-- QR Code Modal -->
     <div id="qr-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4">
         <div id="qr-modal-content" class="bg-gray-800 p-8 rounded-2xl shadow-xl text-center relative max-w-sm w-full">
             <button id="close-modal-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -72,7 +60,6 @@
         </div>
     </div>
 
-    <!-- Custom JavaScript -->
     <script src="script.js" defer></script>
 </body>
 </html>
