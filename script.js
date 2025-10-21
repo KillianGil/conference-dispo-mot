@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContainer = document.getElementById('main-container');
     const togglePanelButton = document.getElementById('toggle-panel-button');
     const downloadButton = document.getElementById('download-button');
+    const resetButton = document.getElementById('reset-button'); // New button
 
     // The single source of truth for our words. Stored [newest, ... , oldest]
     let displayedWords = [];
@@ -72,8 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Vercel API Communication ---
     async function fetchWords() {
         try {
-            // THE FIX: Add a cache-busting parameter to the URL.
-            // This ensures we always get the latest data from the server.
+            // Add a cache-busting parameter to the URL
             const response = await fetch(`/api/words?t=${Date.now()}`);
             if (!response.ok) {
                 const err = await response.json();
@@ -140,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                // Affiche l'erreur du serveur directement à l'utilisateur.
                 throw new Error(errorData.error || 'Échec de la soumission');
             }
 
@@ -151,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchWords();
         } catch (error) {
             console.error("Error adding word: ", error);
-            wordInput.placeholder = error.message; // Affiche l'erreur dans le champ.
+            wordInput.placeholder = error.message;
             wordInput.classList.add('ring-2', 'ring-red-500', 'placeholder-red-400');
             setTimeout(() => {
                 wordInput.classList.remove('ring-2', 'ring-red-500', 'placeholder-red-400');
@@ -167,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- UI Logic (Panel, Download, QR) ---
+    // --- UI Logic (Panel, Download, QR, Reset) ---
     togglePanelButton.addEventListener('click', () => mainContainer.classList.toggle('panel-hidden'));
 
     downloadButton.addEventListener('click', () => {
@@ -178,6 +177,24 @@ document.addEventListener('DOMContentLoaded', () => {
         link.href = canvas.toDataURL('image/png');
         link.click();
         drawWeave(false);
+    });
+
+    // NEW: Reset logic
+    resetButton.addEventListener('click', async () => {
+        if (confirm("Êtes-vous sûr de vouloir supprimer tous les mots et réinitialiser l'œuvre ? Cette action est irréversible.")) {
+            try {
+                const response = await fetch('/api/words', { method: 'DELETE' });
+                if (!response.ok) {
+                    throw new Error('La réinitialisation a échoué.');
+                }
+                // Clear local storage and reload the page to see the changes
+                localStorage.removeItem(SUBMISSION_COUNT_KEY);
+                window.location.reload();
+            } catch (error) {
+                console.error("Reset failed:", error);
+                alert(error.message);
+            }
+        }
     });
 
     const qrButton = document.getElementById('qr-code-button');
