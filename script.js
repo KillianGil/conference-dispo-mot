@@ -10,11 +10,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const resetButton = document.getElementById("reset-button");
   
     let displayedWords = [];
+    let animationFrame = null;
+    let weavingAnimation = [];
+    let animationProgress = 0;
+  
     let settings = {
-      linkMode: "chronological", // 'chronological', 'proximity', 'color'
+      linkMode: "chronological",
       showWords: true,
       animateLines: true,
       lineWidth: 2,
+      colorTheme: "auto",
+      enableResonance: false,
+      showTimestamp: true,
+    };
+  
+    // Palettes de couleurs thématiques
+    const colorPalettes = {
+      auto: () => `hsl(${Math.random() * 360}, 80%, 60%)`,
+      bailleul: () => {
+        const colors = [
+          "hsl(30, 70%, 55%)", // terracotta
+          "hsl(45, 80%, 65%)", // ocre
+          "hsl(160, 45%, 50%)", // vert végétal
+          "hsl(200, 30%, 60%)", // bleu lin
+          "hsl(15, 60%, 50%)", // rouille
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
+      babiole: () => {
+        const colors = [
+          "hsl(280, 90%, 65%)", // violet électrique
+          "hsl(180, 85%, 55%)", // cyan
+          "hsl(330, 95%, 60%)", // magenta
+          "hsl(60, 100%, 50%)", // jaune vif
+          "hsl(120, 80%, 55%)", // vert néon
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
     };
   
     // --- Canvas Resize ---
@@ -40,7 +72,32 @@ document.addEventListener("DOMContentLoaded", () => {
     function colorSimilarity(color1, color2) {
       const hsl1 = color1.match(/\d+/g).map(Number);
       const hsl2 = color2.match(/\d+/g).map(Number);
-      return Math.abs(hsl1[0] - hsl2[0]); // Différence de teinte
+      return Math.abs(hsl1[0] - hsl2[0]);
+    }
+  
+    // --- Résonance : lettres communes ---
+    function hasResonance(word1, word2) {
+      const letters1 = new Set(word1.text.toLowerCase().split(""));
+      const letters2 = new Set(word2.text.toLowerCase().split(""));
+      const common = [...letters1].filter((l) => letters2.has(l));
+      return common.length >= 2;
+    }
+  
+    // --- Animation de tissage ---
+    function animateWeaving() {
+      if (weavingAnimation.length === 0) return;
+  
+      animationProgress += 0.02;
+      if (animationProgress >= 1) {
+        animationProgress = 0;
+        weavingAnimation.shift();
+      }
+  
+      drawWeave();
+  
+      if (settings.animateLines && weavingAnimation.length > 0) {
+        animationFrame = requestAnimationFrame(animateWeaving);
+      }
     }
   
     // --- Dessin amélioré ---
@@ -61,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
   
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.globalAlpha = 0.6;
   
       // Créer les connexions selon le mode
       let connections = [];
@@ -72,7 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
           connections.push([chronoWords[i - 1], chronoWords[i]]);
         }
       } else if (settings.linkMode === "proximity") {
-        // Connecter chaque mot à ses 2 plus proches voisins
         displayedWords.forEach((word) => {
           const distances = displayedWords
             .filter((w) => w !== word)
@@ -82,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
           distances.forEach((d) => connections.push([word, d.word]));
         });
       } else if (settings.linkMode === "color") {
-        // Connecter les mots de couleurs similaires
         displayedWords.forEach((word) => {
           const similar = displayedWords
             .filter((w) => w !== word)
@@ -94,10 +148,17 @@ document.addEventListener("DOMContentLoaded", () => {
             .slice(0, 2);
           similar.forEach((s) => connections.push([word, s.word]));
         });
+      } else if (settings.linkMode === "resonance") {
+        displayedWords.forEach((word) => {
+          const resonant = displayedWords.filter(
+            (w) => w !== word && hasResonance(word, w)
+          );
+          resonant.forEach((r) => connections.push([word, r]));
+        });
       }
   
-      // Dessiner les connexions
-      connections.forEach(([word1, word2]) => {
+      // Dessiner les connexions avec animation
+      connections.forEach(([word1, word2], index) => {
         if (
           typeof word1.x !== "number" ||
           typeof word1.y !== "number" ||
@@ -110,18 +171,52 @@ document.addEventListener("DOMContentLoaded", () => {
         )
           return;
   
+        // Animation de tissage
+        let progress = 1;
+        if (
+          weavingAnimation.length > 0 &&
+          index === connections.length - 1
+        ) {
+          progress = animationProgress;
+        }
+  
+        const x1 = word1.x * width;
+        const y1 = word1.y * height;
+        const x2 = word2.x * width;
+        const y2 = word2.y * height;
+  
+        // Ligne principale
+        ctx.globalAlpha = 0.6;
         ctx.beginPath();
-        ctx.moveTo(word1.x * width, word1.y * height);
-        ctx.lineTo(word2.x * width, word2.y * height);
-        ctx.strokeStyle = word2.color;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(
+          x1 + (x2 - x1) * progress,
+          y1 + (y2 - y1) * progress
+        );
+  
+        // Dégradé pour l'effet tissage
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, word1.color);
+        gradient.addColorStop(1, word2.color);
+        ctx.strokeStyle = gradient;
         ctx.lineWidth = settings.lineWidth;
         ctx.stroke();
+  
+        // Effet de résonance
+        if (settings.enableResonance && hasResonance(word1, word2)) {
+          ctx.globalAlpha = 0.2;
+          ctx.lineWidth = settings.lineWidth * 2;
+          ctx.stroke();
+        }
       });
   
       // Dessiner les mots sur le canvas
       if (settings.showWords) {
         ctx.globalAlpha = 1;
-        ctx.font = "14px Inter, sans-serif";
+        const isMobile = window.innerWidth < 768;
+        ctx.font = isMobile
+          ? "12px Inter, sans-serif"
+          : "14px Inter, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
   
@@ -130,17 +225,23 @@ document.addEventListener("DOMContentLoaded", () => {
           const y = word.y * height;
   
           // Ombre
-          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
           ctx.fillText(word.text, x + 1, y + 1);
   
           // Texte
           ctx.fillStyle = word.color;
           ctx.fillText(word.text, x, y);
+  
+          // Point central
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = word.color;
+          ctx.fill();
         });
       }
     }
   
-    // --- API sans animation sur les mots existants ---
+    // --- API ---
     async function fetchWords() {
       try {
         const response = await fetch(`/api/words?t=${Date.now()}`);
@@ -159,22 +260,34 @@ document.addEventListener("DOMContentLoaded", () => {
           (fw) =>
             !displayedWords.some(
               (dw) =>
-                dw.text === fw.text &&
-                dw.timestamp === fw.timestamp
+                dw.text === fw.text && dw.timestamp === fw.timestamp
             )
         );
   
+        const hadWords = displayedWords.length > 0;
         displayedWords = fetchedWords;
-        updateWordList(newWords);
-        drawWeave();
+  
+        if (newWords.length > 0) {
+          updateWordList(newWords);
+  
+          // Lancer l'animation de tissage pour les nouveaux mots
+          if (settings.animateLines && hadWords) {
+            weavingAnimation = newWords;
+            animationProgress = 0;
+            if (animationFrame)
+              cancelAnimationFrame(animationFrame);
+            animateWeaving();
+          } else {
+            drawWeave();
+          }
+        }
       } catch (error) {
         console.error("Erreur fetchWords:", error);
       }
     }
   
-    // --- Mise à jour de la liste (animation seulement pour les nouveaux) ---
+    // --- Mise à jour de la liste ---
     function updateWordList(newWords = []) {
-      // Supprimer les anciens éléments non présents
       const existingItems = Array.from(
         wordsList.querySelectorAll(".word-item")
       );
@@ -186,7 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
   
-      // Ajouter seulement les nouveaux mots
       newWords.forEach((word) => {
         if (!word.text || !word.color) return;
   
@@ -201,10 +313,23 @@ document.addEventListener("DOMContentLoaded", () => {
   
         const textSpan = document.createElement("span");
         textSpan.textContent = word.text;
-        textSpan.className = "text-gray-200 truncate";
+        textSpan.className = "text-gray-200 truncate flex-grow";
   
         li.appendChild(colorDot);
         li.appendChild(textSpan);
+  
+        // Timestamp optionnel
+        if (settings.showTimestamp) {
+          const timeSpan = document.createElement("span");
+          const date = new Date(word.timestamp);
+          timeSpan.textContent = date.toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          timeSpan.className = "text-xs text-gray-500 ml-2";
+          li.appendChild(timeSpan);
+        }
+  
         wordsList.insertBefore(li, wordsList.firstChild);
       });
     }
@@ -222,7 +347,10 @@ document.addEventListener("DOMContentLoaded", () => {
       submitButton.disabled = true;
       submitButton.textContent = "...";
   
-      const newColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+      const colorGenerator =
+        colorPalettes[settings.colorTheme] || colorPalettes.auto;
+      const newColor = colorGenerator();
+  
       const newWordPayload = {
         text,
         x: Math.random(),
@@ -247,16 +375,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
   
         wordInput.value = "";
+        
+        // Feedback visuel mobile
+        submitButton.textContent = "✓";
+        setTimeout(() => {
+          submitButton.textContent = "Tisser";
+        }, 800);
+        
         await fetchWords();
       } catch (error) {
         console.error("Erreur d'ajout:", error);
         wordInput.placeholder = error.message;
+        setTimeout(() => {
+          wordInput.placeholder = originalPlaceholder;
+        }, 3000);
       } finally {
         wordInput.disabled = false;
         submitButton.disabled = false;
-        submitButton.textContent = "Tisser";
         wordInput.focus();
-        wordInput.placeholder = originalPlaceholder;
       }
     });
   
@@ -290,12 +426,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
   
-    // Afficher les mots sur le canvas
+    // Thème de couleur
+    document
+      .querySelectorAll('input[name="color-theme"]')
+      .forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          settings.colorTheme = e.target.value;
+        });
+      });
+  
+    // Afficher les mots
     document
       .getElementById("show-words-toggle")
       .addEventListener("change", (e) => {
         settings.showWords = e.target.checked;
         drawWeave();
+      });
+  
+    // Animation de tissage
+    document
+      .getElementById("animate-lines-toggle")
+      .addEventListener("change", (e) => {
+        settings.animateLines = e.target.checked;
+      });
+  
+    // Résonance
+    document
+      .getElementById("resonance-toggle")
+      .addEventListener("change", (e) => {
+        settings.enableResonance = e.target.checked;
+        drawWeave();
+      });
+  
+    // Timestamp
+    document
+      .getElementById("show-timestamp-toggle")
+      .addEventListener("change", (e) => {
+        settings.showTimestamp = e.target.checked;
+        wordsList.innerHTML = "";
+        updateWordList(displayedWords);
       });
   
     // Épaisseur des lignes
@@ -317,16 +486,20 @@ document.addEventListener("DOMContentLoaded", () => {
       resizeCanvas();
       drawWeave(true);
       const link = document.createElement("a");
-      link.download = `tissage-${new Date()
-        .toISOString()
-        .split("T")[0]}.png`;
+      const date = new Date().toISOString().split("T")[0];
+      link.download = `tissage-bailleul-babiole-${date}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       drawWeave(false);
     });
   
     resetButton.addEventListener("click", async () => {
-      if (confirm("Supprimer tous les mots ?")) {
+      const isMobile = window.innerWidth < 768;
+      const message = isMobile
+        ? "Tout supprimer ?"
+        : "Supprimer tous les mots et recommencer le tissage ?";
+  
+      if (confirm(message)) {
         try {
           await fetch("/api/words", { method: "DELETE" });
           displayedWords = [];
@@ -364,6 +537,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Init ---
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
-    setInterval(fetchWords, 1500);
+    setInterval(fetchWords, 2000); // Réduit pour mobile
     fetchWords();
   });

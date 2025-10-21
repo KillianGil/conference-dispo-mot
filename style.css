@@ -1,8 +1,11 @@
 body { 
-    font-family: 'Inter', sans-serif; 
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
+
+/* Scrollbar personnalisée */
 #words-panel::-webkit-scrollbar { 
-    width: 8px; 
+    width: 6px; 
 }
 #words-panel::-webkit-scrollbar-track { 
     background: #1f2937; 
@@ -10,12 +13,16 @@ body {
 #words-panel::-webkit-scrollbar-thumb { 
     background-color: #4b5563; 
     border-radius: 20px; 
-    border: 3px solid #1f2937; 
 }
 
-/* Animation seulement au chargement initial */
+/* Animation seulement pour nouveaux mots */
 .word-item { 
     animation: fadeIn 0.4s ease-out;
+    transition: background-color 0.3s ease;
+}
+
+.word-item:active {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes fadeIn {
@@ -28,18 +35,18 @@ body {
         transform: translateY(0); 
     }
 }
-/* --- Styles for Panel Toggle --- */
+
+/* Toggle button */
 #toggle-panel-button {
-    /* Mobile position */
-    top: -20px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
 }
+
 #toggle-panel-button svg {
     transition: transform 0.3s ease;
 }
 
-/* Desktop position */
 @media (min-width: 768px) {
     #toggle-panel-button {
         top: 50%;
@@ -48,9 +55,8 @@ body {
     }
 }
 
-/* --- Styles for Panel Transitions --- */
+/* Panel transitions */
 #main-container.panel-hidden #words-panel {
-    /* Desktop: slide out */
     @media (min-width: 768px) {
         width: 0;
         padding-left: 0;
@@ -58,23 +64,79 @@ body {
         transform: translateX(-100%);
         border-right-width: 0;
     }
-    /* Mobile: collapse up */
     @media (max-width: 767px) {
         max-height: 0;
         padding-top: 0;
         padding-bottom: 0;
         border-bottom-width: 0;
+        overflow: hidden;
     }
 }
 
-/* Arrow rotation */
 #main-container.panel-hidden #toggle-panel-button svg {
-    /* Desktop: flip arrow */
-     @media (min-width: 768px) {
+    @media (min-width: 768px) {
         transform: rotate(180deg);
-     }
-     /* Mobile: flip arrow */
-     @media (max-width: 767px) {
+    }
+    @media (max-width: 767px) {
         transform: rotate(-180deg);
-     }
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    header p {
+        font-size: 0.75rem;
+    }
+    
+    footer {
+        padding: 0.75rem;
+    }
+    
+    footer button {
+        padding: 0.5rem;
+    }
+    
+    footer button svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    #word-input {
+        font-size: 14px;
+        padding: 0.625rem;
+    }
+    
+    #word-form button {
+        font-size: 14px;
+        padding: 0.625rem 1rem;
+    }
+    
+    .word-item {
+        padding: 0.625rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Amélioration tactile */
+@media (hover: none) {
+    button:active {
+        transform: scale(0.95);
+    }
+    
+    input[type="radio"]:active,
+    input[type="checkbox"]:active {
+        transform: scale(1.1);
+    }
+}
+
+/* Modal responsive */
+@media (max-width: 640px) {
+    #settings-modal > div,
+    #qr-modal > div {
+        max-width: calc(100vw - 2rem);
+    }
 }

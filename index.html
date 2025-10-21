@@ -66,48 +66,89 @@
 
     <script src="script.js" defer></script>
     <!-- Modal Paramètres -->
-<div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4">
-  <div class="bg-gray-800 p-8 rounded-2xl shadow-xl relative max-w-md w-full">
+<!-- Modal Paramètres -->
+<div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
+  <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-xl relative max-w-md w-full my-4">
       <button id="close-settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
-      <h3 class="text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
+      <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
       
       <!-- Mode de liaison -->
       <div class="mb-6">
-          <label class="block text-gray-300 font-semibold mb-3">Mode de liaison</label>
+          <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
           <div class="space-y-2">
-              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
                   <input type="radio" name="link-mode" value="chronological" checked class="mr-3 accent-indigo-500">
-                  <span>Chronologique (ordre d'ajout)</span>
+                  <span>Chronologique</span>
               </label>
-              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
                   <input type="radio" name="link-mode" value="proximity" class="mr-3 accent-indigo-500">
-                  <span>Proximité (mots proches)</span>
+                  <span>Proximité spatiale</span>
               </label>
-              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
                   <input type="radio" name="link-mode" value="color" class="mr-3 accent-indigo-500">
-                  <span>Couleur (teintes similaires)</span>
+                  <span>Harmonie chromatique</span>
+              </label>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="resonance" class="mr-3 accent-indigo-500">
+                  <span>Résonance textuelle</span>
               </label>
           </div>
       </div>
 
-      <!-- Afficher les mots -->
+      <!-- Thème de couleurs -->
       <div class="mb-6">
-          <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+          <label class="block text-gray-300 font-semibold mb-3">🎨 Palette de couleurs</label>
+          <div class="space-y-2">
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="color-theme" value="auto" checked class="mr-3 accent-indigo-500">
+                  <span>Aléatoire</span>
+              </label>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="color-theme" value="bailleul" class="mr-3 accent-indigo-500">
+                  <span>Hélène Bailleul (textile)</span>
+              </label>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="color-theme" value="babiole" class="mr-3 accent-indigo-500">
+                  <span>Cécile Babiole (numérique)</span>
+              </label>
+          </div>
+      </div>
+
+      <!-- Options d'affichage -->
+      <div class="mb-6 space-y-3">
+          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
               <input type="checkbox" id="show-words-toggle" checked class="mr-3 accent-indigo-500">
-              <span class="font-semibold">Afficher les mots sur le canvas</span>
+              <span>Afficher les mots sur le canvas</span>
+          </label>
+          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+              <input type="checkbox" id="animate-lines-toggle" checked class="mr-3 accent-indigo-500">
+              <span>Animation de tissage</span>
+          </label>
+          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+              <input type="checkbox" id="resonance-toggle" class="mr-3 accent-indigo-500">
+              <span>Effet de résonance</span>
+          </label>
+          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+              <input type="checkbox" id="show-timestamp-toggle" checked class="mr-3 accent-indigo-500">
+              <span>Horodatage des mots</span>
           </label>
       </div>
 
       <!-- Épaisseur des lignes -->
-      <div class="mb-6">
-          <label class="block text-gray-300 font-semibold mb-2">
-              Épaisseur des lignes: <span id="line-width-value" class="text-indigo-400">2</span>px
+      <div class="mb-4">
+          <label class="block text-gray-300 font-semibold mb-2 text-sm md:text-base">
+              Épaisseur des fils: <span id="line-width-value" class="text-indigo-400">2</span>px
           </label>
           <input type="range" id="line-width" min="1" max="8" value="2" class="w-full accent-indigo-500">
       </div>
+
+      <div class="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400">
+          💡 Les paramètres modifient l'œuvre en temps réel
+      </div>
   </div>
+</div>
 </div>
 </body>
 </html>
