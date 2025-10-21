@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
       drawWeave();
     }
   
+    // --- Dessin ---
     function drawWeave(withBackground = false) {
       const container = document.getElementById("canvas-container");
       if (!container) return;
@@ -46,11 +47,17 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i = 1; i < chronoWords.length; i++) {
         const prevWord = chronoWords[i - 1];
         const currentWord = chronoWords[i];
+  
+        // Vérification avant de tracer
         if (
           typeof prevWord.x !== "number" ||
           typeof prevWord.y !== "number" ||
           typeof currentWord.x !== "number" ||
-          typeof currentWord.y !== "number"
+          typeof currentWord.y !== "number" ||
+          isNaN(prevWord.x) ||
+          isNaN(prevWord.y) ||
+          isNaN(currentWord.x) ||
+          isNaN(currentWord.y)
         )
           continue;
   
@@ -67,13 +74,30 @@ document.addEventListener("DOMContentLoaded", () => {
     async function fetchWords() {
       try {
         const response = await fetch(`/api/words?t=${Date.now()}`);
-        if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
-        const fetchedWords = await response.json();
+        if (!response.ok)
+          throw new Error(`Erreur réseau: ${response.status}`);
   
-        console.log("📥 Données KV reçues:", fetchedWords);
+        // 🔍 Analyse manuelle et logs pour diagnostic
+        const raw = await response.text();
+        console.log("📥 Contenu brut renvoyé par API:", raw);
   
-        // Forcer la mise à jour pour éviter les problèmes de comparaison JSON
-        displayedWords = fetchedWords || [];
+        let fetchedWords;
+        try {
+          fetchedWords = JSON.parse(raw);
+        } catch (err) {
+          console.error("❌ JSON invalide reçu:", err);
+          return;
+        }
+  
+        // Vérification du type attendu
+        if (!Array.isArray(fetchedWords)) {
+          console.error("❌ Réponse inattendue:", fetchedWords);
+          return;
+        }
+  
+        displayedWords = fetchedWords;
+        console.log("✅ Données KV parsées:", displayedWords);
+  
         updateWordList();
         drawWeave();
       } catch (error) {
@@ -81,6 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
+    // --- Mise à jour de la liste de mots ---
     function updateWordList() {
       wordsList.innerHTML = "";
   
@@ -92,7 +117,8 @@ document.addEventListener("DOMContentLoaded", () => {
         li.style.backgroundColor = word.color + "20";
   
         const colorDot = document.createElement("span");
-        colorDot.className = "w-3 h-3 rounded-full mr-3 flex-shrink-0";
+        colorDot.className =
+          "w-3 h-3 rounded-full mr-3 flex-shrink-0";
         colorDot.style.backgroundColor = word.color;
   
         const textSpan = document.createElement("span");
@@ -105,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
-    // --- Soumission ---
+    // --- Soumission du formulaire ---
     wordForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const text = wordInput.value.trim();
@@ -142,6 +168,9 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error(errorMsg);
         }
   
+        console.log("✅ Mot envoyé:", newWordPayload);
+  
+        // Efface le champ après succès
         wordInput.value = "";
         await fetchWords();
       } catch (error) {
@@ -192,7 +221,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const qr = qrcode(0, "L");
       qr.addData(window.location.href);
       qr.make();
-      document.getElementById("qrcode-display").innerHTML = qr.createImgTag(6, 8);
+      document.getElementById("qrcode-display").innerHTML =
+        qr.createImgTag(6, 8);
       qrModal.classList.remove("hidden");
     }
   
