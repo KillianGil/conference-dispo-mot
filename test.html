@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tissage collaboratif</title>
+<style>
+html, body { margin:0; padding:0; overflow:hidden; height:100%; }
+#container { display:flex; height:100vh; }
+#wordsPanel { width:30%; background:#f0f0f0; padding:10px; overflow-y:auto; }
+#canvasPanel { width:70%; position:relative; }
+#tissage { display:block; width:100%; height:100%; background:#fff; }
+#inputForm { position:absolute; top:10px; left:10px; z-index:10; }
+#wordInput { padding:5px; font-size:16px; }
+#sendButton { padding:5px 10px; font-size:16px; }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="wordsPanel">
+    <h3>Mots ajoutés</h3>
+    <ul id="wordList"></ul>
+  </div>
+  <div id="canvasPanel">
+    <canvas id="tissage"></canvas>
+    <div id="inputForm">
+      <input id="wordInput" type="text" placeholder="Écris un mot">
+      <button id="sendButton">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+// --- Configuration Firebase ---
+const firebaseConfig = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJET.firebaseapp.com",
+  databaseURL: "https://VOTRE_PROJET.firebaseio.com",
+  projectId: "VOTRE_PROJET",
+  storageBucket: "VOTRE_PROJET.appspot.com",
+  messagingSenderId: "VOTRE_ID",
+  appId: "VOTRE_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// --- Canvas setup ---
+const canvas = document.getElementById('tissage');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.parentElement.clientWidth;
+canvas.height = canvas.parentElement.clientHeight;
+
+let mots = [];
+let positions = [];
+
+// --- Ajouter un mot dans Firebase ---
+document.getElementById('sendButton').addEventListener('click', () => {
+  const word = document.getElementById('wordInput').value.trim();
+  if(!word) return;
+
+  const data = {
+    text: word,
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    color: `rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)})`,
+    timestamp: Date.now()
+  };
+  db.ref('words').push(data);
+  document.getElementById('wordInput').value = '';
+});
+
+// --- Écouter les mots ajoutés en temps réel ---
+db.ref('words').on('child_added', (snapshot) => {
+  const data = snapshot.val();
+  mots.push({text: data.text, color: data.color, x: data.x, y: data.y});
+  positions.push({x: data.x, y: data.y});
+  updateWordList();
+  drawCanvas();
+});
+
+// --- Afficher la liste des mots ---
+function updateWordList() {
+  const list = document.getElementById('wordList');
+  list.innerHTML = '';
+  mots.forEach(m => {
+    const li = document.createElement('li');
+    li.textContent = m.text;
+    list.appendChild(li);
+  });
+}
+
+// --- Dessiner le canvas ---
+function drawCanvas() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Dessiner les traits
+  for(let i=0; i<mots.length; i++){
+    if(i===0) continue;
+    // Se connecter à un mot aléatoire existant
+    const j = Math.floor(Math.random()*i); 
+    ctx.strokeStyle = mots[i].color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(mots[i].x, mots[i].y);
+    ctx.lineTo(mots[j].x, mots[j].y);
+    ctx.stroke();
+  }
+}
+
+// --- Redimensionner le canvas ---
+window.addEventListener('resize', () => {
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+  drawCanvas();
+});
+</script>
+
+</body>
+</html>
