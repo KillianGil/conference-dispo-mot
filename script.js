@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Limite de soumission désactivée pour les tests ---
     // const SUBMISSION_COUNT_KEY = 'tissageSubmissionCount';
-    // let submissionCount = 0;
+    // let submissionCount = 0; // Ou parseInt(localStorage.getItem(SUBMISSION_COUNT_KEY) || '0');
     // function checkSubmissionLimit() { ... }
 
     // --- Configuration du Canvas ---
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
+        // Pour dessiner les lignes chronologiquement, on inverse la liste
         const chronoWords = [...displayedWords].reverse();
         if (chronoWords.length < 2) return;
 
@@ -65,26 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Communication avec l'API Vercel ---
     async function fetchWords() {
         try {
-            const response = await fetch(`/api/words?t=${Date.now()}`);
+            const response = await fetch(`/api/words?t=${Date.now()}`); // Anti-cache
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.details || 'Failed to fetch words');
+                throw new Error(err.details || `Erreur ${response.status}`);
             }
-            const fetchedWords = await response.json();
+            const fetchedWords = await response.json(); // API renvoie [plus récent, ..., plus ancien]
 
-            // On met à jour seulement si la liste a changé
+            // Mise à jour uniquement si nécessaire
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
                 drawWeave();
             }
         } catch (error) {
-            console.error("Failed to fetch words:", error);
+            console.error("Erreur fetchWords:", error);
+            // Optionnel : afficher une erreur à l'utilisateur si la récupération échoue
         }
     }
 
     function updateWordList() {
         wordsList.innerHTML = '';
+        // displayedWords est déjà dans le bon ordre [plus récent, ..., plus ancien]
         displayedWords.forEach(word => {
             const li = document.createElement('li');
             li.className = 'word-item p-3 rounded-lg flex items-center';
@@ -127,30 +130,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(newWordPayload),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Échec de la soumission');
+            // Vérifier si le POST a réussi (statut 201)
+            if (!response.ok || response.status !== 201) {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (jsonError) {
+                    // Si la réponse n'est pas du JSON valide
+                    throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+                }
+                throw new Error(errorData.error || `Échec de la soumission (statut ${response.status})`);
             }
             
-            // **LA SOLUTION EST ICI**
-            // Le serveur renvoie la liste complète et à jour. On l'utilise directement.
-            const updatedWords = await response.json();
-            displayedWords = updatedWords;
-            updateWordList();
-            drawWeave();
-
+            // Si le POST réussit, vider l'input et rafraîchir la liste
             wordInput.value = '';
-            // La logique de limitation est désactivée pour les tests.
+            await fetchWords(); // On redemande la liste complète pour être sûr
+
+            // La logique de limitation est désactivée
 
         } catch (error) {
-            console.error("Error adding word: ", error);
+            console.error("Erreur d'ajout:", error);
+            // Afficher l'erreur dans le placeholder pour le diagnostic
             wordInput.placeholder = error.message;
             wordInput.classList.add('ring-2', 'ring-red-500', 'placeholder-red-400');
             setTimeout(() => {
                 wordInput.classList.remove('ring-2', 'ring-red-500', 'placeholder-red-400');
                 wordInput.placeholder = originalPlaceholder;
-            }, 4000);
+            }, 5000); // Augmenté à 5s pour avoir le temps de lire
         } finally {
+            // Réactiver le formulaire dans tous les cas
             wordInput.disabled = false;
             submitButton.disabled = false;
             submitButton.textContent = 'Tisser';
@@ -176,8 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
                 if (!response.ok) throw new Error('La réinitialisation a échoué.');
-                // Pas besoin de recharger, la prochaine récupération de données videra l'affichage.
-                fetchWords();
+                await fetchWords(); // Rafraîchir après suppression
             } catch (error) {
                 console.error("Reset failed:", error);
                 alert(error.message);
