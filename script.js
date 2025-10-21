@@ -248,7 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.translate(offsetX, offsetY);
         ctx.scale(scale, scale);
       
-        if (displayedWords.length < 2) return;
+        if (displayedWords.length === 0) return;
       
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
@@ -256,9 +256,9 @@ document.addEventListener("DOMContentLoaded", () => {
         let connections = [];
       
         if (settings.linkMode === "chronological") {
-          const chronoWords = [...displayedWords].reverse();
-          for (let i = 1; i < chronoWords.length; i++) {
-            connections.push([chronoWords[i - 1], chronoWords[i]]);
+          // CORRECTION : Ne pas inverser, traiter dans l'ordre chronologique
+          for (let i = 1; i < displayedWords.length; i++) {
+            connections.push([displayedWords[i - 1], displayedWords[i]]);
           }
         } else if (settings.linkMode === "random") {
           displayedWords.forEach((word, index) => {
@@ -292,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
               (w) => w !== word && hasResonance(word, w)
             );
             
-            // Si aucune résonance trouvée, connecter au mot le plus proche
             if (resonant.length === 0) {
               const closest = displayedWords
                 .filter((w) => w !== word)
@@ -307,16 +306,15 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       
-        // CORRECTION : Vérifier et connecter les mots isolés
+        // Vérifier et connecter les mots isolés
         const connectedWords = new Set();
         connections.forEach(([w1, w2]) => {
           connectedWords.add(w1);
           connectedWords.add(w2);
         });
       
-        // Pour chaque mot non connecté, le relier au plus proche
         displayedWords.forEach((word) => {
-          if (!connectedWords.has(word)) {
+          if (!connectedWords.has(word) && displayedWords.length > 1) {
             const closest = displayedWords
               .filter((w) => w !== word)
               .map((w) => ({ word: w, dist: distance(word, w) }))
