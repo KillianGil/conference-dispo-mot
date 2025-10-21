@@ -1,6 +1,6 @@
 let mots = [];
 
-export default function handler(req, res){
+export default function handler(req,res){
   if(req.method === 'POST'){
     const { text, x, y, color } = req.body;
     if(text && x!==undefined && y!==undefined && color){
