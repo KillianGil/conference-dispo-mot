@@ -35,32 +35,38 @@ document.addEventListener("DOMContentLoaded", () => {
   
     // CORRECTION: colorPalettes au bon endroit
     const colorPalettes = {
-      auto: () => {
-        const hueRanges = [
-          [0, 30], [30, 60], [150, 180], [180, 210],
-          [210, 270], [270, 330], [330, 360]
-        ];
-        const range = hueRanges[Math.floor(Math.random() * hueRanges.length)];
-        const hue = range[0] + Math.random() * (range[1] - range[0]);
-        const saturation = 70 + Math.random() * 20;
-        const lightness = 50 + Math.random() * 15;
-        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-      },
-      bailleul: () => {
-        const colors = [
-          "hsl(30, 70%, 55%)", "hsl(45, 80%, 65%)", "hsl(160, 45%, 50%)",
-          "hsl(200, 30%, 60%)", "hsl(15, 60%, 50%)"
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-      },
-      babiole: () => {
-        const colors = [
-          "hsl(280, 90%, 65%)", "hsl(180, 85%, 55%)", "hsl(330, 95%, 60%)",
-          "hsl(60, 100%, 50%)", "hsl(120, 80%, 55%)"
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-      },
-    };
+        auto: () => {
+          // Totalement aléatoire - toutes les teintes possibles
+          const hue = Math.random() * 360;
+          const saturation = 60 + Math.random() * 35; // 60-95%
+          const lightness = 45 + Math.random() * 25;  // 45-70%
+          return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
+        },
+        
+        bailleul: () => {
+          const colors = [
+            "hsl(35, 68%, 58%)",   // Terre cuite
+            "hsl(42, 75%, 62%)",   // Ocre jaune
+            "hsl(165, 42%, 52%)",  // Vert sauge
+            "hsl(195, 35%, 58%)",  // Bleu gris
+            "hsl(18, 58%, 54%)",   // Brique
+            "hsl(50, 70%, 65%)",   // Moutarde
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        },
+        
+        babiole: () => {
+          const colors = [
+            "hsl(285, 88%, 62%)",  // Violet électrique
+            "hsl(185, 82%, 58%)",  // Cyan vif
+            "hsl(335, 92%, 65%)",  // Magenta
+            "hsl(65, 95%, 55%)",   // Jaune-vert
+            "hsl(160, 78%, 58%)",  // Vert menthe
+            "hsl(210, 85%, 60%)",  // Bleu ciel
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        },
+      };
   
     function resizeCanvas() {
       const container = document.getElementById("canvas-container");
