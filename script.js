@@ -72,7 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Vercel API Communication ---
     async function fetchWords() {
         try {
-            const response = await fetch('/api/words');
+            // THE FIX: Add a cache-busting parameter to the URL.
+            // This ensures we always get the latest data from the server.
+            const response = await fetch(`/api/words?t=${Date.now()}`);
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.details || 'Failed to fetch words');
