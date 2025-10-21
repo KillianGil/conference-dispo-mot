@@ -94,7 +94,14 @@ export default async function handler(req, res) {
     });
   }
 }
-
+try {
+  const testKey = "kv_probe";
+  await kv.set(testKey, "ok");
+  const value = await kv.get(testKey);
+  console.log("🟢 KV test value:", value);
+} catch (err) {
+  console.error("🔴 Erreur de connexion KV:", err);
+}
 /**
  * 🧠 Petit helper pour lire le corps brut d'une requête HTTP
  */
