@@ -96,8 +96,74 @@ footer button:active {
 }
 
 /* ==================== MODALS ==================== */
+#settings-modal,
+#qr-modal {
+    overflow-y: auto;
+}
+
 #settings-modal > div {
-    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    margin: 1rem auto;
+}
+
+#qr-modal > div {
+    max-width: 400px;
+}
+
+@media (max-width: 767px) {
+    #settings-modal > div {
+        max-width: calc(100vw - 2rem);
+        max-height: calc(100vh - 2rem);
+        padding: 1.25rem;
+        margin: 1rem;
+    }
+    
+    #settings-modal h3 {
+        font-size: 1.25rem;
+        padding-right: 2rem;
+    }
+    
+    /* Bouton close plus visible sur mobile */
+    #close-settings-button {
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #close-settings-button:active {
+        background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+@media (max-width: 640px) {
+    #qr-modal > div {
+        max-width: calc(100vw - 3rem);
+        padding: 1.5rem;
+    }
+    
+    #qr-modal h3 {
+        font-size: 1.125rem;
+    }
+    
+    #qr-modal p {
+        font-size: 0.875rem;
+    }
+    
+    #qrcode-display {
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    #qrcode-display img {
+        max-width: 100%;
+        height: auto;
+    }
 }
 
 /* ==================== QR CODE MODAL ==================== */

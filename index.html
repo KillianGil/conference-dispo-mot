@@ -80,53 +80,54 @@
 <!-- Modal Paramètres -->
 <div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
   <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-xl relative max-w-md w-full my-4">
-      <button id="close-settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      <button id="close-settings-button" class="absolute top-3 right-3 text-gray-400 hover:text-white transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
       </button>
       <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
       
-      <!-- Mode de liaison -->
-      <!-- Remplacez la section Mode de liaison dans le modal Paramètres -->
-<div class="mb-6">
-  <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
-  <div class="space-y-2">
-      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-          <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
-          <div>
-              <div>Chronologique</div>
-              <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
+      <!-- Le reste du contenu reste identique -->
+      <div class="mb-6">
+          <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
+          <div class="space-y-2">
+              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
+                  <div>
+                      <div>Chronologique</div>
+                      <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
+                  </div>
+              </label>
+              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
+                  <div>
+                      <div>Aléatoire</div>
+                      <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
+                  </div>
+              </label>
+              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
+                  <div>
+                      <div>Proximité spatiale</div>
+                      <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
+                  </div>
+              </label>
+              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
+                  <div>
+                      <div>Harmonie chromatique</div>
+                      <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
+                  </div>
+              </label>
+              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
+                  <div>
+                      <div>Résonance textuelle</div>
+                      <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
+                  </div>
+              </label>
           </div>
-      </label>
-      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-          <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
-          <div>
-              <div>Aléatoire</div>
-              <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
-          </div>
-      </label>
-      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-          <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
-          <div>
-              <div>Proximité spatiale</div>
-              <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
-          </div>
-      </label>
-      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-          <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
-          <div>
-              <div>Harmonie chromatique</div>
-              <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
-          </div>
-      </label>
-      <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-          <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
-          <div>
-              <div>Résonance textuelle</div>
-              <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
-          </div>
-      </label>
-  </div>
-</div>
+      </div>
 
       <!-- Thème de couleurs -->
       <div class="mb-6">
@@ -184,19 +185,13 @@
           💡 Les paramètres modifient l'œuvre en temps réel
       </div>
 
-      <!-- 👇 AJOUTEZ CE BLOC ICI -->
+      <!-- Zoom info -->
       <div class="mt-3 p-3 bg-indigo-900/30 rounded-lg text-xs text-gray-300">
           🔍 <strong>Zoom :</strong> 
           <span class="hidden md:inline">Molette ou pincement • Double-clic pour réinitialiser</span>
           <span class="md:hidden">Pincement à 2 doigts • Double-tap pour réinitialiser</span>
       </div>
-      <!-- 👆 FIN DU BLOC -->
-
   </div>
-</div>
-     
-  </div>
-</div>
 </div>
 <!-- Panneau Statistiques -->
 <div id="stats-panel" class="fixed top-20 right-4 bg-gray-800 rounded-2xl shadow-2xl p-6 w-80 max-w-[calc(100vw-2rem)] hidden z-50 max-h-[calc(100vh-6rem)] overflow-y-auto">

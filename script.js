@@ -595,18 +595,25 @@ document.addEventListener("DOMContentLoaded", () => {
       statsPanel.classList.add("hidden");
     });
   
-    const settingsButton = document.getElementById("settings-button");
-    const settingsModal = document.getElementById("settings-modal");
-    const closeSettingsButton = document.getElementById("close-settings-button");
-    settingsButton.addEventListener("click", () => {
-      settingsModal.classList.remove("hidden");
-    });
-    closeSettingsButton.addEventListener("click", () => {
-      settingsModal.classList.add("hidden");
-    });
-    settingsModal.addEventListener("click", (e) => {
-      if (e.target === settingsModal) settingsModal.classList.add("hidden");
-    });
+    // Settings modal
+const settingsButton = document.getElementById("settings-button");
+const settingsModal = document.getElementById("settings-modal");
+const closeSettingsButton = document.getElementById("close-settings-button");
+
+settingsButton.addEventListener("click", () => {
+  settingsModal.classList.remove("hidden");
+});
+
+closeSettingsButton.addEventListener("click", () => {
+  settingsModal.classList.add("hidden");
+});
+
+// Fermer en cliquant sur le fond
+settingsModal.addEventListener("click", (e) => {
+  if (e.target === settingsModal) {
+    settingsModal.classList.add("hidden");
+  }
+});
   
     document.querySelectorAll('input[name="link-mode"]').forEach((radio) => {
       radio.addEventListener("change", (e) => {
