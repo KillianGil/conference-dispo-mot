@@ -129,7 +129,14 @@ document.addEventListener('DOMContentLoaded', () => {
         hue %= 1;
         const newColor = `hsl(${hue * 360}, 80%, 60%)`;
 
-        const newWord = { text, x: Math.random(), y: Math.random(), color: newColor };
+        // **CORRECTIF : Le timestamp est maintenant créé ici, côté client**
+        const newWord = { 
+            text, 
+            x: Math.random(), 
+            y: Math.random(), 
+            color: newColor,
+            timestamp: Date.now() 
+        };
 
         try {
             const response = await fetch('/api/words', {
