@@ -83,6 +83,10 @@
                   <span>Chronologique</span>
               </label>
               <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="random" class="mr-3 accent-indigo-500">
+                  <span>Aléatoire (points libres)</span>
+              </label>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
                   <input type="radio" name="link-mode" value="proximity" class="mr-3 accent-indigo-500">
                   <span>Proximité spatiale</span>
               </label>
@@ -123,10 +127,6 @@
               <span>Afficher les mots sur le canvas</span>
           </label>
           <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-            <input type="checkbox" id="gradient-toggle" class="mr-3 accent-indigo-500">
-            <span>Dégradé de couleurs</span>
-        </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
               <input type="checkbox" id="animate-lines-toggle" checked class="mr-3 accent-indigo-500">
               <span>Animation de tissage</span>
           </label>
@@ -135,12 +135,12 @@
               <span>Effet de résonance</span>
           </label>
           <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-            <input type="radio" name="link-mode" value="random" class="mr-3 accent-indigo-500">
-            <span>Aléatoire (points libres)</span>
-        </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
               <input type="checkbox" id="show-timestamp-toggle" checked class="mr-3 accent-indigo-500">
               <span>Horodatage des mots</span>
+          </label>
+          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+              <input type="checkbox" id="gradient-toggle" class="mr-3 accent-indigo-500">
+              <span>Dégradé de couleurs</span>
           </label>
       </div>
 
@@ -152,14 +152,21 @@
           <input type="range" id="line-width" min="1" max="8" value="2" class="w-full accent-indigo-500">
       </div>
 
+      <!-- Info sur les paramètres -->
       <div class="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400">
           💡 Les paramètres modifient l'œuvre en temps réel
       </div>
+
+      <!-- 👇 AJOUTEZ CE BLOC ICI -->
       <div class="mt-3 p-3 bg-indigo-900/30 rounded-lg text-xs text-gray-300">
-        🔍 <strong>Zoom :</strong> 
-        <span class="hidden md:inline">Molette ou pincement • Double-clic pour réinitialiser</span>
-        <span class="md:hidden">Pincement à 2 doigts • Double-tap pour réinitialiser</span>
-    </div>
+          🔍 <strong>Zoom :</strong> 
+          <span class="hidden md:inline">Molette ou pincement • Double-clic pour réinitialiser</span>
+          <span class="md:hidden">Pincement à 2 doigts • Double-tap pour réinitialiser</span>
+      </div>
+      <!-- 👆 FIN DU BLOC -->
+
+  </div>
+</div>
      
   </div>
 </div>
