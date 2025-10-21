@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const canvas = document.getElementById('weave-canvas');
     const ctx = canvas.getContext('2d');
     const wordsList = document.getElementById('words-list');
@@ -9,9 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('download-button');
     const resetButton = document.getElementById('reset-button');
 
-    // La base de données renvoie [plus ancien, ..., plus récent]
+    // La seule source de vérité pour les mots.
+    // La DB renvoie les mots du plus récent au plus ancien.
     let displayedWords = [];
 
+    // --- Configuration du Canvas ---
     function resizeCanvas() {
         const container = document.getElementById('canvas-container');
         if (!container) return;
@@ -30,13 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (withBackground) { ctx.fillStyle = '#111827'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
         
-        // On dessine dans l'ordre chronologique (plus ancien -> plus récent)
-        if (displayedWords.length < 2) return;
+        // Pour dessiner les lignes chronologiquement, on inverse la liste
+        const chronoWords = [...displayedWords].reverse();
+        if (chronoWords.length < 2) return;
 
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        for (let i = 1; i < displayedWords.length; i++) {
-            const prevWord = displayedWords[i - 1]; 
-            const currentWord = displayedWords[i];
+        for (let i = 1; i < chronoWords.length; i++) {
+            const prevWord = chronoWords[i - 1]; 
+            const currentWord = chronoWords[i];
             ctx.beginPath();
             ctx.moveTo(prevWord.x * width, prevWord.y * height);
             ctx.lineTo(currentWord.x * width, currentWord.y * height);
@@ -45,11 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Communication avec l'API ---
     async function fetchWords() {
         try {
-            const response = await fetch(`/api/words?t=${Date.now()}`);
+            const response = await fetch(`/api/words?t=${Date.now()}`); // Anti-cache
             if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
             const fetchedWords = await response.json();
+            
+            // Comparaison robuste pour la mise à jour
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
@@ -60,8 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateWordList() {
         wordsList.innerHTML = '';
-        // Inverser la liste pour l'affichage (le plus récent en haut)
-        [...displayedWords].reverse().forEach(word => {
+        // La liste est déjà dans le bon ordre pour l'affichage (plus récent en haut)
+        displayedWords.forEach(word => {
             const li = document.createElement('li'); li.className = 'word-item p-3 rounded-lg flex items-center'; li.style.backgroundColor = word.color + '20';
             const colorDot = document.createElement('span'); colorDot.className = 'w-3 h-3 rounded-full mr-3 flex-shrink-0'; colorDot.style.backgroundColor = word.color;
             const textSpan = document.createElement('span'); textSpan.textContent = word.text; textSpan.className = 'text-gray-200 truncate';
@@ -69,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Soumission du Formulaire ---
     wordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = wordInput.value.trim();
@@ -111,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Logique UI ---
     togglePanelButton.addEventListener('click', () => mainContainer.classList.toggle('panel-hidden'));
     downloadButton.addEventListener('click', () => { resizeCanvas(); drawWeave(true); const link = document.createElement('a'); link.download = `tissage-${new Date().toISOString().split('T')[0]}.png`; link.href = canvas.toDataURL('image/png'); link.click(); drawWeave(false); });
     resetButton.addEventListener('click', async () => { if (confirm("Supprimer tous les mots ?")) { try { await fetch('/api/words', { method: 'DELETE' }); await fetchWords(); } catch (err) { alert('La réinitialisation a échoué.'); } } });
@@ -121,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalButton.addEventListener('click', hideQrCode);
     qrModal.addEventListener('click', (e) => { if (e.target === qrModal) hideQrCode(); });
 
+    // --- Démarrage ---
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     setInterval(fetchWords, 1500);
