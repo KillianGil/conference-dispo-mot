@@ -18,29 +18,34 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields.' });
       }
       const wordData = { text, x, y, color, timestamp: Date.now() };
-      
-      // Add the new word to the 'words' list in Vercel KV. No limit.
       await kv.lpush('words', JSON.stringify(wordData));
-      
       return res.status(201).json({ success: true, word: wordData });
     } catch (error) {
-      console.error('Error adding word:', error);
-      return res.status(500).json({ error: 'Failed to add word.' });
+      // Log the detailed error for debugging on Vercel
+      console.error('VERCEL_KV_POST_ERROR:', error);
+      // Send a more informative error response
+      return res.status(500).json({ 
+        error: 'Failed to communicate with the database during POST.',
+        details: error.message 
+      });
     }
   } else if (req.method === 'GET') {
     try {
-      // Retrieve all words from the list.
-      // lrange with -1 means "up to the last element".
       const wordsList = await kv.lrange('words', 0, -1);
       const words = wordsList.map(word => JSON.parse(word));
-      
       return res.status(200).json(words);
     } catch (error) {
-      console.error('Error fetching words:', error);
-      return res.status(500).json({ error: 'Failed to fetch words.' });
+      // Log the detailed error for debugging on Vercel
+      console.error('VERCEL_KV_GET_ERROR:', error);
+      // Send a more informative error response
+      return res.status(500).json({ 
+        error: 'Failed to communicate with the database during GET.',
+        details: error.message 
+      });
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST', 'OPTIONS']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
+

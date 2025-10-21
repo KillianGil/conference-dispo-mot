@@ -41,11 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const width = container.clientWidth;
         const height = container.clientHeight;
         
-        ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if(withBackground) {
             ctx.fillStyle = '#111827'; // bg-gray-900
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         
         if (words.length < 2) return;
@@ -70,11 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchWords() {
         try {
             const response = await fetch('/api/words');
-            if (!response.ok) throw new Error('Failed to fetch words');
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.details || 'Failed to fetch words');
+            }
             const fetchedWords = await response.json();
             
+            // This comparison prevents unnecessary re-renders if the data hasn't changed.
             if (JSON.stringify(fetchedWords) !== JSON.stringify(words.slice().reverse())) {
-                words = fetchedWords.reverse();
+                words = fetchedWords.reverse(); // reverse to get chronological order
                 updateWordList();
                 drawWeave();
             }
@@ -107,19 +111,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = wordInput.value.trim();
         if (text.length === 0 || text.length > 50) return;
 
+        const submitButton = wordForm.querySelector('button');
         wordInput.disabled = true;
+        submitButton.disabled = true;
+        submitButton.textContent = '...';
 
         const goldenRatioConjugate = 0.618033988749895;
         hue += goldenRatioConjugate;
         hue %= 1;
         const newColor = `hsl(${hue * 360}, 80%, 60%)`;
 
-        const newWord = {
-            text: text,
-            x: Math.random(),
-            y: Math.random(),
-            color: newColor,
-        };
+        const newWord = { text, x: Math.random(), y: Math.random(), color: newColor };
 
         try {
             const response = await fetch('/api/words', {
@@ -127,39 +129,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newWord),
             });
-            if (!response.ok) throw new Error('Failed to submit word');
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Server error:', errorData);
+                throw new Error(errorData.error || 'Failed to submit word');
+            }
 
             wordInput.value = '';
             submissionCount++;
             localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount);
             checkSubmissionLimit();
-            await fetchWords(); 
+            await fetchWords();
         } catch (error) {
-            console.error("Error adding document: ", error);
+            console.error("Error adding word: ", error);
+            wordInput.classList.add('ring-2', 'ring-red-500');
+            setTimeout(() => {
+                wordInput.classList.remove('ring-2', 'ring-red-500');
+            }, 2500);
         } finally {
             if (submissionCount < 2) {
                 wordInput.disabled = false;
+                submitButton.disabled = false;
+                submitButton.textContent = 'Tisser';
                 wordInput.focus();
             }
         }
     });
 
-    // --- Panel Toggle Logic ---
-    togglePanelButton.addEventListener('click', () => {
-        mainContainer.classList.toggle('panel-hidden');
-    });
+    // --- UI Logic (Panel, Download, QR) ---
+    togglePanelButton.addEventListener('click', () => mainContainer.classList.toggle('panel-hidden'));
 
-    // --- Download Artwork Logic ---
     downloadButton.addEventListener('click', () => {
-        drawWeave(true); // Redraw with a solid background
+        resizeCanvas(); // Ensure canvas is sized correctly
+        drawWeave(true);
         const link = document.createElement('a');
-        link.download = `tissage-collaboratif-${new Date().toISOString()}.png`;
+        link.download = `tissage-collaboratif-${new Date().toISOString().split('T')[0]}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        drawWeave(false); // Redraw back to transparent for the live view
+        drawWeave(false);
     });
 
-    // --- QR Code Modal Logic ---
     const qrButton = document.getElementById('qr-code-button');
     const qrModal = document.getElementById('qr-modal');
     const closeModalButton = document.getElementById('close-modal-button');
@@ -179,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
     checkSubmissionLimit();
     resizeCanvas();
-    setInterval(fetchWords, 1500); // Faster polling for better responsiveness
+    setInterval(fetchWords, 1500);
     fetchWords();
 });
+
