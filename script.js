@@ -206,4 +206,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchWords, 1500); // Récupère les mots des autres utilisateurs
     fetchWords(); // Récupère les mots au chargement
 });
-
