@@ -96,9 +96,38 @@ footer button:active {
 }
 
 /* ==================== MODALS ==================== */
-#settings-modal > div,
-#qr-modal > div {
+#settings-modal > div {
     max-width: calc(100vw - 2rem);
+}
+
+/* ==================== QR CODE MODAL ==================== */
+#qr-modal > div {
+    max-width: 400px;
+}
+
+@media (max-width: 640px) {
+    #qr-modal > div {
+        max-width: calc(100vw - 3rem);
+        padding: 1.5rem;
+    }
+    
+    #qr-modal h3 {
+        font-size: 1.125rem;
+    }
+    
+    #qr-modal p {
+        font-size: 0.875rem;
+    }
+    
+    #qrcode-display {
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    #qrcode-display img {
+        max-width: 100%;
+        height: auto;
+    }
 }
 
 /* ==================== TABLET & DESKTOP (768px+) ==================== */
@@ -169,10 +198,15 @@ footer button:active {
     }
     
     /* Footer Buttons */
-    footer > button {
+    footer > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    footer > div > button {
         flex: 1;
         min-width: 48px;
-        max-width: 60px;
+        max-width: none;
         height: 48px;
         padding: 0.75rem;
         display: flex;
@@ -205,9 +239,8 @@ footer button:active {
 
 /* ==================== SMALL MOBILE (max 380px) ==================== */
 @media (max-width: 380px) {
-    footer > button {
+    footer > div > button {
         min-width: 44px;
-        max-width: 52px;
         height: 44px;
         padding: 0.625rem;
     }
