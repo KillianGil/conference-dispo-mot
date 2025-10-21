@@ -5,6 +5,13 @@ if (!kv) {
 }
 
 export default async function handler(req, res) {
+  // Set aggressive no-cache headers to prevent Vercel's edge caching
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+
+  // Standard CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,7 +20,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // --- DELETE method to clear all words ---
   if (req.method === 'DELETE') {
     try {
       await kv.del('words');

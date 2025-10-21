@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContainer = document.getElementById('main-container');
     const togglePanelButton = document.getElementById('toggle-panel-button');
     const downloadButton = document.getElementById('download-button');
-    const resetButton = document.getElementById('reset-button'); // New button
+    const resetButton = document.getElementById('reset-button');
 
     // The single source of truth for our words. Stored [newest, ... , oldest]
     let displayedWords = [];
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (withBackground) {
-            ctx.fillStyle = '#111827'; // bg-gray-900
+            ctx.fillStyle = '#111827';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
@@ -73,18 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Vercel API Communication ---
     async function fetchWords() {
         try {
-            // Add a cache-busting parameter to the URL
             const response = await fetch(`/api/words?t=${Date.now()}`);
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.details || 'Failed to fetch words');
             }
-            const fetchedWords = await response.json(); 
+            const fetchedWords = await response.json();
 
-            const lastKnownTimestamp = displayedWords.length > 0 ? displayedWords[0].timestamp : 0;
-            const latestTimestamp = fetchedWords.length > 0 ? fetchedWords[0].timestamp : 0;
-
-            if (latestTimestamp > lastKnownTimestamp || fetchedWords.length !== displayedWords.length) {
+            // Use a robust check to see if the data has changed.
+            if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
                 drawWeave();
@@ -129,13 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         hue %= 1;
         const newColor = `hsl(${hue * 360}, 80%, 60%)`;
         
-        const newWord = { text, x: Math.random(), y: Math.random(), color: newColor };
+        const newWordPayload = { text, x: Math.random(), y: Math.random(), color: newColor };
 
         try {
             const response = await fetch('/api/words', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newWord),
+                body: JSON.stringify(newWordPayload),
             });
 
             if (!response.ok) {
@@ -143,11 +140,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error || 'Échec de la soumission');
             }
 
+            // ** THE FIX IS HERE: Optimistic Update **
+            // The API returns the word it just created. We use it directly.
+            const { word: newWordFromServer } = await response.json();
+
+            // Add the new word to the top of our local list
+            displayedWords.unshift(newWordFromServer);
+            
+            // Immediately update the UI without waiting for the next poll
+            updateWordList();
+            drawWeave();
+
             wordInput.value = '';
             submissionCount++;
             localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount);
             checkSubmissionLimit();
-            await fetchWords();
+
         } catch (error) {
             console.error("Error adding word: ", error);
             wordInput.placeholder = error.message;
@@ -179,15 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
         drawWeave(false);
     });
 
-    // NEW: Reset logic
     resetButton.addEventListener('click', async () => {
         if (confirm("Êtes-vous sûr de vouloir supprimer tous les mots et réinitialiser l'œuvre ? Cette action est irréversible.")) {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
-                if (!response.ok) {
-                    throw new Error('La réinitialisation a échoué.');
-                }
-                // Clear local storage and reload the page to see the changes
+                if (!response.ok) throw new Error('La réinitialisation a échoué.');
                 localStorage.removeItem(SUBMISSION_COUNT_KEY);
                 window.location.reload();
             } catch (error) {
@@ -212,11 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalButton.addEventListener('click', hideQrCode);
     qrModal.addEventListener('click', (e) => { if (e.target === qrModal) hideQrCode(); });
 
-    // --- Initial Setup & Polling ---
+    // --- Initial Setup & Polling for other users' updates ---
     window.addEventListener('resize', resizeCanvas);
     checkSubmissionLimit();
     resizeCanvas();
-    setInterval(fetchWords, 1500);
-    fetchWords();
+    setInterval(fetchWords, 2000); // Check for others' words every 2 seconds
+    fetchWords(); // Initial fetch
 });
 
