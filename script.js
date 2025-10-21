@@ -10,6 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const resetButton = document.getElementById("reset-button");
   
     let displayedWords = [];
+    let settings = {
+      linkMode: "chronological", // 'chronological', 'proximity', 'color'
+      showWords: true,
+      animateLines: true,
+      lineWidth: 2,
+    };
   
     // --- Canvas Resize ---
     function resizeCanvas() {
@@ -23,7 +29,21 @@ document.addEventListener("DOMContentLoaded", () => {
       drawWeave();
     }
   
-    // --- Dessin ---
+    // --- Calcul de distance ---
+    function distance(word1, word2) {
+      const dx = word1.x - word2.x;
+      const dy = word1.y - word2.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+  
+    // --- Calcul de similarité de couleur ---
+    function colorSimilarity(color1, color2) {
+      const hsl1 = color1.match(/\d+/g).map(Number);
+      const hsl2 = color2.match(/\d+/g).map(Number);
+      return Math.abs(hsl1[0] - hsl2[0]); // Différence de teinte
+    }
+  
+    // --- Dessin amélioré ---
     function drawWeave(withBackground = false) {
       const container = document.getElementById("canvas-container");
       if (!container) return;
@@ -37,88 +57,146 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
   
-      const chronoWords = [...displayedWords].reverse();
-      if (chronoWords.length < 2) return;
+      if (displayedWords.length < 2) return;
   
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = 0.6;
   
-      for (let i = 1; i < chronoWords.length; i++) {
-        const prevWord = chronoWords[i - 1];
-        const currentWord = chronoWords[i];
+      // Créer les connexions selon le mode
+      let connections = [];
   
-        // Vérification avant de tracer
+      if (settings.linkMode === "chronological") {
+        const chronoWords = [...displayedWords].reverse();
+        for (let i = 1; i < chronoWords.length; i++) {
+          connections.push([chronoWords[i - 1], chronoWords[i]]);
+        }
+      } else if (settings.linkMode === "proximity") {
+        // Connecter chaque mot à ses 2 plus proches voisins
+        displayedWords.forEach((word) => {
+          const distances = displayedWords
+            .filter((w) => w !== word)
+            .map((w) => ({ word: w, dist: distance(word, w) }))
+            .sort((a, b) => a.dist - b.dist)
+            .slice(0, 2);
+          distances.forEach((d) => connections.push([word, d.word]));
+        });
+      } else if (settings.linkMode === "color") {
+        // Connecter les mots de couleurs similaires
+        displayedWords.forEach((word) => {
+          const similar = displayedWords
+            .filter((w) => w !== word)
+            .map((w) => ({
+              word: w,
+              sim: colorSimilarity(word.color, w.color),
+            }))
+            .sort((a, b) => a.sim - b.sim)
+            .slice(0, 2);
+          similar.forEach((s) => connections.push([word, s.word]));
+        });
+      }
+  
+      // Dessiner les connexions
+      connections.forEach(([word1, word2]) => {
         if (
-          typeof prevWord.x !== "number" ||
-          typeof prevWord.y !== "number" ||
-          typeof currentWord.x !== "number" ||
-          typeof currentWord.y !== "number" ||
-          isNaN(prevWord.x) ||
-          isNaN(prevWord.y) ||
-          isNaN(currentWord.x) ||
-          isNaN(currentWord.y)
+          typeof word1.x !== "number" ||
+          typeof word1.y !== "number" ||
+          typeof word2.x !== "number" ||
+          typeof word2.y !== "number" ||
+          isNaN(word1.x) ||
+          isNaN(word1.y) ||
+          isNaN(word2.x) ||
+          isNaN(word2.y)
         )
-          continue;
+          return;
   
         ctx.beginPath();
-        ctx.moveTo(prevWord.x * width, prevWord.y * height);
-        ctx.lineTo(currentWord.x * width, currentWord.y * height);
-        ctx.strokeStyle = currentWord.color;
-        ctx.lineWidth = 2;
+        ctx.moveTo(word1.x * width, word1.y * height);
+        ctx.lineTo(word2.x * width, word2.y * height);
+        ctx.strokeStyle = word2.color;
+        ctx.lineWidth = settings.lineWidth;
         ctx.stroke();
+      });
+  
+      // Dessiner les mots sur le canvas
+      if (settings.showWords) {
+        ctx.globalAlpha = 1;
+        ctx.font = "14px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+  
+        displayedWords.forEach((word) => {
+          const x = word.x * width;
+          const y = word.y * height;
+  
+          // Ombre
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fillText(word.text, x + 1, y + 1);
+  
+          // Texte
+          ctx.fillStyle = word.color;
+          ctx.fillText(word.text, x, y);
+        });
       }
     }
   
-    // --- API ---
+    // --- API sans animation sur les mots existants ---
     async function fetchWords() {
       try {
         const response = await fetch(`/api/words?t=${Date.now()}`);
         if (!response.ok)
           throw new Error(`Erreur réseau: ${response.status}`);
   
-        // 🔍 Analyse manuelle et logs pour diagnostic
-        const raw = await response.text();
-        console.log("📥 Contenu brut renvoyé par API:", raw);
+        const fetchedWords = await response.json();
   
-        let fetchedWords;
-        try {
-          fetchedWords = JSON.parse(raw);
-        } catch (err) {
-          console.error("❌ JSON invalide reçu:", err);
-          return;
-        }
-  
-        // Vérification du type attendu
         if (!Array.isArray(fetchedWords)) {
           console.error("❌ Réponse inattendue:", fetchedWords);
           return;
         }
   
-        displayedWords = fetchedWords;
-        console.log("✅ Données KV parsées:", displayedWords);
+        // Identifier les nouveaux mots
+        const newWords = fetchedWords.filter(
+          (fw) =>
+            !displayedWords.some(
+              (dw) =>
+                dw.text === fw.text &&
+                dw.timestamp === fw.timestamp
+            )
+        );
   
-        updateWordList();
+        displayedWords = fetchedWords;
+        updateWordList(newWords);
         drawWeave();
       } catch (error) {
         console.error("Erreur fetchWords:", error);
       }
     }
   
-    // --- Mise à jour de la liste de mots ---
-    function updateWordList() {
-      wordsList.innerHTML = "";
+    // --- Mise à jour de la liste (animation seulement pour les nouveaux) ---
+    function updateWordList(newWords = []) {
+      // Supprimer les anciens éléments non présents
+      const existingItems = Array.from(
+        wordsList.querySelectorAll(".word-item")
+      );
+      const currentTexts = displayedWords.map((w) => w.text);
   
-      displayedWords.forEach((word) => {
+      existingItems.forEach((item) => {
+        if (!currentTexts.includes(item.dataset.text)) {
+          item.remove();
+        }
+      });
+  
+      // Ajouter seulement les nouveaux mots
+      newWords.forEach((word) => {
         if (!word.text || !word.color) return;
   
         const li = document.createElement("li");
         li.className = "word-item p-3 rounded-lg flex items-center";
         li.style.backgroundColor = word.color + "20";
+        li.dataset.text = word.text;
   
         const colorDot = document.createElement("span");
-        colorDot.className =
-          "w-3 h-3 rounded-full mr-3 flex-shrink-0";
+        colorDot.className = "w-3 h-3 rounded-full mr-3 flex-shrink-0";
         colorDot.style.backgroundColor = word.color;
   
         const textSpan = document.createElement("span");
@@ -127,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
         li.appendChild(colorDot);
         li.appendChild(textSpan);
-        wordsList.appendChild(li);
+        wordsList.insertBefore(li, wordsList.firstChild);
       });
     }
   
@@ -168,9 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error(errorMsg);
         }
   
-        console.log("✅ Mot envoyé:", newWordPayload);
-  
-        // Efface le champ après succès
         wordInput.value = "";
         await fetchWords();
       } catch (error) {
@@ -184,6 +259,54 @@ document.addEventListener("DOMContentLoaded", () => {
         wordInput.placeholder = originalPlaceholder;
       }
     });
+  
+    // --- Panel d'options ---
+    const settingsButton = document.getElementById("settings-button");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsButton = document.getElementById(
+      "close-settings-button"
+    );
+  
+    settingsButton.addEventListener("click", () => {
+      settingsModal.classList.remove("hidden");
+    });
+  
+    closeSettingsButton.addEventListener("click", () => {
+      settingsModal.classList.add("hidden");
+    });
+  
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal)
+        settingsModal.classList.add("hidden");
+    });
+  
+    // Options de liaison
+    document
+      .querySelectorAll('input[name="link-mode"]')
+      .forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          settings.linkMode = e.target.value;
+          drawWeave();
+        });
+      });
+  
+    // Afficher les mots sur le canvas
+    document
+      .getElementById("show-words-toggle")
+      .addEventListener("change", (e) => {
+        settings.showWords = e.target.checked;
+        drawWeave();
+      });
+  
+    // Épaisseur des lignes
+    document
+      .getElementById("line-width")
+      .addEventListener("input", (e) => {
+        settings.lineWidth = parseInt(e.target.value);
+        document.getElementById("line-width-value").textContent =
+          e.target.value;
+        drawWeave();
+      });
   
     // --- UI ---
     togglePanelButton.addEventListener("click", () =>
@@ -206,7 +329,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (confirm("Supprimer tous les mots ?")) {
         try {
           await fetch("/api/words", { method: "DELETE" });
-          await fetchWords();
+          displayedWords = [];
+          wordsList.innerHTML = "";
+          drawWeave();
         } catch (err) {
           alert("La réinitialisation a échoué.");
         }

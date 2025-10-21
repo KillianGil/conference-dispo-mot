@@ -60,7 +60,55 @@
         </div>
     </div>
 
+    <button id="settings-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="Paramètres">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+  </button>
+
     <script src="script.js" defer></script>
+    <!-- Modal Paramètres -->
+<div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4">
+  <div class="bg-gray-800 p-8 rounded-2xl shadow-xl relative max-w-md w-full">
+      <button id="close-settings-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+      </button>
+      <h3 class="text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
+      
+      <!-- Mode de liaison -->
+      <div class="mb-6">
+          <label class="block text-gray-300 font-semibold mb-3">Mode de liaison</label>
+          <div class="space-y-2">
+              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="chronological" checked class="mr-3 accent-indigo-500">
+                  <span>Chronologique (ordre d'ajout)</span>
+              </label>
+              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="proximity" class="mr-3 accent-indigo-500">
+                  <span>Proximité (mots proches)</span>
+              </label>
+              <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+                  <input type="radio" name="link-mode" value="color" class="mr-3 accent-indigo-500">
+                  <span>Couleur (teintes similaires)</span>
+              </label>
+          </div>
+      </div>
+
+      <!-- Afficher les mots -->
+      <div class="mb-6">
+          <label class="flex items-center text-gray-200 cursor-pointer hover:text-white">
+              <input type="checkbox" id="show-words-toggle" checked class="mr-3 accent-indigo-500">
+              <span class="font-semibold">Afficher les mots sur le canvas</span>
+          </label>
+      </div>
+
+      <!-- Épaisseur des lignes -->
+      <div class="mb-6">
+          <label class="block text-gray-300 font-semibold mb-2">
+              Épaisseur des lignes: <span id="line-width-value" class="text-indigo-400">2</span>px
+          </label>
+          <input type="range" id="line-width" min="1" max="8" value="2" class="w-full accent-indigo-500">
+      </div>
+  </div>
+</div>
 </body>
 </html>
 

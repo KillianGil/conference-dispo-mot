@@ -12,14 +12,22 @@ body {
     border-radius: 20px; 
     border: 3px solid #1f2937; 
 }
+
+/* Animation seulement au chargement initial */
 .word-item { 
-    animation: fadeIn 0.5s ease-out; 
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    animation: fadeIn 0.4s ease-out;
 }
 
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
 /* --- Styles for Panel Toggle --- */
 #toggle-panel-button {
     /* Mobile position */
