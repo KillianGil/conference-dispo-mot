@@ -1,8 +1,0 @@
-html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:sans-serif; }
-#container { display:flex; height:100vh; }
-#wordsPanel { width:30%; background:#f0f0f0; padding:10px; overflow-y:auto; }
-#canvasPanel { width:70%; position:relative; }
-#tissage { display:block; width:100%; height:100%; background:#fff; }
-#inputForm { position:absolute; top:10px; left:10px; z-index:10; }
-#wordInput { padding:5px; font-size:16px; }
-#sendButton { padding:5px 10px; font-size:16px; }
