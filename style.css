@@ -96,13 +96,14 @@ footer button:active {
 }
 
 /* ==================== MODALS ==================== */
+/* ==================== MODALS ==================== */
 #settings-modal,
 #qr-modal {
     overflow-y: auto;
 }
 
 #settings-modal > div {
-    max-height: calc(100vh - 2rem);
+    max-height: 70vh; /* Réduit à 70% de la hauteur */
     overflow-y: auto;
     margin: 1rem auto;
 }
@@ -114,14 +115,37 @@ footer button:active {
 @media (max-width: 767px) {
     #settings-modal > div {
         max-width: calc(100vw - 2rem);
-        max-height: calc(100vh - 2rem);
-        padding: 1.25rem;
+        max-height: 60vh; /* Encore plus petit sur mobile : 60% */
+        padding: 1rem;
         margin: 1rem;
     }
     
     #settings-modal h3 {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
         padding-right: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Réduction des espacements internes */
+    #settings-modal .mb-6 {
+        margin-bottom: 1rem;
+    }
+    
+    #settings-modal .space-y-2 > * + * {
+        margin-top: 0.5rem;
+    }
+    
+    #settings-modal .space-y-3 > * + * {
+        margin-top: 0.625rem;
+    }
+    
+    /* Labels plus compacts */
+    #settings-modal label {
+        font-size: 0.875rem;
+    }
+    
+    #settings-modal .text-xs {
+        font-size: 0.7rem;
     }
     
     /* Bouton close plus visible sur mobile */
@@ -138,6 +162,18 @@ footer button:active {
     
     #close-settings-button:active {
         background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Très petits écrans - encore plus compact */
+@media (max-width: 380px) {
+    #settings-modal > div {
+        max-height: 55vh;
+        padding: 0.875rem;
+    }
+    
+    #settings-modal h3 {
+        font-size: 1rem;
     }
 }
 
@@ -164,6 +200,24 @@ footer button:active {
         max-width: 100%;
         height: auto;
     }
+}
+
+/* Scrollbar personnalisée pour le modal */
+#settings-modal > div::-webkit-scrollbar {
+    width: 4px;
+}
+
+#settings-modal > div::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#settings-modal > div::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.5);
+    border-radius: 20px;
+}
+
+#settings-modal > div::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(99, 102, 241, 0.7);
 }
 
 /* ==================== QR CODE MODAL ==================== */
