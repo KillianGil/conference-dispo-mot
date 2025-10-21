@@ -2,8 +2,8 @@
     "name": "conference-dispo-mot",
     "version": "1.0.0",
     "private": true,
+    "type": "module",
     "dependencies": {
-        "@upstash/redis": "^1.35.6",
-        "@vercel/kv": "^1.0.1"
+      "@upstash/redis": "^1.35.6"
     }
-}
+  }
