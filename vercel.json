@@ -1,9 +1,9 @@
 {
     "functions": {
       "api/**/*": {
+        "runtime": "vercel-nodejs@3.0.1",
         "maxDuration": 10,
-        "memory": 128,
-        "runtime": "nodejs20.x"
+        "memory": 128
       }
     },
     "headers": [
