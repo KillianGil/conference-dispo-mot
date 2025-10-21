@@ -15,15 +15,11 @@ export default async function handler(req, res) {
   try {
     // --- POST ---
     if (req.method === "POST") {
-      const raw = await getRawBody(req);
-      if (!raw) return res.status(400).json({ error: "Empty body" });
-
-      let body;
-      try {
-        body = JSON.parse(raw);
-      } catch (err) {
-        console.error("❌ JSON invalide:", raw);
-        return res.status(400).json({ error: "Invalid JSON" });
+      // ✅ Vercel parse automatiquement le JSON
+      const body = req.body;
+      
+      if (!body) {
+        return res.status(400).json({ error: "Empty body" });
       }
 
       const { text, x, y, color } = body;
@@ -61,6 +57,7 @@ export default async function handler(req, res) {
         .filter(Boolean)
         .sort((a, b) => b.timestamp - a.timestamp);
 
+      console.log("📤 Mots renvoyés:", words.length);
       return res.status(200).json(words);
     }
 
@@ -76,14 +73,4 @@ export default async function handler(req, res) {
     console.error("🔴 Redis API Error:", error);
     return res.status(500).json({ error: error.message });
   }
-}
-
-// petite fonction utilitaire pour lire le corps brute
-async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", (chunk) => (data += chunk));
-    req.on("end", () => resolve(data));
-    req.on("error", reject);
-  });
 }
