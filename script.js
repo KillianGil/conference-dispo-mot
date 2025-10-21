@@ -14,18 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let displayedWords = [];
     let hue = Math.random();
 
-    // --- Submission Limit (2 words per user) ---
+    /*
+    // --- Submission Limit (Temporarily Disabled for Testing) ---
     const SUBMISSION_COUNT_KEY = 'tissageSubmissionCount';
     let submissionCount = parseInt(localStorage.getItem(SUBMISSION_COUNT_KEY) || '0');
 
     function checkSubmissionLimit() {
-        if (submissionCount >= 2) {
+        if (submissionCount >= 999) { // Limit disabled
             wordInput.placeholder = 'Merci pour votre participation !';
             wordInput.disabled = true;
             wordForm.querySelector('button').disabled = true;
             wordForm.querySelector('button').classList.add('opacity-50', 'cursor-not-allowed');
         }
     }
+    */
 
     // --- Canvas Setup ---
     function resizeCanvas() {
@@ -80,16 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const fetchedWords = await response.json();
 
-            // --- FIX FOR RESET ---
-            // If the server has no words but we locally have words, it means a reset happened.
-            if (fetchedWords.length === 0 && displayedWords.length > 0) {
-                // A reset was triggered. Reload the page to clear the state and submission count.
-                localStorage.removeItem(SUBMISSION_COUNT_KEY);
-                window.location.reload();
-                return; // Stop execution, the page will reload.
-            }
-
-            // Use a robust check to see if the data has changed.
             if (JSON.stringify(fetchedWords) !== JSON.stringify(displayedWords)) {
                 displayedWords = fetchedWords;
                 updateWordList();
@@ -148,16 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Échec de la soumission');
             }
-
-            // ** FIX FOR SYNCHRONIZATION **
-            // No more optimistic update. We rely on fetchWords for consistency.
-            // We successfully posted, so we immediately fetch the new state.
+            
+            // This is the most reliable way: after posting, fetch the definitive truth from the server.
             await fetchWords();
 
             wordInput.value = '';
-            submissionCount++;
-            localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount);
-            checkSubmissionLimit();
+            // submissionCount++; // Limit disabled
+            // localStorage.setItem(SUBMISSION_COUNT_KEY, submissionCount); // Limit disabled
+            // checkSubmissionLimit(); // Limit disabled
 
         } catch (error) {
             console.error("Error adding word: ", error);
@@ -168,12 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 wordInput.placeholder = originalPlaceholder;
             }, 4000);
         } finally {
-            if (submissionCount < 2) {
-                wordInput.disabled = false;
-                submitButton.disabled = false;
-                submitButton.textContent = 'Tisser';
-                wordInput.focus();
-            }
+            // Re-enable the form regardless of the submission count, as it's disabled.
+            wordInput.disabled = false;
+            submitButton.disabled = false;
+            submitButton.textContent = 'Tisser';
+            wordInput.focus();
         }
     });
 
@@ -195,8 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/api/words', { method: 'DELETE' });
                 if (!response.ok) throw new Error('La réinitialisation a échoué.');
-                // The user who clicks reset will also have their page reloaded.
-                localStorage.removeItem(SUBMISSION_COUNT_KEY);
+                // localStorage.removeItem(SUBMISSION_COUNT_KEY); // Limit disabled
                 window.location.reload();
             } catch (error) {
                 console.error("Reset failed:", error);
@@ -222,9 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Setup & Polling for other users' updates ---
     window.addEventListener('resize', resizeCanvas);
-    checkSubmissionLimit();
+    // checkSubmissionLimit(); // Limit disabled
     resizeCanvas();
-    setInterval(fetchWords, 2000); // Check for others' words every 2 seconds
+    setInterval(fetchWords, 1500); // Check for others' words every 1.5 seconds
     fetchWords(); // Initial fetch
 });
 
