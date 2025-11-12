@@ -37,11 +37,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 150;
+    if (!container) return 200;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(120, diagonal * 0.15);
+    return Math.max(150, diagonal * 0.18);
+  }
+
+  function getMaxPointSize(occurrences) {
+    const baseSize = 20;
+    const pointSize = baseSize + (occurrences - 1) * 6;
+    const pulseSize = pointSize + 10 + 4;
+    return pulseSize + 20;
   }
 
   function getUniqueWordPositions() {
@@ -49,7 +56,14 @@ document.addEventListener("DOMContentLoaded", () => {
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
       if (!positionMap.has(key)) {
-        positionMap.set(key, { x: word.x, y: word.y });
+        const occurrences = displayedWords.filter(
+          w => w.text.toLowerCase() === key
+        ).length;
+        positionMap.set(key, { 
+          x: word.x, 
+          y: word.y,
+          maxSize: getMaxPointSize(occurrences)
+        });
       }
     });
     return Array.from(positionMap.values());
@@ -61,18 +75,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    const margin = 0.1;
+    const margin = 0.12;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
     
     const uniquePositions = getUniqueWordPositions();
+    const newMaxSize = getMaxPointSize(1);
     
     return uniquePositions.every(pos => {
       const dx = (pos.x * width) - (x * width);
       const dy = (pos.y * height) - (y * height);
       const dist = Math.sqrt(dx * dx + dy * dy);
-      return dist >= minDist;
+      const requiredDist = minDist + pos.maxSize + newMaxSize;
+      return dist >= requiredDist;
     });
   }
 
@@ -332,7 +348,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // CORRECTION CRITIQUE : Les connexions se font sur TOUS les mots
     let connections = [];
 
     if (settings.linkMode === "chronological") {
@@ -404,7 +419,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Dessiner les connexions
     connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" || typeof word1.y !== "number" ||
@@ -470,7 +484,6 @@ document.addEventListener("DOMContentLoaded", () => {
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
-    // CORRECTION CRITIQUE : Gestion des particules
     if (settings.enableParticles) {
       particles = particles.filter(p => p.life > 0);
       particles.forEach(p => {
@@ -492,7 +505,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     
-    // CORRECTION CRITIQUE : Tri pour afficher les petits en premier
     const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort((a, b) => {
       const countA = wordOccurrences[a.text.toLowerCase()];
       const countB = wordOccurrences[b.text.toLowerCase()];
@@ -824,17 +836,19 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const minDist = getMinDistance();
       let x, y, attempts = 0;
-      const maxAttempts = 1000;
+      const maxAttempts = 2000;
       
       do {
-        x = 0.15 + Math.random() * 0.70;
-        y = 0.15 + Math.random() * 0.70;
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 0.25 + Math.random() * 0.25;
+        x = 0.5 + Math.cos(angle) * radius;
+        y = 0.5 + Math.sin(angle) * radius;
         attempts++;
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        x = 0.2 + Math.random() * 0.6;
-        y = 0.2 + Math.random() * 0.6;
+        x = 0.3 + Math.random() * 0.4;
+        y = 0.3 + Math.random() * 0.4;
       }
       
       newWordPayload = {
@@ -947,7 +961,6 @@ document.addEventListener("DOMContentLoaded", () => {
     drawWeave();
   });
 
-  // CORRECTION CRITIQUE : Event listener pour les particules
   document.getElementById("particles-toggle").addEventListener("change", (e) => {
     settings.enableParticles = e.target.checked;
     if (!e.target.checked) {
