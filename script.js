@@ -989,104 +989,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     }
 
-    // Effet Weaving (Tissage textile réaliste)
-else if (settings.linkMode === "weaving") {
-  const time = Date.now() * 0.0005;
-  
-  // Trier les mots par position pour créer une grille
-  const sortedByY = [...displayedWords].sort((a, b) => a.y - b.y);
-  const sortedByX = [...displayedWords].sort((a, b) => a.x - b.x);
-  
-  // Lignes horizontales (trame)
-  sortedByY.forEach((word, rowIndex) => {
-    const y = word.y * height;
-    const startX = 0;
-    const endX = width;
-    
-    // Ligne ondulante qui simule le fil
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(startX, y);
-    
-    for (let x = 0; x <= width; x += 10) {
-      const waveOffset = Math.sin(x * 0.02 + time + rowIndex * 0.5) * 3;
-      ctx.lineTo(x, y + waveOffset);
-    }
-    
-    // Effet de profondeur - alternance dessus/dessous
-    const isOver = rowIndex % 2 === 0;
-    ctx.strokeStyle = word.color;
-    ctx.lineWidth = settings.lineWidth + 3;
-    ctx.globalAlpha = isOver ? 0.8 : 0.5;
-    
-    // Ombre pour effet 3D
-    if (isOver) {
-      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetY = 3;
-    }
-    
-    ctx.stroke();
-    ctx.restore();
-  });
-  
-  // Lignes verticales (chaîne) - passent dessus/dessous
-  sortedByX.forEach((word, colIndex) => {
-    const x = word.x * width;
-    const startY = 0;
-    const endY = height;
-    
-    ctx.save();
-    ctx.beginPath();
-    
-    // Découper en segments pour alterner visible/caché
-    const segmentHeight = height / sortedByY.length;
-    
-    for (let i = 0; i < sortedByY.length; i++) {
-      const y = i * segmentHeight;
-      const waveOffset = Math.sin(y * 0.02 + time + colIndex * 0.5) * 3;
-      
-      // Alterner dessus/dessous selon la position
-      const isOver = (colIndex + i) % 2 === 0;
-      
-      if (isOver) {
-        ctx.globalAlpha = 0.9;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 2;
-      } else {
-        ctx.globalAlpha = 0.4;
-        ctx.shadowBlur = 0;
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(x + waveOffset, y);
-      ctx.lineTo(x + waveOffset, y + segmentHeight);
-      
-      // Gradient pour effet de profondeur
-      const gradient = ctx.createLinearGradient(
-        x, y, x, y + segmentHeight
-      );
-      gradient.addColorStop(0, word.color);
-      gradient.addColorStop(0.5, isOver ? word.color : 
-        `rgba(${parseInt(word.color.slice(4, -1))}, 0.5)`);
-      gradient.addColorStop(1, word.color);
-      
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = settings.lineWidth + 2;
-      ctx.stroke();
-    }
-    
-    ctx.restore();
-  });
-  
-  ctx.globalAlpha = 1;
-}
-
-// Effet Basket (Tressage panier)
+    // Effet Basket (Tressage panier) - CORRIGÉ
 else if (settings.linkMode === "basket") {
   const time = Date.now() * 0.0003;
-  const gridSize = 60;
+  const gridSize = Math.max(40, settings.weavingDensity || 60);
   
   // Créer une grille de tissage
   for (let y = 0; y < height; y += gridSize) {
@@ -1115,7 +1021,7 @@ else if (settings.linkMode === "basket") {
       
       ctx.save();
       
-      // Animation de tissage
+      // Animation de tissage continue
       const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
       const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
       
@@ -1151,55 +1057,17 @@ else if (settings.linkMode === "basket") {
   }
   
   ctx.globalAlpha = 1;
+  
+  // ✅ AJOUT : Dessiner les mots par-dessus le tissage
+  // (ce code sera ajouté APRÈS le tissage mais AVANT la section finale des mots)
 }
 
-// Effet Herringbone (Chevrons / Arêtes de poisson)
+// Effet Herringbone (Chevrons) - VERSION SIMPLIFIÉE ET CORRIGÉE
 else if (settings.linkMode === "herringbone") {
-  const time = Date.now() * 0.0004;
-  const tileWidth = 80;
-  const tileHeight = 30;
+  const time = Date.now() * 0.001;
   
-  displayedWords.forEach((word, index) => {
-    const centerX = word.x * width;
-    const centerY = word.y * height;
-    
-    // Dessiner un motif chevron autour de chaque mot
-    for (let angle = 0; angle < 360; angle += 45) {
-      const rad = (angle * Math.PI) / 180;
-      const length = 60 + Math.sin(time + index * 0.3) * 15;
-      
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate(rad);
-      
-      // Bande diagonale avec effet 3D
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(length, -tileHeight / 2);
-      ctx.lineTo(length, tileHeight / 2);
-      ctx.closePath();
-      
-      // Gradient pour effet de profondeur
-      const gradient = ctx.createLinearGradient(0, 0, length, 0);
-      gradient.addColorStop(0, word.color);
-      gradient.addColorStop(0.5, `${word.color}88`); // Semi-transparent
-      gradient.addColorStop(1, word.color);
-      
-      ctx.fillStyle = gradient;
-      ctx.globalAlpha = 0.6;
-      ctx.fill();
-      
-      // Contour pour définir les brins
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      
-      ctx.restore();
-    }
-  });
-  
-  // Connexions entre les mots pour renforcer l'effet
-  connections.forEach(([word1, word2]) => {
+  // Dessiner d'abord les connexions en chevrons
+  connections.forEach(([word1, word2], idx) => {
     const x1 = word1.x * width;
     const y1 = word1.y * height;
     const x2 = word2.x * width;
@@ -1208,31 +1076,137 @@ else if (settings.linkMode === "herringbone") {
     const dx = x2 - x1;
     const dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
-    const perpAngle = angle + Math.PI / 2;
+    const dist = Math.sqrt(dx * dx + dy * dy);
     
-    ctx.save();
+    // Dessiner plusieurs segments en chevron le long de la ligne
+    const segments = Math.floor(dist / 30);
     
-    // Dessiner plusieurs "brins" parallèles
-    for (let offset = -8; offset <= 8; offset += 8) {
-      const offsetX = Math.cos(perpAngle) * offset;
-      const offsetY = Math.sin(perpAngle) * offset;
+    for (let i = 0; i < segments; i++) {
+      const t = i / segments;
+      const px = x1 + dx * t;
+      const py = y1 + dy * t;
       
+      // Alternance de direction pour effet chevron
+      const direction = i % 2 === 0 ? 1 : -1;
+      const chevronAngle = angle + (Math.PI / 6) * direction;
+      
+      const length = 20 + Math.sin(time + idx * 0.5 + i * 0.3) * 5;
+      const endX = px + Math.cos(chevronAngle) * length;
+      const endY = py + Math.sin(chevronAngle) * length;
+      
+      ctx.save();
       ctx.beginPath();
-      ctx.moveTo(x1 + offsetX, y1 + offsetY);
-      ctx.lineTo(x2 + offsetX, y2 + offsetY);
+      ctx.moveTo(px, py);
+      ctx.lineTo(endX, endY);
       
-      ctx.strokeStyle = offset === 0 ? word1.color : word2.color;
-      ctx.lineWidth = settings.lineWidth;
-      ctx.globalAlpha = 0.4;
+      // Gradient pour profondeur
+      const gradient = ctx.createLinearGradient(px, py, endX, endY);
+      gradient.addColorStop(0, word1.color);
+      gradient.addColorStop(1, word2.color);
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = settings.lineWidth + 2;
+      ctx.globalAlpha = 0.6;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+      ctx.shadowBlur = 4;
       ctx.stroke();
+      ctx.restore();
     }
-    
-    ctx.restore();
   });
   
   ctx.globalAlpha = 1;
 }
+
+// Effet Weaving - VERSION ULTRA SIMPLIFIÉE
+else if (settings.linkMode === "weaving") {
+  const time = Date.now() * 0.001;
+  const spacing = Math.max(30, settings.weavingDensity || 50);
+  
+  // Lignes horizontales
+  for (let y = 0; y < height; y += spacing) {
+    const rowIndex = Math.floor(y / spacing);
     
+    // Trouver mot le plus proche de cette ligne
+    let closestWord = displayedWords[0];
+    let minDist = Infinity;
+    displayedWords.forEach(word => {
+      const dist = Math.abs(word.y * height - y);
+      if (dist < minDist) {
+        minDist = dist;
+        closestWord = word;
+      }
+    });
+    
+    const isOver = rowIndex % 2 === 0;
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    
+    // Ligne ondulante
+    for (let x = 0; x <= width; x += 5) {
+      const wave = Math.sin(x * 0.02 + time + rowIndex) * 2;
+      ctx.lineTo(x, y + wave);
+    }
+    
+    ctx.strokeStyle = closestWord.color;
+    ctx.lineWidth = settings.lineWidth + 3;
+    ctx.globalAlpha = isOver ? 0.7 : 0.4;
+    
+    if (isOver) {
+      ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 2;
+    }
+    
+    ctx.stroke();
+    ctx.restore();
+  }
+  
+  // Lignes verticales
+  for (let x = 0; x < width; x += spacing) {
+    const colIndex = Math.floor(x / spacing);
+    
+    // Trouver mot le plus proche
+    let closestWord = displayedWords[0];
+    let minDist = Infinity;
+    displayedWords.forEach(word => {
+      const dist = Math.abs(word.x * width - x);
+      if (dist < minDist) {
+        minDist = dist;
+        closestWord = word;
+      }
+    });
+    
+    ctx.save();
+    
+    // Découper en segments alternés
+    for (let y = 0; y < height; y += spacing) {
+      const segmentIndex = Math.floor(y / spacing);
+      const isOver = (colIndex + segmentIndex) % 2 === 0;
+      
+      if (isOver) {
+        const wave = Math.sin(y * 0.02 + time + colIndex) * 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(x + wave, y);
+        ctx.lineTo(x + wave, y + spacing);
+        
+        ctx.strokeStyle = closestWord.color;
+        ctx.lineWidth = settings.lineWidth + 2;
+        ctx.globalAlpha = 0.8;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.stroke();
+      }
+    }
+    
+    ctx.restore();
+  }
+  
+  ctx.globalAlpha = 1;
+} 
     // Dessin standard des connexions (pour les autres modes)
     else {
       connections.forEach(([word1, word2]) => {
