@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 80;
+    if (!container) return 100;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(60, diagonal * 0.06);
+    return Math.max(80, diagonal * 0.08);
   }
 
   function isPositionValid(x, y, minDist) {
@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function animateWeaving() {
     if (currentAnimatingConnection) {
-      animationProgress += 0.03;
+      animationProgress += 0.04;
       if (animationProgress >= 1) {
         animationProgress = 1;
         setTimeout(() => {
@@ -394,8 +394,14 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (settings.animateLines && 
           currentAnimatingConnection && 
-          currentAnimatingConnection[0] === word1 && 
-          currentAnimatingConnection[1] === word2) {
+          ((currentAnimatingConnection[0].text === word1.text && 
+            currentAnimatingConnection[0].timestamp === word1.timestamp &&
+            currentAnimatingConnection[1].text === word2.text && 
+            currentAnimatingConnection[1].timestamp === word2.timestamp) ||
+           (currentAnimatingConnection[0].text === word2.text && 
+            currentAnimatingConnection[0].timestamp === word2.timestamp &&
+            currentAnimatingConnection[1].text === word1.text && 
+            currentAnimatingConnection[1].timestamp === word1.timestamp))) {
         progress = animationProgress;
       }
 
@@ -640,7 +646,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateWordList(newWords);
         updateStats();
         
-        if (settings.animateLines && displayedWords.length > 1 && newWords.length > 0) {
+        if (settings.animateLines && displayedWords.length > 1) {
           const lastWord = newWords[newWords.length - 1];
           let targetWord;
           
@@ -653,7 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           } else {
             const sorted = displayedWords
-              .filter((w) => w !== lastWord)
+              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp))
               .map((w) => ({ word: w, dist: distance(lastWord, w) }))
               .sort((a, b) => a.dist - b.dist);
             targetWord = sorted[0]?.word;
@@ -722,17 +728,17 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const minDist = getMinDistance();
     let x, y, attempts = 0;
-    const maxAttempts = 150;
+    const maxAttempts = 200;
     
     do {
-      x = 0.02 + Math.random() * 0.96;
-      y = 0.02 + Math.random() * 0.96;
+      x = 0.1 + Math.random() * 0.8;
+      y = 0.1 + Math.random() * 0.8;
       attempts++;
     } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
     
     if (attempts === maxAttempts) {
-      x = 0.02 + Math.random() * 0.96;
-      y = 0.02 + Math.random() * 0.96;
+      x = 0.1 + Math.random() * 0.8;
+      y = 0.1 + Math.random() * 0.8;
     }
     
     const newWordPayload = {
