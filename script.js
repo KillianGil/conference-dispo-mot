@@ -40,7 +40,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(80, diagonal * 0.08);
+    return Math.max(60, diagonal * 0.06); // Réduit pour permettre plus de mots
+  }
+
+  function getUniquePositions() {
+    const positionMap = new Map();
+    displayedWords.forEach((word) => {
+      const key = word.text.toLowerCase();
+      if (!positionMap.has(key)) {
+        positionMap.set(key, { x: word.x, y: word.y });
+      }
+    });
+    return Array.from(positionMap.values());
   }
 
   function isPositionValid(x, y, minDist) {
@@ -49,9 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    return displayedWords.every(word => {
-      const dx = (word.x * width) - (x * width);
-      const dy = (word.y * height) - (y * height);
+    const uniquePositions = getUniquePositions();
+    
+    return uniquePositions.every(pos => {
+      const dx = (pos.x * width) - (x * width);
+      const dy = (pos.y * height) - (y * height);
       const dist = Math.sqrt(dx * dx + dy * dy);
       return dist >= minDist;
     });
@@ -382,6 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // Assurer que tous les mots sont connectés (pas seulement ceux dans les modes spécifiques)
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
@@ -819,16 +833,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const maxAttempts = 500;
       
       do {
-        // Utiliser tout l'espace avec des marges réduites
-        x = 0.08 + Math.random() * 0.84;
-        y = 0.08 + Math.random() * 0.84;
+        // Utiliser TOUT l'espace avec marges minimales
+        x = 0.05 + Math.random() * 0.90;
+        y = 0.05 + Math.random() * 0.90;
         
         attempts++;
         
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        // Si trop de tentatives, accepter une position avec moins de contraintes
+        // Si trop de tentatives, forcer une position
         x = 0.1 + Math.random() * 0.8;
         y = 0.1 + Math.random() * 0.8;
       }
