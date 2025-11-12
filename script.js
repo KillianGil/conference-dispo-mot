@@ -1332,7 +1332,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("❌ Aucune frame à exporter");
       return;
     }
-
+  
     const progressModal = document.createElement("div");
     progressModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-50";
@@ -1341,56 +1341,92 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-500 mx-auto mb-4"></div>
         <h3 class="text-xl font-bold text-white mb-2">Création du time-lapse...</h3>
         <p class="text-gray-400 mb-4">
-          <span id="progress-text">0%</span>
+          <span id="progress-text">Préparation...</span>
         </p>
         <div class="w-full bg-gray-700 rounded-full h-2">
           <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all" style="width: 0%"></div>
         </div>
-        <p class="text-xs text-gray-500 mt-4">${
-          recordedFrames.length
-        } frames • ~${(recordedFrames.length * 0.5).toFixed(0)}s</p>
+        <p class="text-xs text-gray-500 mt-4">${recordedFrames.length} frames</p>
       </div>
     `;
     document.body.appendChild(progressModal);
-
+  
     try {
+      // Vérifier si gif.js est disponible
       if (typeof GIF === "undefined") {
-        await exportFramesAsZip(progressModal);
+        console.warn("⚠️ gif.js non chargé, export alternatif...");
+        await exportFramesAsImages(progressModal);
         return;
       }
-
+  
+      // Réduire la résolution pour économiser la mémoire
+      const scale = 0.5; // 50% de la taille originale
+      const targetWidth = Math.floor(canvas.width * scale);
+      const targetHeight = Math.floor(canvas.height * scale);
+  
+      document.getElementById("progress-text").textContent = 
+        `Initialisation (${targetWidth}x${targetHeight})...`;
+  
       const gif = new GIF({
         workers: 2,
-        quality: 10,
-        width: canvas.width,
-        height: canvas.height,
+        quality: 15, // Augmenté pour réduire la taille
+        width: targetWidth,
+        height: targetHeight,
         workerScript:
           "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js",
+        background: "#111827",
       });
-
-      for (let i = 0; i < recordedFrames.length; i++) {
+  
+      // Limiter le nombre de frames si nécessaire
+      const maxFrames = 150; // Limite à 150 frames
+      const step = Math.ceil(recordedFrames.length / maxFrames);
+      const selectedFrames = recordedFrames.filter(
+        (_, i) => i % step === 0
+      );
+  
+      console.log(
+        `📊 Export: ${selectedFrames.length} frames sur ${recordedFrames.length}`
+      );
+  
+      // Créer un canvas temporaire pour redimensionner
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = targetWidth;
+      tempCanvas.height = targetHeight;
+      const tempCtx = tempCanvas.getContext("2d");
+  
+      for (let i = 0; i < selectedFrames.length; i++) {
         const img = new Image();
-        img.src = recordedFrames[i];
-
-        await new Promise((resolve) => {
+        img.src = selectedFrames[i];
+  
+        await new Promise((resolve, reject) => {
           img.onload = () => {
-            gif.addFrame(img, { delay: 100 });
-
-            const progress = (
-              ((i + 1) / recordedFrames.length) *
-              100
-            ).toFixed(0);
-            document.getElementById("progress-text").textContent =
-              `${progress}%`;
-            document.getElementById(
-              "progress-bar"
-            ).style.width = `${progress}%`;
-
-            resolve();
+            try {
+              // Redimensionner l'image
+              tempCtx.clearRect(0, 0, targetWidth, targetHeight);
+              tempCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+  
+              // Ajouter la frame au GIF
+              gif.addFrame(tempCtx, { 
+                delay: 200, // 200ms = 5 fps
+                copy: true 
+              });
+  
+              const progress = (((i + 1) / selectedFrames.length) * 100).toFixed(0);
+              document.getElementById("progress-text").textContent =
+                `Frame ${i + 1}/${selectedFrames.length} (${progress}%)`;
+              document.getElementById("progress-bar").style.width = `${progress}%`;
+  
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
           };
+          img.onerror = () => reject(new Error("Erreur chargement image"));
         });
       }
-
+  
+      document.getElementById("progress-text").textContent = "Génération du GIF...";
+  
       gif.on("finished", (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -1398,27 +1434,129 @@ document.addEventListener("DOMContentLoaded", () => {
         a.href = url;
         a.download = `tissage-timelapse-${date}.gif`;
         a.click();
-
+  
+        // Nettoyer
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         document.body.removeChild(progressModal);
+  
+        const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
         alert(
-          `✅ Time-lapse exporté! (${(
-            blob.size /
-            1024 /
-            1024
-          ).toFixed(2)} MB)`
+          `✅ Time-lapse exporté!\n\n` +
+          `📦 Taille: ${sizeMB} MB\n` +
+          `🎞️ ${selectedFrames.length} frames\n` +
+          `⏱️ Durée: ~${(selectedFrames.length * 0.2).toFixed(1)}s`
         );
-
+  
         recordedFrames = [];
       });
-
+  
+      gif.on("progress", (progress) => {
+        const percent = (progress * 100).toFixed(0);
+        document.getElementById("progress-text").textContent =
+          `Encodage... ${percent}%`;
+      });
+  
       gif.render();
     } catch (err) {
-      console.error("❌ Erreur export:", err);
+      console.error("❌ Erreur export GIF:", err);
       document.body.removeChild(progressModal);
-      alert(
-        "❌ Erreur lors de l'export. Frames sauvegardées en mémoire."
+      
+      // Proposer une alternative
+      const retry = confirm(
+        "❌ Erreur lors de la création du GIF.\n\n" +
+        "Voulez-vous télécharger les images individuellement à la place ?"
       );
+      
+      if (retry) {
+        await exportFramesAsImages(null);
+      } else {
+        alert("Les frames restent en mémoire. Vous pouvez réessayer.");
+      }
     }
+  }
+  
+  async function exportFramesAsImages(progressModal) {
+    if (progressModal && document.body.contains(progressModal)) {
+      document.body.removeChild(progressModal);
+    }
+  
+    const exportModal = document.createElement("div");
+    exportModal.className =
+      "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4";
+    exportModal.innerHTML = `
+      <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-md">
+        <h3 class="text-xl font-bold text-white mb-4">📸 Export d'images</h3>
+        <p class="text-gray-300 text-sm mb-4">
+          Le GIF n'a pas pu être créé. Téléchargez plutôt :
+        </p>
+        <div class="space-y-3">
+          <button id="export-first" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
+            📥 Image de début
+          </button>
+          <button id="export-middle" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
+            📥 Image du milieu
+          </button>
+          <button id="export-last" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
+            📥 Image de fin
+          </button>
+          <button id="export-all" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
+            📦 Toutes les images (ZIP)
+          </button>
+        </div>
+        <button id="close-export" class="mt-4 text-gray-400 hover:text-white text-sm">
+          Annuler
+        </button>
+        <p class="text-xs text-gray-500 mt-3">${recordedFrames.length} frames disponibles</p>
+      </div>
+    `;
+    document.body.appendChild(exportModal);
+  
+    const downloadImage = (index, name) => {
+      const link = document.createElement("a");
+      link.href = recordedFrames[index];
+      link.download = `tissage-${name}.png`;
+      link.click();
+    };
+  
+    document.getElementById("export-first").addEventListener("click", () => {
+      downloadImage(0, "debut");
+      alert("✅ Image de début téléchargée");
+    });
+  
+    document.getElementById("export-middle").addEventListener("click", () => {
+      const mid = Math.floor(recordedFrames.length / 2);
+      downloadImage(mid, "milieu");
+      alert("✅ Image du milieu téléchargée");
+    });
+  
+    document.getElementById("export-last").addEventListener("click", () => {
+      downloadImage(recordedFrames.length - 1, "fin");
+      alert("✅ Image de fin téléchargée");
+    });
+  
+    document.getElementById("export-all").addEventListener("click", async () => {
+      alert(
+        "⚠️ Téléchargement de toutes les images...\n\n" +
+        `${recordedFrames.length} fichiers vont être téléchargés.\n` +
+        "Cela peut prendre du temps."
+      );
+  
+      // Télécharger toutes les frames avec un délai
+      for (let i = 0; i < recordedFrames.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const link = document.createElement("a");
+        link.href = recordedFrames[i];
+        link.download = `tissage-frame-${String(i + 1).padStart(4, "0")}.png`;
+        link.click();
+      }
+  
+      alert(`✅ ${recordedFrames.length} images téléchargées`);
+    });
+  
+    document.getElementById("close-export").addEventListener("click", () => {
+      document.body.removeChild(exportModal);
+      recordedFrames = [];
+    });
   }
 
   async function exportFramesAsZip(progressModal) {
