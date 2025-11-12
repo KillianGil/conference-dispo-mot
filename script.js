@@ -84,52 +84,52 @@ document.addEventListener("DOMContentLoaded", () => {
     
     bailleul: () => {
       const colors = [
-        "hsl(35, 80%, 68%)",   // Orange doux
-        "hsl(42, 85%, 70%)",   // Jaune doré
-        "hsl(165, 55%, 60%)",  // Turquoise
-        "hsl(195, 50%, 65%)",  // Bleu ciel
-        "hsl(18, 70%, 62%)",   // Terracotta
-        "hsl(50, 80%, 72%)",   // Jaune citron
-        "hsl(280, 65%, 68%)",  // Violet
-        "hsl(340, 75%, 65%)",  // Rose
-        "hsl(145, 60%, 62%)",  // Vert menthe
-        "hsl(220, 70%, 68%)",  // Bleu lavande
-        "hsl(25, 75%, 60%)",   // Corail
-        "hsl(85, 65%, 65%)",   // Vert lime
-        "hsl(310, 70%, 68%)",  // Magenta
-        "hsl(180, 60%, 62%)",  // Cyan
-        "hsl(60, 85%, 68%)",   // Jaune vif
-        "hsl(200, 65%, 65%)",  // Bleu océan
-        "hsl(330, 80%, 70%)",  // Rose fuchsia
-        "hsl(120, 55%, 60%)",  // Vert émeraude
-        "hsl(270, 75%, 65%)",  // Violet profond
-        "hsl(15, 80%, 65%)",   // Rouge orangé
+        "hsl(35, 80%, 68%)",
+        "hsl(42, 85%, 70%)",
+        "hsl(165, 55%, 60%)",
+        "hsl(195, 50%, 65%)",
+        "hsl(18, 70%, 62%)",
+        "hsl(50, 80%, 72%)",
+        "hsl(280, 65%, 68%)",
+        "hsl(340, 75%, 65%)",
+        "hsl(145, 60%, 62%)",
+        "hsl(220, 70%, 68%)",
+        "hsl(25, 75%, 60%)",
+        "hsl(85, 65%, 65%)",
+        "hsl(310, 70%, 68%)",
+        "hsl(180, 60%, 62%)",
+        "hsl(60, 85%, 68%)",
+        "hsl(200, 65%, 65%)",
+        "hsl(330, 80%, 70%)",
+        "hsl(120, 55%, 60%)",
+        "hsl(270, 75%, 65%)",
+        "hsl(15, 80%, 65%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
     
     babiole: () => {
       const colors = [
-        "hsl(285, 95%, 70%)",  // Violet électrique
-        "hsl(185, 90%, 65%)",  // Cyan néon
-        "hsl(335, 98%, 72%)",  // Rose néon
-        "hsl(65, 100%, 62%)",  // Jaune fluo
-        "hsl(160, 88%, 65%)",  // Vert néon
-        "hsl(210, 92%, 68%)",  // Bleu électrique
-        "hsl(30, 95%, 68%)",   // Orange vif
-        "hsl(120, 85%, 65%)",  // Vert lime
-        "hsl(270, 90%, 70%)",  // Violet vif
-        "hsl(355, 95%, 68%)",  // Rouge vif
-        "hsl(45, 100%, 65%)",  // Jaune intense
-        "hsl(195, 95%, 70%)",  // Bleu cyan
-        "hsl(300, 92%, 72%)",  // Magenta néon
-        "hsl(90, 88%, 62%)",   // Vert chartreuse
-        "hsl(240, 90%, 68%)",  // Bleu indigo
-        "hsl(15, 100%, 65%)",  // Rouge orangé vif
-        "hsl(165, 95%, 68%)",  // Turquoise néon
-        "hsl(320, 98%, 70%)",  // Rose shocking
-        "hsl(75, 92%, 65%)",   // Vert acide
-        "hsl(225, 88%, 70%)",  // Bleu persan
+        "hsl(285, 95%, 70%)",
+        "hsl(185, 90%, 65%)",
+        "hsl(335, 98%, 72%)",
+        "hsl(65, 100%, 62%)",
+        "hsl(160, 88%, 65%)",
+        "hsl(210, 92%, 68%)",
+        "hsl(30, 95%, 68%)",
+        "hsl(120, 85%, 65%)",
+        "hsl(270, 90%, 70%)",
+        "hsl(355, 95%, 68%)",
+        "hsl(45, 100%, 65%)",
+        "hsl(195, 95%, 70%)",
+        "hsl(300, 92%, 72%)",
+        "hsl(90, 88%, 62%)",
+        "hsl(240, 90%, 68%)",
+        "hsl(15, 100%, 65%)",
+        "hsl(165, 95%, 68%)",
+        "hsl(320, 98%, 70%)",
+        "hsl(75, 92%, 65%)",
+        "hsl(225, 88%, 70%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
