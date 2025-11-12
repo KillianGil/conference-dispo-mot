@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let animationFrame = null;
   let currentAnimatingConnection = null;
   let animationProgress = 0;
+  let particles = [];
 
   let scale = 1;
   let offsetX = 0;
@@ -35,11 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 150;
+    if (!container) return 100;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(150, diagonal * 0.15);
+    return Math.max(80, diagonal * 0.08);
   }
 
   function isPositionValid(x, y, minDist) {
@@ -97,6 +98,33 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
+  class Particle {
+    constructor(x, y, color) {
+      this.x = x;
+      this.y = y;
+      this.vx = (Math.random() - 0.5) * 2;
+      this.vy = (Math.random() - 0.5) * 2;
+      this.life = 1;
+      this.color = color;
+      this.size = Math.random() * 3 + 2;
+    }
+
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life -= 0.02;
+      this.vy += 0.1;
+    }
+
+    draw(ctx) {
+      ctx.globalAlpha = this.life;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
   function resizeCanvas() {
     const container = document.getElementById("canvas-container");
     if (!container) return;
@@ -128,16 +156,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function animateWeaving() {
-    if (!currentAnimatingConnection) return;
+    if (!currentAnimatingConnection) {
+      drawWeave();
+      animationFrame = requestAnimationFrame(animateWeaving);
+      return;
+    }
+    
     animationProgress += 0.02;
     if (animationProgress >= 1) {
-      animationProgress = 0;
-      currentAnimatingConnection = null;
+      animationProgress = 1;
+      setTimeout(() => {
+        currentAnimatingConnection = null;
+        animationProgress = 0;
+      }, 100);
     }
+    
     drawWeave();
-    if (settings.animateLines && currentAnimatingConnection) {
-      animationFrame = requestAnimationFrame(animateWeaving);
-    }
+    animationFrame = requestAnimationFrame(animateWeaving);
   }
 
   function setupZoomAndPan() {
@@ -409,15 +444,29 @@ document.addEventListener("DOMContentLoaded", () => {
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => {
+      p.update();
+      p.draw(ctx);
+    });
+
     ctx.globalAlpha = 1;
+    const time = Date.now() * 0.001;
     displayedWords.forEach((word) => {
-      const x = word.x * width;
-      const y = word.y * height;
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 15;
       const pointSize = baseSize + (occurrences - 1) * 5;
       
-      const pulseSize = pointSize + 8 + Math.sin(Date.now() * 0.003 + word.timestamp) * 3;
+      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+      const x = word.x * width + wobbleX;
+      const y = word.y * height + wobbleY;
+      
+      if (Math.random() < 0.05) {
+        particles.push(new Particle(x, y, word.color));
+      }
+      
+      const pulseSize = pointSize + 8 + Math.sin(time * 3 + word.timestamp * 0.001) * 3;
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
@@ -459,10 +508,13 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.textBaseline = "bottom";
 
       displayedWords.forEach((word) => {
-        const x = word.x * width;
-        const y = word.y * height;
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = 15 + (occurrences - 1) * 5;
+        
+        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+        const x = word.x * width + wobbleX;
+        const y = word.y * height + wobbleY;
         const textY = y - pointSize - 10;
 
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
@@ -482,13 +534,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
       });
-    }
-
-    if (settings.enableResonance) {
-      const hasResonantConnections = connections.some(([w1, w2]) => hasResonance(w1, w2));
-      if (hasResonantConnections) {
-        animationFrame = requestAnimationFrame(() => drawWeave(withBackground));
-      }
     }
   }
 
@@ -613,12 +658,8 @@ document.addEventListener("DOMContentLoaded", () => {
           
           if (targetWord) {
             currentAnimatingConnection = [targetWord, lastWord];
+            animationProgress = 0;
           }
-          animationProgress = 0;
-          if (animationFrame) cancelAnimationFrame(animationFrame);
-          animateWeaving();
-        } else {
-          drawWeave();
         }
       }
     } catch (error) {
@@ -667,6 +708,16 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const text = wordInput.value.trim();
     if (!text) return;
+    
+    const existingWord = displayedWords.find(
+      w => w.text.toLowerCase() === text.toLowerCase()
+    );
+    
+    if (existingWord) {
+      alert("Ce mot existe déjà ! Le point va grossir.");
+      return;
+    }
+    
     const submitButton = wordForm.querySelector("button");
     const originalPlaceholder = wordInput.placeholder;
     wordInput.disabled = true;
@@ -677,17 +728,17 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const minDist = getMinDistance();
     let x, y, attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 100;
     
     do {
-      x = 0.1 + Math.random() * 0.8;
-      y = 0.1 + Math.random() * 0.8;
+      x = 0.05 + Math.random() * 0.9;
+      y = 0.05 + Math.random() * 0.9;
       attempts++;
     } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
     
     if (attempts === maxAttempts) {
-      x = 0.1 + Math.random() * 0.8;
-      y = 0.1 + Math.random() * 0.8;
+      x = 0.05 + Math.random() * 0.9;
+      y = 0.05 + Math.random() * 0.9;
     }
     
     const newWordPayload = {
@@ -837,6 +888,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await fetch("/api/words", { method: "DELETE" });
         displayedWords = [];
         wordsList.innerHTML = "";
+        particles = [];
         scale = 1;
         offsetX = 0;
         offsetY = 0;
@@ -873,4 +925,5 @@ document.addEventListener("DOMContentLoaded", () => {
   resizeCanvas();
   setInterval(fetchWords, 2000);
   fetchWords();
+  animateWeaving();
 });
