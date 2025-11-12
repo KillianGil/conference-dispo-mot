@@ -37,51 +37,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Configuration globale
   const CONFIG = {
-    MAX_WORDS_PER_USER: 5, // Limite par utilisateur (cookies)
-    RESET_PASSWORD: "tissage2025", // Changez ce mot de passe !
+    MAX_WORDS_PER_USER: 5,
+    RESET_PASSWORD: "tissage2025",
   };
 
   // Système de comptage par utilisateur
   function getUserWordCount() {
-    const count = localStorage.getItem('userWordCount');
-    return count ? parseInt(count) : 0;
+    try {
+      const count = localStorage.getItem('userWordCount');
+      return count ? parseInt(count, 10) : 0;
+    } catch (e) {
+      console.error("Erreur localStorage:", e);
+      return 0;
+    }
   }
 
   function incrementUserWordCount() {
-    const count = getUserWordCount();
-    localStorage.setItem('userWordCount', (count + 1).toString());
+    try {
+      const count = getUserWordCount();
+      localStorage.setItem('userWordCount', (count + 1).toString());
+      console.log("Compteur incrémenté:", count + 1);
+    } catch (e) {
+      console.error("Erreur localStorage:", e);
+    }
   }
 
   function canUserAddWord() {
-    return getUserWordCount() < CONFIG.MAX_WORDS_PER_USER;
+    const count = getUserWordCount();
+    const canAdd = count < CONFIG.MAX_WORDS_PER_USER;
+    console.log(`Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`);
+    return canAdd;
   }
 
-  // Nouveau système de placement ULTRA-OPTIMISÉ pour 60-100 mots
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
     if (!container) return 60;
     
-    const wordCount = displayedWords.length;
     const uniqueCount = new Set(displayedWords.map(w => w.text.toLowerCase())).size;
     
-    // Distances ultra-réduites pour maximiser l'espace
-    let baseDistance = 60; // Réduit de 80 à 60
+    let baseDistance = 60;
     if (uniqueCount > 80) baseDistance = 35;
     else if (uniqueCount > 60) baseDistance = 40;
     else if (uniqueCount > 40) baseDistance = 45;
     else if (uniqueCount > 25) baseDistance = 50;
     else if (uniqueCount > 15) baseDistance = 55;
     
-    return Math.max(30, baseDistance); // Minimum absolu : 30px
+    return Math.max(30, baseDistance);
   }
 
   function getPointRadius(occurrences) {
-    return 18 + (occurrences - 1) * 5; // Légèrement réduit
+    return 18 + (occurrences - 1) * 5;
   }
 
   function getMaxPointSize(occurrences) {
     const pointSize = getPointRadius(occurrences);
-    return pointSize + 20; // Réduit de 25 à 20
+    return pointSize + 20;
   }
 
   function getUniqueWordPositions() {
@@ -108,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    // Marges ultra-réduites : 3%
     const margin = 0.03;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
@@ -124,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dx = (pos.x * width) - px;
       const dy = (pos.y * height) - py;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.25; // Réduit à 25%
+      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.25;
       
       if (dist < requiredDist) {
         return false;
@@ -142,7 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    // 1. Essai aléatoire rapide (30 tentatives)
     for (let i = 0; i < 30; i++) {
       const x = 0.05 + Math.random() * 0.90;
       const y = 0.05 + Math.random() * 0.90;
@@ -151,11 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     
-    // 2. Spirale depuis le centre avec plus de densité
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.47; // Plus large
-    const radiusStep = minDist / Math.max(width, height) * 0.8; // Plus serré
+    const maxRadius = 0.47;
+    const radiusStep = minDist / Math.max(width, height) * 0.8;
     
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
       const numPoints = Math.floor(2 * Math.PI * radius / (radiusStep * 0.8));
@@ -174,7 +181,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     
-    // 3. Grille fine ultra-dense
     const step = minDist / Math.max(width, height) * 0.7;
     for (let gridY = 0.05; gridY <= 0.95; gridY += step) {
       for (let gridX = 0.05; gridX <= 0.95; gridX += step) {
@@ -189,7 +195,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     
-    // 4. Dernier recours : grille ultra-fine avec distance réduite
     const fineStep = step * 0.5;
     for (let gridY = 0.03; gridY <= 0.97; gridY += fineStep) {
       for (let gridX = 0.03; gridX <= 0.97; gridX += fineStep) {
@@ -671,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 22; // Légèrement réduit
+      const fontSize = isMobile ? 16 : 22;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -684,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 12; // Réduit de 15 à 12
+        const textY = y - pointSize - 12;
 
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
         ctx.shadowBlur = 12;
@@ -692,7 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.shadowOffsetY = 3;
 
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6; // Réduit de 7 à 6
+        ctx.lineWidth = 6;
         ctx.strokeText(word.text, x, textY);
 
         ctx.fillStyle = word.color;
@@ -923,9 +928,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = wordInput.value.trim();
     if (!text) return;
     
-    // Vérification de la limite par utilisateur
+    console.log("Tentative d'ajout de mot:", text);
+    
+    // Vérification stricte de la limite
     if (!canUserAddWord()) {
-      alert(`Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant. Laissez la place aux autres ! 😊`);
+      const count = getUserWordCount();
+      console.log("Limite atteinte:", count);
+      alert(`❌ Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant.\n\nLaissez la place aux autres ! 😊`);
       wordInput.value = "";
       return;
     }
@@ -941,6 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let newWordPayload;
     
     if (existingWord) {
+      console.log("Mot existant trouvé");
       newWordPayload = {
         text,
         x: existingWord.x,
@@ -954,10 +964,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const position = findValidPosition();
       
       if (!position) {
-        alert("Canvas saturé - Impossible d'ajouter plus de mots pour le moment");
+        alert("❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment");
         wordInput.disabled = false;
         submitButton.disabled = false;
         submitButton.textContent = "Tisser";
+        wordInput.value = "";
         return;
       }
       
@@ -975,6 +986,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newWordPayload),
       });
+      
       if (!response.ok || response.status !== 201) {
         let errorMsg = `Erreur serveur (${response.status})`;
         try {
@@ -984,14 +996,17 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(errorMsg);
       }
       
-      // Incrémente le compteur local
+      // Incrémente SEULEMENT après succès serveur
       incrementUserWordCount();
+      console.log("Mot ajouté avec succès");
       
       wordInput.value = "";
       submitButton.textContent = "✓";
       
-      // Afficher le compteur restant
+      // Mise à jour du placeholder
       const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
+      console.log("Mots restants:", remaining);
+      
       if (remaining > 0) {
         wordInput.placeholder = `${remaining} mot${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}...`;
       } else {
@@ -1013,6 +1028,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         wordInput.placeholder = originalPlaceholder;
       }, 3000);
+      wordInput.value = "";
     } finally {
       if (getUserWordCount() < CONFIG.MAX_WORDS_PER_USER) {
         wordInput.disabled = false;
@@ -1129,25 +1145,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Bouton Reset avec protection par mot de passe
-  resetButton.addEventListener("click", async () => {
-    const isMobile = window.innerWidth < 768;
+  resetButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Créer un modal personnalisé pour le mot de passe
+    console.log("Reset button clicked");
+    
     const passwordModal = document.createElement('div');
-    passwordModal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4';
+    passwordModal.id = 'password-reset-modal';
+    passwordModal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4';
+    passwordModal.style.zIndex = '100';
+    
     passwordModal.innerHTML = `
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-xl max-w-sm w-full">
+      <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full">
         <h3 class="text-xl font-bold text-white mb-4">🔒 Accès Protégé</h3>
         <p class="text-gray-300 text-sm mb-4">Entrez le mot de passe pour réinitialiser le tissage :</p>
         <input type="password" id="reset-password-input" 
-          class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+          class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-600"
           placeholder="Mot de passe..."
           autocomplete="off">
         <div class="flex gap-2">
-          <button id="cancel-reset" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+          <button type="button" id="cancel-reset" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
             Annuler
           </button>
-          <button id="confirm-reset" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
+          <button type="button" id="confirm-reset" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
             Réinitialiser
           </button>
         </div>
@@ -1156,30 +1177,45 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     
     document.body.appendChild(passwordModal);
+    console.log("Modal ajouté au DOM");
     
     const passwordInput = document.getElementById('reset-password-input');
     const confirmBtn = document.getElementById('confirm-reset');
     const cancelBtn = document.getElementById('cancel-reset');
     
-    passwordInput.focus();
+    setTimeout(() => passwordInput.focus(), 100);
     
     const closeModal = () => {
-      document.body.removeChild(passwordModal);
+      if (document.body.contains(passwordModal)) {
+        document.body.removeChild(passwordModal);
+        console.log("Modal fermé");
+      }
     };
     
-    cancelBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
     
     passwordModal.addEventListener('click', (e) => {
-      if (e.target === passwordModal) closeModal();
+      if (e.target === passwordModal) {
+        closeModal();
+      }
     });
     
     const attemptReset = async () => {
-      const enteredPassword = passwordInput.value;
+      const enteredPassword = passwordInput.value.trim();
+      console.log("Tentative reset avec mot de passe:", enteredPassword ? "***" : "(vide)");
       
       if (enteredPassword === CONFIG.RESET_PASSWORD) {
+        console.log("✓ Mot de passe correct");
         closeModal();
+        
         try {
-          await fetch("/api/words", { method: "DELETE" });
+          const response = await fetch("/api/words", { method: "DELETE" });
+          console.log("Réponse DELETE:", response.status);
+          
           displayedWords = [];
           wordsList.innerHTML = "";
           particles = [];
@@ -1189,8 +1225,9 @@ document.addEventListener("DOMContentLoaded", () => {
           offsetX = 0;
           offsetY = 0;
           
-          // Réinitialiser le compteur local
           localStorage.removeItem('userWordCount');
+          console.log("LocalStorage nettoyé");
+          
           wordInput.disabled = false;
           wordForm.querySelector("button").disabled = false;
           wordInput.placeholder = "Partagez un mot...";
@@ -1199,9 +1236,11 @@ document.addEventListener("DOMContentLoaded", () => {
           updateStats();
           alert("✓ Tissage réinitialisé avec succès");
         } catch (err) {
+          console.error("Erreur reset:", err);
           alert("❌ La réinitialisation a échoué");
         }
       } else {
+        console.log("✗ Mot de passe incorrect");
         passwordInput.value = "";
         passwordInput.placeholder = "❌ Mot de passe incorrect";
         passwordInput.classList.add('border-2', 'border-red-500');
@@ -1212,10 +1251,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
     
-    confirmBtn.addEventListener('click', attemptReset);
+    confirmBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      attemptReset();
+    });
     
     passwordInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') attemptReset();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        attemptReset();
+      }
     });
   });
 
@@ -1246,8 +1292,10 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchWords();
   animateWeaving();
   
-  // Afficher le compteur restant au chargement
+  // Afficher le compteur au chargement
   const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
+  console.log("Compteur initial:", getUserWordCount(), "/ Restants:", remaining);
+  
   if (remaining === 0) {
     wordInput.placeholder = "Limite atteinte (5 mots max)";
     wordInput.disabled = true;
