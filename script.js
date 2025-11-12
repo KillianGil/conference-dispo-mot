@@ -37,18 +37,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 200;
+    if (!container) return 300;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(150, diagonal * 0.18);
+    return Math.max(250, diagonal * 0.25);
   }
 
   function getMaxPointSize(occurrences) {
     const baseSize = 20;
     const pointSize = baseSize + (occurrences - 1) * 6;
     const pulseSize = pointSize + 10 + 4;
-    return pulseSize + 20;
+    return pulseSize + 30;
   }
 
   function getUniqueWordPositions() {
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    const margin = 0.12;
+    const margin = 0.15;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dx = (pos.x * width) - (x * width);
       const dy = (pos.y * height) - (y * height);
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + pos.maxSize + newMaxSize;
+      const requiredDist = minDist + pos.maxSize + newMaxSize + 50;
       return dist >= requiredDist;
     });
   }
@@ -836,19 +836,32 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const minDist = getMinDistance();
       let x, y, attempts = 0;
-      const maxAttempts = 2000;
+      const maxAttempts = 5000;
       
       do {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 0.25 + Math.random() * 0.25;
-        x = 0.5 + Math.cos(angle) * radius;
-        y = 0.5 + Math.sin(angle) * radius;
+        x = 0.15 + Math.random() * 0.7;
+        y = 0.15 + Math.random() * 0.7;
         attempts++;
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        x = 0.3 + Math.random() * 0.4;
-        y = 0.3 + Math.random() * 0.4;
+        let found = false;
+        for (let gridY = 0.15; gridY < 0.85 && !found; gridY += 0.1) {
+          for (let gridX = 0.15; gridX < 0.85 && !found; gridX += 0.1) {
+            if (isPositionValid(gridX, gridY, minDist)) {
+              x = gridX + (Math.random() - 0.5) * 0.05;
+              y = gridY + (Math.random() - 0.5) * 0.05;
+              found = true;
+            }
+          }
+        }
+        if (!found) {
+          alert("Canvas plein, impossible d'ajouter plus de mots");
+          wordInput.disabled = false;
+          submitButton.disabled = false;
+          submitButton.textContent = "Tisser";
+          return;
+        }
       }
       
       newWordPayload = {
