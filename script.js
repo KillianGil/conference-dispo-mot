@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let displayedWords = [];
   let animationFrame = null;
-  let weavingAnimation = [];
+  let currentAnimatingConnection = null;
   let animationProgress = 0;
 
   let scale = 1;
@@ -26,18 +26,41 @@ document.addEventListener("DOMContentLoaded", () => {
     linkMode: "chronological",
     showWords: true,
     animateLines: true,
-    lineWidth: 5, // ✅ Plus épais par défaut
+    lineWidth: 5,
     colorTheme: "auto",
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
   };
 
+  function getMinDistance() {
+    const container = document.getElementById("canvas-container");
+    if (!container) return 150;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const diagonal = Math.sqrt(width * width + height * height);
+    return Math.max(150, diagonal * 0.15);
+  }
+
+  function isPositionValid(x, y, minDist) {
+    const container = document.getElementById("canvas-container");
+    if (!container) return true;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    return displayedWords.every(word => {
+      const dx = (word.x * width) - (x * width);
+      const dy = (word.y * height) - (y * height);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return dist >= minDist;
+    });
+  }
+
   const colorPalettes = {
     auto: () => {
       const hue = Math.random() * 360;
-      const saturation = 75 + Math.random() * 20;
-      const lightness = 55 + Math.random() * 15;
+      const saturation = 70 + Math.random() * 25;
+      const lightness = 50 + Math.random() * 20;
       return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
     },
     
@@ -49,6 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "hsl(195, 50%, 65%)",
         "hsl(18, 70%, 62%)",
         "hsl(50, 80%, 72%)",
+        "hsl(280, 65%, 68%)",
+        "hsl(340, 75%, 65%)",
+        "hsl(145, 60%, 62%)",
+        "hsl(220, 70%, 68%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
@@ -61,6 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "hsl(65, 100%, 62%)",
         "hsl(160, 88%, 65%)",
         "hsl(210, 92%, 68%)",
+        "hsl(30, 95%, 68%)",
+        "hsl(120, 85%, 65%)",
+        "hsl(270, 90%, 70%)",
+        "hsl(355, 95%, 68%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
@@ -97,14 +128,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function animateWeaving() {
-    if (weavingAnimation.length === 0) return;
+    if (!currentAnimatingConnection) return;
     animationProgress += 0.02;
     if (animationProgress >= 1) {
       animationProgress = 0;
-      weavingAnimation.shift();
+      currentAnimatingConnection = null;
     }
     drawWeave();
-    if (settings.animateLines && weavingAnimation.length > 0) {
+    if (settings.animateLines && currentAnimatingConnection) {
       animationFrame = requestAnimationFrame(animateWeaving);
     }
   }
@@ -253,7 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let connections = [];
 
-    // ✅ Génération des connexions selon le mode
     if (settings.linkMode === "chronological") {
       for (let i = 1; i < displayedWords.length; i++) {
         connections.push([displayedWords[i - 1], displayedWords[i]]);
@@ -304,7 +334,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // ✅ S'assurer qu'aucun mot n'est isolé
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
@@ -323,8 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // ✅ DESSINER LES LIGNES ULTRA-VISIBLES
-    connections.forEach(([word1, word2], index) => {
+    connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" || typeof word1.y !== "number" ||
         typeof word2.x !== "number" || typeof word2.y !== "number" ||
@@ -332,7 +360,9 @@ document.addEventListener("DOMContentLoaded", () => {
       ) return;
 
       let progress = 1;
-      if (weavingAnimation.length > 0 && index === connections.length - 1) {
+      if (currentAnimatingConnection && 
+          currentAnimatingConnection[0] === word1 && 
+          currentAnimatingConnection[1] === word2) {
         progress = animationProgress;
       }
 
@@ -341,7 +371,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
-      // Ombre portée
       ctx.save();
       ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
       ctx.shadowBlur = 10;
@@ -366,7 +395,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.stroke();
       ctx.restore();
 
-      // Halo lumineux
       ctx.globalAlpha = 0.4;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -375,23 +403,20 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.stroke();
     });
 
-    // ✅ COMPTER LES OCCURRENCES POUR AGRANDIR LES POINTS
     const wordOccurrences = {};
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
-    // ✅ DESSINER LES POINTS AUX SOMMETS (plus gros si répétés)
     ctx.globalAlpha = 1;
     displayedWords.forEach((word) => {
       const x = word.x * width;
       const y = word.y * height;
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 15;
-      const pointSize = baseSize + (occurrences - 1) * 5; // +5px par occurrence
+      const pointSize = baseSize + (occurrences - 1) * 5;
       
-      // Halo extérieur pulsant
       const pulseSize = pointSize + 8 + Math.sin(Date.now() * 0.003 + word.timestamp) * 3;
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
@@ -400,7 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 0.4;
       ctx.stroke();
       
-      // Cercle de couleur principal
       ctx.beginPath();
       ctx.arc(x, y, pointSize, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
@@ -409,14 +433,12 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.shadowBlur = 15;
       ctx.fill();
       
-      // Contour blanc brillant
       ctx.beginPath();
       ctx.arc(x, y, pointSize, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.lineWidth = 2;
       ctx.stroke();
       
-      // Point blanc central
       ctx.beginPath();
       ctx.arc(x, y, pointSize * 0.3, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -428,34 +450,30 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.shadowColor = 'transparent';
     });
 
-    // ✅ DESSINER LES MOTS DÉCALÉS AU-DESSUS DES POINTS
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
       const fontSize = isMobile ? 16 : 20;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
-      ctx.textBaseline = "bottom"; // ✅ Texte au-dessus du point
+      ctx.textBaseline = "bottom";
 
       displayedWords.forEach((word) => {
         const x = word.x * width;
         const y = word.y * height;
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = 15 + (occurrences - 1) * 5;
-        const textY = y - pointSize - 10; // ✅ 10px au-dessus du point
+        const textY = y - pointSize - 10;
 
-        // Ombre du texte
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
         ctx.shadowBlur = 10;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
 
-        // Contour noir
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
         ctx.lineWidth = 6;
         ctx.strokeText(word.text, x, textY);
 
-        // ✅ Texte de la même couleur que le trait
         ctx.fillStyle = word.color;
         ctx.shadowBlur = 15;
         ctx.shadowColor = word.color;
@@ -573,15 +591,29 @@ document.addEventListener("DOMContentLoaded", () => {
         )
       );
       
-      const hadWords = displayedWords.length > 0;
       displayedWords = fetchedWords;
       
       if (newWords.length > 0) {
         updateWordList(newWords);
         updateStats();
         
-        if (settings.animateLines && hadWords) {
-          weavingAnimation = newWords;
+        if (settings.animateLines && displayedWords.length > 1) {
+          const lastWord = displayedWords[displayedWords.length - 1];
+          let targetWord;
+          
+          if (settings.linkMode === "chronological") {
+            targetWord = displayedWords[displayedWords.length - 2];
+          } else {
+            const sorted = displayedWords
+              .filter((w) => w !== lastWord)
+              .map((w) => ({ word: w, dist: distance(lastWord, w) }))
+              .sort((a, b) => a.dist - b.dist);
+            targetWord = sorted[0]?.word;
+          }
+          
+          if (targetWord) {
+            currentAnimatingConnection = [targetWord, lastWord];
+          }
           animationProgress = 0;
           if (animationFrame) cancelAnimationFrame(animationFrame);
           animateWeaving();
@@ -642,12 +674,29 @@ document.addEventListener("DOMContentLoaded", () => {
     submitButton.textContent = "...";
     const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
     const newColor = colorGenerator();
+    
+    const minDist = getMinDistance();
+    let x, y, attempts = 0;
+    const maxAttempts = 50;
+    
+    do {
+      x = 0.1 + Math.random() * 0.8;
+      y = 0.1 + Math.random() * 0.8;
+      attempts++;
+    } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
+    
+    if (attempts === maxAttempts) {
+      x = 0.1 + Math.random() * 0.8;
+      y = 0.1 + Math.random() * 0.8;
+    }
+    
     const newWordPayload = {
       text,
-      x: Math.random(),
-      y: Math.random(),
+      x,
+      y,
       color: newColor,
     };
+    
     try {
       const response = await fetch("/api/words", {
         method: "POST",
