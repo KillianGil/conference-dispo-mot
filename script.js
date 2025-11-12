@@ -57,6 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function findExistingWord(text) {
+    return displayedWords.find(w => w.text.toLowerCase() === text.toLowerCase());
+  }
+
   const colorPalettes = {
     auto: () => {
       const hue = Math.random() * 360;
@@ -316,8 +320,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let connections = [];
 
     if (settings.linkMode === "chronological") {
-      for (let i = 1; i < displayedWords.length; i++) {
-        connections.push([displayedWords[i - 1], displayedWords[i]]);
+      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+      for (let i = 1; i < sortedWords.length; i++) {
+        connections.push([sortedWords[i - 1], sortedWords[i]]);
       }
     } else if (settings.linkMode === "random") {
       displayedWords.forEach((word, index) => {
@@ -634,11 +639,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      const newWords = fetchedWords.filter(
-        (fw) => !displayedWords.some(
+      const newWords = [];
+      fetchedWords.forEach((fw) => {
+        const existing = displayedWords.find(
           (dw) => dw.text === fw.text && dw.timestamp === fw.timestamp
-        )
-      );
+        );
+        if (!existing) {
+          newWords.push(fw);
+        }
+      });
       
       displayedWords = fetchedWords;
       
@@ -651,18 +660,48 @@ document.addEventListener("DOMContentLoaded", () => {
           let targetWord;
           
           if (settings.linkMode === "chronological") {
-            const lastIndex = displayedWords.findIndex(
+            const allWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+            const lastIndex = allWords.findIndex(
               w => w.text === lastWord.text && w.timestamp === lastWord.timestamp
             );
             if (lastIndex > 0) {
-              targetWord = displayedWords[lastIndex - 1];
+              targetWord = allWords[lastIndex - 1];
             }
-          } else {
-            const sorted = displayedWords
-              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp))
+          } else if (settings.linkMode === "proximity") {
+            const candidates = displayedWords
+              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const sorted = candidates
               .map((w) => ({ word: w, dist: distance(lastWord, w) }))
               .sort((a, b) => a.dist - b.dist);
             targetWord = sorted[0]?.word;
+          } else if (settings.linkMode === "color") {
+            const candidates = displayedWords
+              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const sorted = candidates
+              .map((w) => ({ word: w, sim: colorSimilarity(lastWord.color, w.color) }))
+              .sort((a, b) => a.sim - b.sim);
+            targetWord = sorted[0]?.word;
+          } else if (settings.linkMode === "random") {
+            const candidates = displayedWords
+              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            if (candidates.length > 0) {
+              const hash = lastWord.text.split('').reduce((acc, char) => 
+                ((acc << 5) - acc) + char.charCodeAt(0), 0);
+              const targetIndex = Math.abs(hash) % candidates.length;
+              targetWord = candidates[targetIndex];
+            }
+          } else if (settings.linkMode === "resonance") {
+            const candidates = displayedWords
+              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const resonant = candidates.filter(w => hasResonance(lastWord, w));
+            if (resonant.length > 0) {
+              targetWord = resonant[0];
+            } else {
+              const sorted = candidates
+                .map((w) => ({ word: w, dist: distance(lastWord, w) }))
+                .sort((a, b) => a.dist - b.dist);
+              targetWord = sorted[0]?.word;
+            }
           }
           
           if (targetWord) {
@@ -678,9 +717,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateWordList(newWords = []) {
     const existingItems = Array.from(wordsList.querySelectorAll(".word-item"));
-    const currentTexts = displayedWords.map((w) => w.text);
+    const currentTexts = displayedWords.map((w) => `${w.text}-${w.timestamp}`);
     existingItems.forEach((item) => {
-      if (!currentTexts.includes(item.dataset.text)) {
+      if (!currentTexts.includes(item.dataset.key)) {
         item.remove();
       }
     });
@@ -690,15 +729,20 @@ document.addEventListener("DOMContentLoaded", () => {
       li.className = "word-item p-3 rounded-lg flex items-center bg-gray-800/50 hover:bg-gray-700/50 transition-colors";
       li.style.borderLeft = `4px solid ${word.color}`;
       li.dataset.text = word.text;
+      li.dataset.key = `${word.text}-${word.timestamp}`;
+      
       const colorDot = document.createElement("span");
       colorDot.className = "w-3 h-3 rounded-full mr-3 flex-shrink-0";
       colorDot.style.backgroundColor = word.color;
       colorDot.style.boxShadow = `0 0 8px ${word.color}`;
+      
       const textSpan = document.createElement("span");
       textSpan.textContent = word.text;
       textSpan.className = "text-gray-100 truncate flex-grow font-medium";
+      
       li.appendChild(colorDot);
       li.appendChild(textSpan);
+      
       if (settings.showTimestamp) {
         const timeSpan = document.createElement("span");
         const date = new Date(word.timestamp);
@@ -723,30 +767,55 @@ document.addEventListener("DOMContentLoaded", () => {
     wordInput.disabled = true;
     submitButton.disabled = true;
     submitButton.textContent = "...";
-    const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
-    const newColor = colorGenerator();
     
-    const minDist = getMinDistance();
-    let x, y, attempts = 0;
-    const maxAttempts = 200;
+    const existingWord = findExistingWord(text);
     
-    do {
-      x = 0.1 + Math.random() * 0.8;
-      y = 0.1 + Math.random() * 0.8;
-      attempts++;
-    } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
+    let newWordPayload;
     
-    if (attempts === maxAttempts) {
-      x = 0.1 + Math.random() * 0.8;
-      y = 0.1 + Math.random() * 0.8;
+    if (existingWord) {
+      newWordPayload = {
+        text,
+        x: existingWord.x,
+        y: existingWord.y,
+        color: existingWord.color,
+      };
+    } else {
+      const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
+      const newColor = colorGenerator();
+      
+      const minDist = getMinDistance();
+      let x, y, attempts = 0;
+      const maxAttempts = 300;
+      
+      do {
+        const zone = Math.floor(Math.random() * 9);
+        const zoneX = (zone % 3) / 3;
+        const zoneY = Math.floor(zone / 3) / 3;
+        
+        x = zoneX + 0.15 + Math.random() * 0.18;
+        y = zoneY + 0.15 + Math.random() * 0.18;
+        
+        attempts++;
+        
+        if (attempts > maxAttempts * 0.7) {
+          x = 0.15 + Math.random() * 0.7;
+          y = 0.15 + Math.random() * 0.7;
+        }
+        
+      } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
+      
+      if (attempts === maxAttempts) {
+        x = 0.2 + Math.random() * 0.6;
+        y = 0.2 + Math.random() * 0.6;
+      }
+      
+      newWordPayload = {
+        text,
+        x,
+        y,
+        color: newColor,
+      };
     }
-    
-    const newWordPayload = {
-      text,
-      x,
-      y,
-      color: newColor,
-    };
     
     try {
       const response = await fetch("/api/words", {
