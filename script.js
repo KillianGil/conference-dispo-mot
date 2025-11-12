@@ -35,28 +35,43 @@ document.addEventListener("DOMContentLoaded", () => {
     enableParticles: true,
   };
 
-  function getMinDistance() {
+  // Nouveau système de placement optimisé
+  function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 150;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    const diagonal = Math.sqrt(width * width + height * height);
+    if (!container) return 80;
     
     const wordCount = displayedWords.length;
-    let baseFactor = 0.15;
+    const uniqueCount = new Set(displayedWords.map(w => w.text.toLowerCase())).size;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const area = width * height;
     
-    if (wordCount > 30) baseFactor = 0.08;
-    else if (wordCount > 20) baseFactor = 0.10;
-    else if (wordCount > 10) baseFactor = 0.12;
+    // Distance de base adaptative selon la densité
+    let baseDistance = 80;
+    if (uniqueCount > 50) baseDistance = 50;
+    else if (uniqueCount > 30) baseDistance = 60;
+    else if (uniqueCount > 15) baseDistance = 70;
     
-    return Math.max(100, diagonal * baseFactor);
+    // Réduction progressive si on approche de la saturation
+    const maxCapacity = area / (baseDistance * baseDistance);
+    const fillRatio = uniqueCount / maxCapacity;
+    
+    if (fillRatio > 0.7) {
+      baseDistance *= 0.7;
+    } else if (fillRatio > 0.5) {
+      baseDistance *= 0.85;
+    }
+    
+    return Math.max(40, baseDistance); // Minimum absolu : 40px
+  }
+
+  function getPointRadius(occurrences) {
+    return 20 + (occurrences - 1) * 6;
   }
 
   function getMaxPointSize(occurrences) {
-    const baseSize = 20;
-    const pointSize = baseSize + (occurrences - 1) * 6;
-    const pulseSize = pointSize + 10 + 4;
-    return pulseSize + 15;
+    const pointSize = getPointRadius(occurrences);
+    return pointSize + 25; // Marge pour pulse + halo
   }
 
   function getUniqueWordPositions() {
@@ -77,13 +92,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return Array.from(positionMap.values());
   }
 
+  // Nouvelle fonction de validation optimisée
   function isPositionValid(x, y, minDist) {
     const container = document.getElementById("canvas-container");
     if (!container) return true;
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    const margin = 0.10;
+    // Marges réduites
+    const margin = 0.05;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
@@ -91,13 +108,92 @@ document.addEventListener("DOMContentLoaded", () => {
     const uniquePositions = getUniqueWordPositions();
     const newMaxSize = getMaxPointSize(1);
     
-    return uniquePositions.every(pos => {
-      const dx = (pos.x * width) - (x * width);
-      const dy = (pos.y * height) - (y * height);
+    const px = x * width;
+    const py = y * height;
+    
+    // Vérification optimisée
+    for (const pos of uniquePositions) {
+      const dx = (pos.x * width) - px;
+      const dy = (pos.y * height) - py;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + pos.maxSize + newMaxSize;
-      return dist >= requiredDist;
-    });
+      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.3; // Réduction importante
+      
+      if (dist < requiredDist) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  // Nouvelle stratégie de placement en spirale + grille
+  function findValidPosition() {
+    const container = document.getElementById("canvas-container");
+    if (!container) return { x: 0.5, y: 0.5 };
+    
+    const minDist = getAdaptiveMinDistance();
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    // 1. Essai aléatoire rapide (20 tentatives)
+    for (let i = 0; i < 20; i++) {
+      const x = 0.10 + Math.random() * 0.80;
+      const y = 0.10 + Math.random() * 0.80;
+      if (isPositionValid(x, y, minDist)) {
+        return { x, y };
+      }
+    }
+    
+    // 2. Spirale depuis le centre
+    const centerX = 0.5;
+    const centerY = 0.5;
+    const maxRadius = 0.45;
+    const angleStep = Math.PI / 8; // 22.5°
+    const radiusStep = minDist / Math.max(width, height);
+    
+    for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
+      const numPoints = Math.floor(2 * Math.PI * radius / radiusStep);
+      const actualAngleStep = (2 * Math.PI) / numPoints;
+      
+      for (let i = 0; i < numPoints; i++) {
+        const angle = i * actualAngleStep;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        if (x >= 0.05 && x <= 0.95 && y >= 0.05 && y <= 0.95) {
+          if (isPositionValid(x, y, minDist)) {
+            return { x, y };
+          }
+        }
+      }
+    }
+    
+    // 3. Grille fine
+    const step = minDist / Math.max(width, height);
+    for (let gridY = 0.10; gridY <= 0.90; gridY += step) {
+      for (let gridX = 0.10; gridX <= 0.90; gridX += step) {
+        const jitterX = (Math.random() - 0.5) * step * 0.3;
+        const jitterY = (Math.random() - 0.5) * step * 0.3;
+        const x = gridX + jitterX;
+        const y = gridY + jitterY;
+        
+        if (isPositionValid(x, y, minDist)) {
+          return { x, y };
+        }
+      }
+    }
+    
+    // 4. Dernier recours : grille ultra-fine
+    const fineStep = step * 0.5;
+    for (let gridY = 0.05; gridY <= 0.95; gridY += fineStep) {
+      for (let gridX = 0.05; gridX <= 0.95; gridX += fineStep) {
+        if (isPositionValid(gridX, gridY, minDist * 0.7)) {
+          return { x: gridX, y: gridY };
+        }
+      }
+    }
+    
+    return null; // Vraiment saturé
   }
 
   function findExistingWord(text) {
@@ -658,7 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="mt-4">
           <h4 class="text-sm font-semibold text-gray-300 mb-2">🔝 Top 5 des mots</h4>
           <div class="space-y-2">
-    `;
+      `;
 
     sorted.slice(0, 5).forEach(([word, count]) => {
       const percentage = ((count / totalWords) * 100).toFixed(1);
@@ -842,43 +938,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
       const newColor = colorGenerator();
       
-      const minDist = getMinDistance();
-      let x, y, attempts = 0;
-      const maxAttempts = 10000;
+      const position = findValidPosition();
       
-      do {
-        x = 0.10 + Math.random() * 0.80;
-        y = 0.10 + Math.random() * 0.80;
-        attempts++;
-      } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
-      
-      if (attempts === maxAttempts) {
-        let found = false;
-        const step = 0.05;
-        for (let gridY = 0.10; gridY <= 0.90 && !found; gridY += step) {
-          for (let gridX = 0.10; gridX <= 0.90 && !found; gridX += step) {
-            const testX = gridX + (Math.random() - 0.5) * step * 0.5;
-            const testY = gridY + (Math.random() - 0.5) * step * 0.5;
-            if (isPositionValid(testX, testY, minDist)) {
-              x = testX;
-              y = testY;
-              found = true;
-            }
-          }
-        }
-        if (!found) {
-          alert("Plus de place disponible - le canvas est saturé");
-          wordInput.disabled = false;
-          submitButton.disabled = false;
-          submitButton.textContent = "Tisser";
-          return;
-        }
+      if (!position) {
+        alert("Canvas saturé - Impossible d'ajouter plus de mots pour le moment");
+        wordInput.disabled = false;
+        submitButton.disabled = false;
+        submitButton.textContent = "Tisser";
+        return;
       }
       
       newWordPayload = {
         text,
-        x,
-        y,
+        x: position.x,
+        y: position.y,
         color: newColor,
       };
     }
