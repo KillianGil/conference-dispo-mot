@@ -11,6 +11,12 @@ function debounce(func, wait) {
   };
 }
 
+function resetUserCounter() {
+  localStorage.removeItem("userWordCount");
+  localStorage.removeItem("isRecordingAdmin");
+  console.log("🔄 Compteur utilisateur réinitialisé");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("weave-canvas");
   const ctx = canvas.getContext("2d");
@@ -81,13 +87,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/api/words");
       const words = await response.json();
       
-      if (words.length === 0) {
-        // Aucun mot sur le serveur = reset forcé du compteur local
-        localStorage.removeItem("userWordCount");
+      // Si aucun mot OU si l'utilisateur est bloqué depuis >5min
+      const lastReset = localStorage.getItem("lastResetTime");
+      const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
+      
+      if (words.length === 0 || (getUserWordCount() >= 5 && timeSinceReset > 300000)) {
+        resetUserCounter();
         wordInput.disabled = false;
         wordForm.querySelector("button").disabled = false;
         wordInput.placeholder = "Partagez un mot...";
-        console.log("✅ Compteur débloqué (aucun mot sur le serveur)");
+        console.log("✅ Compteur débloqué automatiquement");
       }
     } catch (err) {
       console.error("Erreur vérification:", err);
@@ -603,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return;
     
-    // Utiliser les dimensions CSS du canvas, pas du conteneur
+    // Utiliser les dimensions CSS du canvas
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
   
@@ -616,7 +625,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sauvegarder l'état du contexte
     ctx.save();
     
-    // IMPORTANT: Reset complet avant de dessiner
+    // Reset complet avant de dessiner
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -634,11 +643,25 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
   
+    // Effet Aurora en arrière-plan
+    if (settings.enableAurora) {
+      const time = Date.now() * 0.0003;
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      
+      gradient.addColorStop(0, `hsla(${Math.sin(time) * 60 + 200}, 70%, 50%, 0.1)`);
+      gradient.addColorStop(0.5, `hsla(${Math.cos(time * 1.3) * 60 + 280}, 70%, 50%, 0.15)`);
+      gradient.addColorStop(1, `hsla(${Math.sin(time * 0.7) * 60 + 160}, 70%, 50%, 0.1)`);
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+  
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     
-      let connections = [];
-
+    let connections = [];
+  
+    // Calcul des connexions selon le mode choisi
     if (settings.linkMode === "chronological") {
       const sortedWords = [...displayedWords].sort(
         (a, b) => a.timestamp - b.timestamp
@@ -681,7 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const resonant = displayedWords.filter(
           (w) => w !== word && hasResonance(word, w)
         );
-
+  
         if (resonant.length === 0) {
           const closest = displayedWords
             .filter((w) => w !== word)
@@ -695,13 +718,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
-
+  
+    // S'assurer que tous les mots sont connectés
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
       connectedWords.add(w2);
     });
-
+  
     displayedWords.forEach((word) => {
       if (!connectedWords.has(word) && displayedWords.length > 1) {
         const closest = displayedWords
@@ -713,8 +737,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
-
-    // Effet constellation
+  
+    // ===== EFFETS VISUELS SELON LE MODE =====
+  
+    // Effet Constellation
     if (settings.linkMode === "constellation") {
       const time = Date.now() * 0.001;
       displayedWords.forEach((word) => {
@@ -723,13 +749,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const twinkle = Math.abs(
           Math.sin(time * 2 + word.timestamp * 0.001)
         );
-
+  
         for (let i = 0; i < 3; i++) {
           const angle = ((time + (i * Math.PI * 2) / 3) * 0.5);
           const radius = 30 + Math.sin(time + i) * 10;
           const starX = x + Math.cos(angle) * radius;
           const starY = y + Math.sin(angle) * radius;
-
+  
           ctx.beginPath();
           ctx.arc(starX, starY, 2, 0, Math.PI * 2);
           ctx.fillStyle = word.color;
@@ -739,35 +765,35 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       ctx.globalAlpha = 1;
     }
-
-    // Effet waves
+  
+    // Effet Waves (vagues ondulées)
     if (settings.linkMode === "waves") {
       connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width;
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-
+  
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
         const offset = Math.sin(Date.now() * 0.002) * 50;
-
+  
         const dx = x2 - x1;
         const dy = y2 - y1;
         const len = Math.sqrt(dx * dx + dy * dy);
         const perpX = (-dy / len) * offset;
         const perpY = (dx / len) * offset;
-
+  
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 5;
         ctx.shadowOffsetY = 5;
-
+  
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
-
+  
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
           gradient.addColorStop(0, word1.color);
@@ -776,13 +802,195 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           ctx.strokeStyle = word2.color;
         }
-
+  
         ctx.lineWidth = settings.lineWidth + 2;
         ctx.stroke();
         ctx.restore();
       });
-    } else {
-      // Dessin standard des connexions
+    }
+    
+    // Effet Ripple (ondulations)
+    else if (settings.linkMode === "ripple") {
+      const time = Date.now() * 0.001;
+      
+      displayedWords.forEach((word, index) => {
+        const x = word.x * width;
+        const y = word.y * height;
+        
+        // Dessiner 3 cercles ondulants
+        for (let ring = 0; ring < 3; ring++) {
+          const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
+          const radius = 30 + phase * 40;
+          const opacity = Math.max(0, 1 - phase / 4);
+          
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = word.color;
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = opacity * 0.6;
+          ctx.stroke();
+        }
+      });
+      ctx.globalAlpha = 1;
+      
+      // Connexions basiques
+      connections.forEach(([word1, word2]) => {
+        const x1 = word1.x * width;
+        const y1 = word1.y * height;
+        const x2 = word2.x * width;
+        const y2 = word2.y * height;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = word2.color;
+        ctx.lineWidth = settings.lineWidth;
+        ctx.globalAlpha = 0.3;
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+  
+    // Effet Spiral (spirale)
+    else if (settings.linkMode === "spiral") {
+      const time = Date.now() * 0.0005;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      displayedWords.forEach((word, index) => {
+        const x = word.x * width;
+        const y = word.y * height;
+        
+        // Distance au centre
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        
+        // Rotation spirale
+        const spiralAngle = angle + (distance / 100) * Math.sin(time + index * 0.1);
+        const spiralRadius = distance * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
+        
+        const spiralX = centerX + Math.cos(spiralAngle) * spiralRadius;
+        const spiralY = centerY + Math.sin(spiralAngle) * spiralRadius;
+        
+        // Tracer ligne spiralée
+        ctx.save();
+        ctx.shadowColor = word.color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(spiralX, spiralY);
+        
+        const gradient = ctx.createLinearGradient(x, y, spiralX, spiralY);
+        gradient.addColorStop(0, word.color);
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = settings.lineWidth + 1;
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+  
+    // Effet Web (toile d'araignée)
+    else if (settings.linkMode === "web") {
+      displayedWords.forEach((word) => {
+        // Connecter chaque mot à ses 4 plus proches voisins
+        const neighbors = displayedWords
+          .filter((w) => w !== word)
+          .map((w) => ({ word: w, dist: distance(word, w) }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 4);
+        
+        neighbors.forEach(({ word: neighbor, dist }) => {
+          const x1 = word.x * width;
+          const y1 = word.y * height;
+          const x2 = neighbor.x * width;
+          const y2 = neighbor.y * height;
+          
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+          ctx.shadowBlur = 8;
+          
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          
+          // Opacité basée sur distance
+          const opacity = Math.max(0.2, 1 - dist / 0.5);
+          
+          if (settings.useGradient) {
+            const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+            gradient.addColorStop(0, word.color);
+            gradient.addColorStop(1, neighbor.color);
+            ctx.strokeStyle = gradient;
+          } else {
+            ctx.strokeStyle = word.color;
+          }
+          
+          ctx.globalAlpha = opacity * 0.5;
+          ctx.lineWidth = settings.lineWidth;
+          ctx.stroke();
+          ctx.restore();
+        });
+      });
+      ctx.globalAlpha = 1;
+    }
+  
+    // Effet Pulse (pulsations)
+    else if (settings.linkMode === "pulse") {
+      const time = Date.now() * 0.001;
+      
+      connections.forEach(([word1, word2], idx) => {
+        const x1 = word1.x * width;
+        const y1 = word1.y * height;
+        const x2 = word2.x * width;
+        const y2 = word2.y * height;
+        
+        // Onde qui se propage
+        const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
+        
+        // Ligne principale
+        ctx.save();
+        ctx.shadowColor = word2.color;
+        ctx.shadowBlur = 20 * pulse;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        
+        if (settings.useGradient) {
+          const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+          gradient.addColorStop(0, word1.color);
+          gradient.addColorStop(0.5, "white");
+          gradient.addColorStop(1, word2.color);
+          ctx.strokeStyle = gradient;
+        } else {
+          ctx.strokeStyle = word2.color;
+        }
+        
+        ctx.lineWidth = settings.lineWidth + pulse * 5;
+        ctx.globalAlpha = 0.6 + pulse * 0.4;
+        ctx.stroke();
+        ctx.restore();
+        
+        // Point lumineux qui voyage sur la ligne
+        const travelProgress = (time * 0.5 + idx * 0.2) % 1;
+        const travelX = x1 + (x2 - x1) * travelProgress;
+        const travelY = y1 + (y2 - y1) * travelProgress;
+        
+        ctx.beginPath();
+        ctx.arc(travelX, travelY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.shadowColor = "white";
+        ctx.shadowBlur = 20;
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+    
+    // Dessin standard des connexions (pour les autres modes)
+    else {
       connections.forEach(([word1, word2]) => {
         if (
           typeof word1.x !== "number" ||
@@ -795,9 +1003,9 @@ document.addEventListener("DOMContentLoaded", () => {
           isNaN(word2.y)
         )
           return;
-
+  
         let progress = 1;
-
+  
         if (
           settings.animateLines &&
           currentAnimatingConnection &&
@@ -812,18 +1020,18 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
           progress = animationProgress;
         }
-
+  
         const x1 = word1.x * width;
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-
+  
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 5;
         ctx.shadowOffsetY = 5;
-
+  
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -831,7 +1039,7 @@ document.addEventListener("DOMContentLoaded", () => {
           x1 + (x2 - x1) * progress,
           y1 + (y2 - y1) * progress
         );
-
+  
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
           gradient.addColorStop(0, word1.color);
@@ -840,11 +1048,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           ctx.strokeStyle = word2.color;
         }
-
+  
         ctx.lineWidth = settings.lineWidth + 2;
         ctx.stroke();
         ctx.restore();
-
+  
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -856,9 +1064,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.stroke();
       });
     }
-
+  
     const wordOccurrences = getWordOccurrences();
-
+  
+    // Gestion des particules
     if (settings.enableParticles) {
       const deadParticles = [];
       particles = particles.filter((p) => {
@@ -869,7 +1078,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       });
       deadParticles.forEach((p) => recycleParticle(p));
-
+  
       particles.forEach((p) => {
         p.update();
         p.draw(ctx);
@@ -878,10 +1087,11 @@ document.addEventListener("DOMContentLoaded", () => {
       particles.forEach((p) => recycleParticle(p));
       particles = [];
     }
-
+  
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
-
+  
+    // Préparer les mots uniques pour l'affichage
     const uniqueDisplayMap = new Map();
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
@@ -889,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", () => {
         uniqueDisplayMap.set(key, word);
       }
     });
-
+  
     const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort(
       (a, b) => {
         const countA = wordOccurrences[a.text.toLowerCase()];
@@ -897,39 +1107,40 @@ document.addEventListener("DOMContentLoaded", () => {
         return countA - countB;
       }
     );
-
+  
+    // Dessiner les points des mots
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 18;
       const pointSize = baseSize + (occurrences - 1) * 5;
-
+  
       const isHighlighted = word.highlighted || false;
       const highlightBonus = isHighlighted ? 8 : 0;
       const finalPointSize = pointSize + highlightBonus;
-
+  
       const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
       const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
-
+  
       if (settings.enableParticles && Math.random() < 0.08) {
         particles.push(getParticle(x, y, word.color));
       }
-
+  
       const pulseFactor = isHighlighted ? 6 : 4;
       const pulseSize =
         finalPointSize +
         10 +
         Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
           pulseFactor;
-
+  
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
       ctx.lineWidth = isHighlighted ? 6 : 4;
       ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
       ctx.stroke();
-
+  
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
@@ -937,7 +1148,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.shadowColor = word.color;
       ctx.shadowBlur = isHighlighted ? 28 : 18;
       ctx.fill();
-
+  
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
       ctx.strokeStyle = isHighlighted
@@ -945,18 +1156,19 @@ document.addEventListener("DOMContentLoaded", () => {
         : "rgba(255, 255, 255, 0.7)";
       ctx.lineWidth = isHighlighted ? 5 : 3;
       ctx.stroke();
-
+  
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
       ctx.shadowBlur = 8;
       ctx.shadowColor = "white";
       ctx.fill();
-
+  
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
     });
-
+  
+    // Dessiner les textes des mots
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
@@ -964,37 +1176,40 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-
+  
       sortedForDisplay.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const isHighlighted = word.highlighted || false;
         const highlightBonus = isHighlighted ? 8 : 0;
         const pointSize = 18 + (occurrences - 1) * 5 + highlightBonus;
-
+  
         const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
         const textY = y - pointSize - 12;
-
+  
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
-
+  
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
         ctx.lineWidth = 6;
         ctx.strokeText(word.text, x, textY);
-
+  
         ctx.fillStyle = word.color;
         ctx.shadowBlur = isHighlighted ? 24 : 18;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
-
+  
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
       });
     }
+  
+    // Restaurer l'état du contexte
+    ctx.restore();
   }
 
   function updateStats() {
@@ -2132,8 +2347,8 @@ document.addEventListener("DOMContentLoaded", () => {
           wordOccurrencesCache.clear();
   
           // ✅ CORRECTION: Nettoyer le localStorage pour TOUS les utilisateurs
-          localStorage.clear(); // Plus radical que removeItem
-          console.log("✅ LocalStorage complètement nettoyé");
+          resetUserCounter();
+          localStorage.setItem("lastResetTime", Date.now().toString());
   
           // Réactiver les inputs
           wordInput.disabled = false;
