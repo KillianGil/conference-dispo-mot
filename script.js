@@ -41,10 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(80, diagonal * 0.08);
+    return Math.max(100, diagonal * 0.12);
   }
 
-  function getUniquePositions() {
+  function getUniqueWordPositions() {
     const positionMap = new Map();
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    const uniquePositions = getUniquePositions();
+    const uniquePositions = getUniqueWordPositions();
     
     return uniquePositions.every(pos => {
       const dx = (pos.x * width) - (x * width);
@@ -169,16 +169,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = container.clientWidth * dpr;
     canvas.height = container.clientHeight * dpr;
+    canvas.style.width = container.clientWidth + 'px';
+    canvas.style.height = container.clientHeight + 'px';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    
-    // Réinitialiser le zoom et le pan pour utiliser tout l'espace
-    if (displayedWords.length === 0) {
-      scale = 1;
-      offsetX = 0;
-      offsetY = 0;
-    }
-    
     drawWeave();
   }
 
@@ -359,13 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // Créer une map pour tous les mots (pas seulement les uniques)
-    const allWordsMap = new Map();
-    displayedWords.forEach((word) => {
-      const key = `${word.text.toLowerCase()}-${word.timestamp}`;
-      allWordsMap.set(key, word);
-    });
-
     let connections = [];
 
     if (settings.linkMode === "chronological") {
@@ -502,7 +489,6 @@ document.addEventListener("DOMContentLoaded", () => {
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
-    // Gestion des particules seulement si activée
     if (settings.enableParticles) {
       particles = particles.filter(p => p.life > 0);
       particles.forEach(p => {
@@ -510,13 +496,12 @@ document.addEventListener("DOMContentLoaded", () => {
         p.draw(ctx);
       });
     } else {
-      particles = []; // Vider le tableau si désactivé
+      particles = [];
     }
 
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
     
-    // Créer une map des positions uniques pour l'affichage
     const uniqueDisplayMap = new Map();
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
@@ -525,7 +510,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     
-    uniqueDisplayMap.forEach((word) => {
+    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort((a, b) => {
+      const countA = wordOccurrences[a.text.toLowerCase()];
+      const countB = wordOccurrences[b.text.toLowerCase()];
+      return countA - countB;
+    });
+    
+    sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 20;
       const pointSize = baseSize + (occurrences - 1) * 6;
@@ -535,7 +526,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
       
-      // Générer des particules seulement si activé
       if (settings.enableParticles && Math.random() < 0.08) {
         particles.push(new Particle(x, y, word.color));
       }
@@ -581,7 +571,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
 
-      uniqueDisplayMap.forEach((word) => {
+      sortedForDisplay.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = 20 + (occurrences - 1) * 6;
         
@@ -854,14 +844,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const maxAttempts = 500;
       
       do {
-        x = 0.05 + Math.random() * 0.90;
-        y = 0.05 + Math.random() * 0.90;
+        x = 0.15 + Math.random() * 0.70;
+        y = 0.15 + Math.random() * 0.70;
         attempts++;
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        x = 0.05 + Math.random() * 0.90;
-        y = 0.05 + Math.random() * 0.90;
+        x = 0.20 + Math.random() * 0.60;
+        y = 0.20 + Math.random() * 0.60;
       }
       
       newWordPayload = {
