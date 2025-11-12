@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
+    enableParticles: true,
   };
 
   function getMinDistance() {
@@ -170,6 +171,14 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.height = container.clientHeight * dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
+    
+    // Réinitialiser le zoom et le pan pour utiliser tout l'espace
+    if (displayedWords.length === 0) {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+    }
+    
     drawWeave();
   }
 
@@ -350,35 +359,31 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    const uniqueWords = [];
-    const wordMap = new Map();
-    
+    // Créer une map pour tous les mots (pas seulement les uniques)
+    const allWordsMap = new Map();
     displayedWords.forEach((word) => {
-      const key = word.text.toLowerCase();
-      if (!wordMap.has(key)) {
-        wordMap.set(key, word);
-        uniqueWords.push(word);
-      }
+      const key = `${word.text.toLowerCase()}-${word.timestamp}`;
+      allWordsMap.set(key, word);
     });
 
     let connections = [];
 
     if (settings.linkMode === "chronological") {
-      const sortedWords = [...uniqueWords].sort((a, b) => a.timestamp - b.timestamp);
+      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
       for (let i = 1; i < sortedWords.length; i++) {
         connections.push([sortedWords[i - 1], sortedWords[i]]);
       }
     } else if (settings.linkMode === "random") {
-      uniqueWords.forEach((word, index) => {
+      displayedWords.forEach((word, index) => {
         if (index === 0) return;
         const hash = word.text.split('').reduce((acc, char) => 
           ((acc << 5) - acc) + char.charCodeAt(0), 0);
         const targetIndex = Math.abs(hash) % index;
-        connections.push([uniqueWords[targetIndex], word]);
+        connections.push([displayedWords[targetIndex], word]);
       });
     } else if (settings.linkMode === "proximity") {
-      uniqueWords.forEach((word) => {
-        const distances = uniqueWords
+      displayedWords.forEach((word) => {
+        const distances = displayedWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, dist: distance(word, w) }))
           .sort((a, b) => a.dist - b.dist)
@@ -386,8 +391,8 @@ document.addEventListener("DOMContentLoaded", () => {
         distances.forEach((d) => connections.push([word, d.word]));
       });
     } else if (settings.linkMode === "color") {
-      uniqueWords.forEach((word) => {
-        const similar = uniqueWords
+      displayedWords.forEach((word) => {
+        const similar = displayedWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, sim: colorSimilarity(word.color, w.color) }))
           .sort((a, b) => a.sim - b.sim)
@@ -395,13 +400,13 @@ document.addEventListener("DOMContentLoaded", () => {
         similar.forEach((s) => connections.push([word, s.word]));
       });
     } else if (settings.linkMode === "resonance") {
-      uniqueWords.forEach((word) => {
-        const resonant = uniqueWords.filter(
+      displayedWords.forEach((word) => {
+        const resonant = displayedWords.filter(
           (w) => w !== word && hasResonance(word, w)
         );
         
         if (resonant.length === 0) {
-          const closest = uniqueWords
+          const closest = displayedWords
             .filter((w) => w !== word)
             .map((w) => ({ word: w, dist: distance(word, w) }))
             .sort((a, b) => a.dist - b.dist)[0];
@@ -420,9 +425,9 @@ document.addEventListener("DOMContentLoaded", () => {
       connectedWords.add(w2);
     });
 
-    uniqueWords.forEach((word) => {
-      if (!connectedWords.has(word) && uniqueWords.length > 1) {
-        const closest = uniqueWords
+    displayedWords.forEach((word) => {
+      if (!connectedWords.has(word) && displayedWords.length > 1) {
+        const closest = displayedWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, dist: distance(word, w) }))
           .sort((a, b) => a.dist - b.dist)[0];
@@ -497,16 +502,30 @@ document.addEventListener("DOMContentLoaded", () => {
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
-    particles = particles.filter(p => p.life > 0);
-    particles.forEach(p => {
-      p.update();
-      p.draw(ctx);
-    });
+    // Gestion des particules seulement si activée
+    if (settings.enableParticles) {
+      particles = particles.filter(p => p.life > 0);
+      particles.forEach(p => {
+        p.update();
+        p.draw(ctx);
+      });
+    } else {
+      particles = []; // Vider le tableau si désactivé
+    }
 
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
     
-    uniqueWords.forEach((word) => {
+    // Créer une map des positions uniques pour l'affichage
+    const uniqueDisplayMap = new Map();
+    displayedWords.forEach((word) => {
+      const key = word.text.toLowerCase();
+      if (!uniqueDisplayMap.has(key)) {
+        uniqueDisplayMap.set(key, word);
+      }
+    });
+    
+    uniqueDisplayMap.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 20;
       const pointSize = baseSize + (occurrences - 1) * 6;
@@ -516,7 +535,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
       
-      if (Math.random() < 0.08) {
+      // Générer des particules seulement si activé
+      if (settings.enableParticles && Math.random() < 0.08) {
         particles.push(new Particle(x, y, word.color));
       }
       
@@ -561,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
 
-      uniqueWords.forEach((word) => {
+      uniqueDisplayMap.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = 20 + (occurrences - 1) * 6;
         
@@ -617,9 +637,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const uniqueWords = Object.keys(wordCounts).length;
     let connectionCount = 0;
     if (settings.linkMode === "chronological") {
-      connectionCount = Math.max(0, uniqueWords - 1);
+      connectionCount = Math.max(0, displayedWords.length - 1);
     } else if (settings.linkMode === "proximity" || settings.linkMode === "color") {
-      connectionCount = uniqueWords * 2;
+      connectionCount = displayedWords.length * 2;
     }
 
     let html = `
@@ -701,26 +721,12 @@ document.addEventListener("DOMContentLoaded", () => {
         updateStats();
         
         const lastNewWord = newWords[newWords.length - 1];
-        const isDuplicate = displayedWords.some((w) => 
-          w.text.toLowerCase() === lastNewWord.text.toLowerCase() && 
-          w.timestamp !== lastNewWord.timestamp
-        );
         
-        if (!isDuplicate && settings.animateLines && displayedWords.length > 1) {
-          const uniqueWords = [];
-          const wordMap = new Map();
-          displayedWords.forEach((word) => {
-            const key = word.text.toLowerCase();
-            if (!wordMap.has(key)) {
-              wordMap.set(key, word);
-              uniqueWords.push(word);
-            }
-          });
-          
+        if (settings.animateLines && displayedWords.length > 1) {
           let targetWord;
           
           if (settings.linkMode === "chronological") {
-            const allWords = [...uniqueWords].sort((a, b) => a.timestamp - b.timestamp);
+            const allWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
             const lastIndex = allWords.findIndex(
               w => w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp
             );
@@ -728,21 +734,21 @@ document.addEventListener("DOMContentLoaded", () => {
               targetWord = allWords[lastIndex - 1];
             }
           } else if (settings.linkMode === "proximity") {
-            const candidates = uniqueWords
+            const candidates = displayedWords
               .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             const sorted = candidates
               .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
               .sort((a, b) => a.dist - b.dist);
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "color") {
-            const candidates = uniqueWords
+            const candidates = displayedWords
               .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             const sorted = candidates
               .map((w) => ({ word: w, sim: colorSimilarity(lastNewWord.color, w.color) }))
               .sort((a, b) => a.sim - b.sim);
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "random") {
-            const candidates = uniqueWords
+            const candidates = displayedWords
               .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             if (candidates.length > 0) {
               const hash = lastNewWord.text.split('').reduce((acc, char) => 
@@ -751,7 +757,7 @@ document.addEventListener("DOMContentLoaded", () => {
               targetWord = candidates[targetIndex];
             }
           } else if (settings.linkMode === "resonance") {
-            const candidates = uniqueWords
+            const candidates = displayedWords
               .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             const resonant = candidates.filter(w => hasResonance(lastNewWord, w));
             if (resonant.length > 0) {
@@ -848,8 +854,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const maxAttempts = 500;
       
       do {
-        x = 0.03 + Math.random() * 0.94;
-        y = 0.03 + Math.random() * 0.94;
+        x = 0.05 + Math.random() * 0.90;
+        y = 0.05 + Math.random() * 0.90;
         attempts++;
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
@@ -965,6 +971,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("gradient-toggle").addEventListener("change", (e) => {
     settings.useGradient = e.target.checked;
+    drawWeave();
+  });
+
+  document.getElementById("particles-toggle").addEventListener("change", (e) => {
+    settings.enableParticles = e.target.checked;
+    if (!e.target.checked) {
+      particles = [];
+    }
     drawWeave();
   });
 
