@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(60, diagonal * 0.06); // Réduit pour permettre plus de mots
+    return Math.max(60, diagonal * 0.06);
   }
 
   function getUniquePositions() {
@@ -146,10 +146,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = container.clientWidth * dpr;
-    canvas.height = container.clientHeight * dpr;
+    canvas.width = Math.max(1200, container.clientWidth) * dpr;
+    canvas.height = Math.max(700, container.clientHeight) * dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
+    canvas.style.width = container.clientWidth + 'px';
+    canvas.style.height = container.clientHeight + 'px';
     drawWeave();
   }
 
@@ -311,8 +313,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function drawWeave(withBackground = false) {
     const container = document.getElementById("canvas-container");
     if (!container) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const width = Math.max(1200, container.clientWidth);
+    const height = Math.max(700, container.clientHeight);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -330,7 +332,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // Grouper les mots par texte pour avoir les mots uniques
     const uniqueWords = [];
     const wordMap = new Map();
     
@@ -395,7 +396,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Assurer que tous les mots sont connectés (pas seulement ceux dans les modes spécifiques)
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
@@ -682,7 +682,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateWordList(newWords);
         updateStats();
         
-        // Animation uniquement si c'est un nouveau mot unique (pas un doublon)
         const lastNewWord = newWords[newWords.length - 1];
         const isDuplicate = displayedWords.some((w) => 
           w.text.toLowerCase() === lastNewWord.text.toLowerCase() && 
@@ -816,7 +815,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let newWordPayload;
     
     if (existingWord) {
-      // Mot existant : réutiliser position et couleur exactes
       newWordPayload = {
         text,
         x: existingWord.x,
@@ -824,7 +822,6 @@ document.addEventListener("DOMContentLoaded", () => {
         color: existingWord.color,
       };
     } else {
-      // Nouveau mot : générer position et couleur
       const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
       const newColor = colorGenerator();
       
@@ -833,16 +830,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const maxAttempts = 500;
       
       do {
-        // Utiliser TOUT l'espace avec marges minimales
         x = 0.05 + Math.random() * 0.90;
         y = 0.05 + Math.random() * 0.90;
-        
         attempts++;
-        
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        // Si trop de tentatives, forcer une position
         x = 0.1 + Math.random() * 0.8;
         y = 0.1 + Math.random() * 0.8;
       }
