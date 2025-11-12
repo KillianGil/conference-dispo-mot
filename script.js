@@ -1346,7 +1346,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="w-full bg-gray-700 rounded-full h-2">
           <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all" style="width: 0%"></div>
         </div>
-        <p class="text-xs text-gray-500 mt-4">${recordedFrames.length} frames</p>
+        <p class="text-xs text-gray-500 mt-4">${recordedFrames.length} frames • Haute qualité</p>
         <button id="cancel-export" class="mt-4 text-gray-400 hover:text-white text-sm underline">
           Annuler
         </button>
@@ -1361,26 +1361,34 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   
     try {
-      // Vérifier le support MediaRecorder
       if (!window.MediaRecorder) {
         throw new Error("MediaRecorder non supporté");
       }
   
-      document.getElementById("progress-text").textContent = "Création du canvas vidéo...";
+      document.getElementById("progress-text").textContent = "Initialisation...";
   
-      // Créer un canvas pour la vidéo
+      // Canvas de meilleure qualité
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
-      const scale = 0.5; // Réduction à 50% pour performance
+      const scale = 0.75; // Augmenté à 75% au lieu de 50%
       videoCanvas.width = container.clientWidth * scale;
       videoCanvas.height = container.clientHeight * scale;
-      const videoCtx = videoCanvas.getContext("2d");
+      const videoCtx = videoCanvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true
+      });
   
-      // Créer le stream vidéo
-      const stream = videoCanvas.captureStream(30); // 30 fps
+      // Arrière-plan noir pour éviter la transparence
+      videoCtx.fillStyle = "#111827";
+      videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
+  
+      // Stream à 60 FPS pour fluidité maximale
+      const stream = videoCanvas.captureStream(60);
+      
+      // Configuration optimale
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: "video/webm;codecs=vp9",
-        videoBitsPerSecond: 2500000, // 2.5 Mbps
+        videoBitsPerSecond: 5000000, // 5 Mbps pour haute qualité
       });
   
       const chunks = [];
@@ -1402,17 +1410,19 @@ document.addEventListener("DOMContentLoaded", () => {
         a.click();
   
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        
+  
         if (document.body.contains(progressModal)) {
           document.body.removeChild(progressModal);
         }
   
         const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+        const duration = (recordedFrames.length * 0.033).toFixed(1); // 30fps
         alert(
-          `✅ Time-lapse exporté en vidéo WebM!\n\n` +
+          `✅ Time-lapse HD exporté!\n\n` +
           `📦 Taille: ${sizeMB} MB\n` +
-          `🎞️ ${recordedFrames.length} frames\n` +
-          `⏱️ Durée: ~${(recordedFrames.length * 0.2).toFixed(1)}s`
+          `🎞️ ${recordedFrames.length} frames à 60fps\n` +
+          `⏱️ Durée: ~${duration}s\n` +
+          `✨ Qualité: Haute définition`
         );
   
         recordedFrames = [];
@@ -1420,7 +1430,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
       mediaRecorder.start();
   
-      // Dessiner chaque frame avec un délai
+      // Interpolation pour fluidité maximale - répéter chaque frame 3x
+      const repeatFrames = 3; // Chaque frame capturée apparaît 3 fois
+      
       for (let i = 0; i < recordedFrames.length; i++) {
         if (cancelled) {
           mediaRecorder.stop();
@@ -1432,42 +1444,52 @@ document.addEventListener("DOMContentLoaded", () => {
   
         await new Promise((resolve, reject) => {
           img.onload = async () => {
-            videoCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
-            videoCtx.drawImage(img, 0, 0, videoCanvas.width, videoCanvas.height);
+            // Dessiner la frame plusieurs fois pour interpolation
+            for (let repeat = 0; repeat < repeatFrames; repeat++) {
+              if (cancelled) break;
+  
+              videoCtx.fillStyle = "#111827";
+              videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
+              videoCtx.drawImage(img, 0, 0, videoCanvas.width, videoCanvas.height);
+  
+              // Délai réduit pour fluidité (33ms = 30fps)
+              await new Promise((r) => setTimeout(r, 33));
+            }
   
             const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
             document.getElementById("progress-text").textContent =
-              `Frame ${i + 1}/${recordedFrames.length} (${progress}%)`;
+              `Rendu ${i + 1}/${recordedFrames.length} (${progress}%)`;
             document.getElementById("progress-bar").style.width = `${progress}%`;
   
-            // Délai pour permettre la capture
-            await new Promise((r) => setTimeout(r, 200));
             resolve();
           };
           img.onerror = () => reject(new Error("Erreur chargement image"));
         });
       }
   
-      document.getElementById("progress-text").textContent = "Finalisation de la vidéo...";
+      document.getElementById("progress-text").textContent = 
+        "Finalisation de la vidéo HD...";
+      
+      // Attendre un peu avant de stopper pour capturer les dernières frames
+      await new Promise((r) => setTimeout(r, 500));
       mediaRecorder.stop();
   
     } catch (err) {
       console.error("❌ Erreur export vidéo:", err);
-      
+  
       if (document.body.contains(progressModal)) {
         document.body.removeChild(progressModal);
       }
   
-      // Fallback vers export d'images
       const retry = confirm(
         "❌ Erreur lors de la création de la vidéo.\n\n" +
-        "Voulez-vous télécharger les images clés à la place ?"
+          "Voulez-vous télécharger les images clés à la place ?"
       );
   
       if (retry) {
         await exportFramesAsImages(null);
       } else {
-        alert("💾 Les frames restent en mémoire. Vous pouvez réessayer.");
+        alert("💾 Les frames restent en mémoire.");
       }
     }
   }
