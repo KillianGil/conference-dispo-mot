@@ -988,6 +988,250 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       ctx.globalAlpha = 1;
     }
+
+    // Effet Weaving (Tissage textile réaliste)
+else if (settings.linkMode === "weaving") {
+  const time = Date.now() * 0.0005;
+  
+  // Trier les mots par position pour créer une grille
+  const sortedByY = [...displayedWords].sort((a, b) => a.y - b.y);
+  const sortedByX = [...displayedWords].sort((a, b) => a.x - b.x);
+  
+  // Lignes horizontales (trame)
+  sortedByY.forEach((word, rowIndex) => {
+    const y = word.y * height;
+    const startX = 0;
+    const endX = width;
+    
+    // Ligne ondulante qui simule le fil
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(startX, y);
+    
+    for (let x = 0; x <= width; x += 10) {
+      const waveOffset = Math.sin(x * 0.02 + time + rowIndex * 0.5) * 3;
+      ctx.lineTo(x, y + waveOffset);
+    }
+    
+    // Effet de profondeur - alternance dessus/dessous
+    const isOver = rowIndex % 2 === 0;
+    ctx.strokeStyle = word.color;
+    ctx.lineWidth = settings.lineWidth + 3;
+    ctx.globalAlpha = isOver ? 0.8 : 0.5;
+    
+    // Ombre pour effet 3D
+    if (isOver) {
+      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 3;
+    }
+    
+    ctx.stroke();
+    ctx.restore();
+  });
+  
+  // Lignes verticales (chaîne) - passent dessus/dessous
+  sortedByX.forEach((word, colIndex) => {
+    const x = word.x * width;
+    const startY = 0;
+    const endY = height;
+    
+    ctx.save();
+    ctx.beginPath();
+    
+    // Découper en segments pour alterner visible/caché
+    const segmentHeight = height / sortedByY.length;
+    
+    for (let i = 0; i < sortedByY.length; i++) {
+      const y = i * segmentHeight;
+      const waveOffset = Math.sin(y * 0.02 + time + colIndex * 0.5) * 3;
+      
+      // Alterner dessus/dessous selon la position
+      const isOver = (colIndex + i) % 2 === 0;
+      
+      if (isOver) {
+        ctx.globalAlpha = 0.9;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+      } else {
+        ctx.globalAlpha = 0.4;
+        ctx.shadowBlur = 0;
+      }
+      
+      ctx.beginPath();
+      ctx.moveTo(x + waveOffset, y);
+      ctx.lineTo(x + waveOffset, y + segmentHeight);
+      
+      // Gradient pour effet de profondeur
+      const gradient = ctx.createLinearGradient(
+        x, y, x, y + segmentHeight
+      );
+      gradient.addColorStop(0, word.color);
+      gradient.addColorStop(0.5, isOver ? word.color : 
+        `rgba(${parseInt(word.color.slice(4, -1))}, 0.5)`);
+      gradient.addColorStop(1, word.color);
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = settings.lineWidth + 2;
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  });
+  
+  ctx.globalAlpha = 1;
+}
+
+// Effet Basket (Tressage panier)
+else if (settings.linkMode === "basket") {
+  const time = Date.now() * 0.0003;
+  const gridSize = 60;
+  
+  // Créer une grille de tissage
+  for (let y = 0; y < height; y += gridSize) {
+    for (let x = 0; x < width; x += gridSize) {
+      
+      // Trouver le mot le plus proche de cette cellule
+      const cellCenterX = x + gridSize / 2;
+      const cellCenterY = y + gridSize / 2;
+      
+      let closestWord = displayedWords[0];
+      let minDist = Infinity;
+      
+      displayedWords.forEach(word => {
+        const dx = word.x * width - cellCenterX;
+        const dy = word.y * height - cellCenterY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+          minDist = dist;
+          closestWord = word;
+        }
+      });
+      
+      const cellX = Math.floor(x / gridSize);
+      const cellY = Math.floor(y / gridSize);
+      const pattern = (cellX + cellY) % 4;
+      
+      ctx.save();
+      
+      // Animation de tissage
+      const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
+      const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
+      
+      // 4 motifs différents qui se répètent
+      if (pattern === 0 || pattern === 2) {
+        // Bandes horizontales
+        ctx.fillStyle = closestWord.color;
+        ctx.globalAlpha = 0.7 + elevation * 0.2;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 5 * elevation;
+        ctx.shadowOffsetY = 3 * elevation;
+        
+        for (let i = 0; i < 3; i++) {
+          const bandY = y + i * (gridSize / 3);
+          ctx.fillRect(x, bandY, gridSize, gridSize / 4);
+        }
+      } else {
+        // Bandes verticales
+        ctx.fillStyle = closestWord.color;
+        ctx.globalAlpha = 0.5 + elevation * 0.2;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 3 * elevation;
+        ctx.shadowOffsetX = 2 * elevation;
+        
+        for (let i = 0; i < 3; i++) {
+          const bandX = x + i * (gridSize / 3);
+          ctx.fillRect(bandX, y, gridSize / 4, gridSize);
+        }
+      }
+      
+      ctx.restore();
+    }
+  }
+  
+  ctx.globalAlpha = 1;
+}
+
+// Effet Herringbone (Chevrons / Arêtes de poisson)
+else if (settings.linkMode === "herringbone") {
+  const time = Date.now() * 0.0004;
+  const tileWidth = 80;
+  const tileHeight = 30;
+  
+  displayedWords.forEach((word, index) => {
+    const centerX = word.x * width;
+    const centerY = word.y * height;
+    
+    // Dessiner un motif chevron autour de chaque mot
+    for (let angle = 0; angle < 360; angle += 45) {
+      const rad = (angle * Math.PI) / 180;
+      const length = 60 + Math.sin(time + index * 0.3) * 15;
+      
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(rad);
+      
+      // Bande diagonale avec effet 3D
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(length, -tileHeight / 2);
+      ctx.lineTo(length, tileHeight / 2);
+      ctx.closePath();
+      
+      // Gradient pour effet de profondeur
+      const gradient = ctx.createLinearGradient(0, 0, length, 0);
+      gradient.addColorStop(0, word.color);
+      gradient.addColorStop(0.5, `${word.color}88`); // Semi-transparent
+      gradient.addColorStop(1, word.color);
+      
+      ctx.fillStyle = gradient;
+      ctx.globalAlpha = 0.6;
+      ctx.fill();
+      
+      // Contour pour définir les brins
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+  });
+  
+  // Connexions entre les mots pour renforcer l'effet
+  connections.forEach(([word1, word2]) => {
+    const x1 = word1.x * width;
+    const y1 = word1.y * height;
+    const x2 = word2.x * width;
+    const y2 = word2.y * height;
+    
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const angle = Math.atan2(dy, dx);
+    const perpAngle = angle + Math.PI / 2;
+    
+    ctx.save();
+    
+    // Dessiner plusieurs "brins" parallèles
+    for (let offset = -8; offset <= 8; offset += 8) {
+      const offsetX = Math.cos(perpAngle) * offset;
+      const offsetY = Math.sin(perpAngle) * offset;
+      
+      ctx.beginPath();
+      ctx.moveTo(x1 + offsetX, y1 + offsetY);
+      ctx.lineTo(x2 + offsetX, y2 + offsetY);
+      
+      ctx.strokeStyle = offset === 0 ? word1.color : word2.color;
+      ctx.lineWidth = settings.lineWidth;
+      ctx.globalAlpha = 0.4;
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  });
+  
+  ctx.globalAlpha = 1;
+}
     
     // Dessin standard des connexions (pour les autres modes)
     else {
