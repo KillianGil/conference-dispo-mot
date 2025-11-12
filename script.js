@@ -1257,47 +1257,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startRecording() {
     if (isRecording) return;
-
+  
+    // Vérifier les permissions (seulement côté client)
+    const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
+    
+    if (!isAdmin) {
+      const password = prompt("🔒 Mot de passe administrateur pour l'enregistrement :");
+      if (password !== CONFIG.RESET_PASSWORD) {
+        alert("❌ Accès refusé");
+        return;
+      }
+      localStorage.setItem("isRecordingAdmin", "true");
+    }
+  
     recordedFrames = [];
     isRecording = true;
     recordingStartTime = Date.now();
-
+  
     const recordButton = document.getElementById("record-button");
     const stopButton = document.getElementById("stop-record-button");
-
+  
     recordButton.classList.add("hidden");
     stopButton.classList.remove("hidden");
     stopButton.classList.add("animate-pulse");
-
-    console.log("🎥 Enregistrement démarré");
-
+  
+    console.log("🎥 Enregistrement démarré (LOCAL - visible seulement par vous)");
+  
+    // Capturer UNE FRAME toutes les 100ms au lieu de 500ms = 5X plus fluide
     recordingInterval = setInterval(() => {
       if (!isRecording) return;
-
+  
       try {
-        const frame = canvas.toDataURL("image/jpeg", 0.7);
+        // Capturer le canvas ACTUEL en HAUTE QUALITÉ
+        const frame = canvas.toDataURL("image/png"); // PNG pour qualité maximale
         recordedFrames.push(frame);
-
+  
         const estimatedSize =
-          recordedFrames.reduce((acc, f) => acc + f.length, 0) /
-          1024 /
-          1024;
+          recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
+        
         console.log(
-          `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(
-            2
-          )} MB`
+          `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
         );
-
-        if (recordedFrames.length >= 300 || estimatedSize > 50) {
+  
+        // Limite augmentée : 600 frames (1 minute) ou 200 MB
+        if (recordedFrames.length >= 600 || estimatedSize > 200) {
           stopRecording();
-          alert("⏱️ Limite atteinte. Enregistrement arrêté.");
+          alert("⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté.");
         }
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
         stopRecording();
         alert("❌ Erreur mémoire - enregistrement arrêté");
       }
-    }, 500);
+    }, 100); // 100ms = 10 FPS de capture
   }
 
   function stopRecording() {
@@ -1339,14 +1351,14 @@ document.addEventListener("DOMContentLoaded", () => {
     progressModal.innerHTML = `
       <div class="bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-md">
         <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-500 mx-auto mb-4"></div>
-        <h3 class="text-xl font-bold text-white mb-2">Création du time-lapse...</h3>
+        <h3 class="text-xl font-bold text-white mb-2">Création ULTRA HD...</h3>
         <p class="text-gray-400 mb-4">
           <span id="progress-text">Préparation...</span>
         </p>
         <div class="w-full bg-gray-700 rounded-full h-2">
           <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all" style="width: 0%"></div>
         </div>
-        <p class="text-xs text-gray-500 mt-4">${recordedFrames.length} frames • Haute qualité</p>
+        <p class="text-xs text-gray-500 mt-4">${recordedFrames.length} frames • Qualité maximale</p>
         <button id="cancel-export" class="mt-4 text-gray-400 hover:text-white text-sm underline">
           Annuler
         </button>
@@ -1365,30 +1377,42 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("MediaRecorder non supporté");
       }
   
-      document.getElementById("progress-text").textContent = "Initialisation...";
+      document.getElementById("progress-text").textContent =
+        "Initialisation du rendu HD...";
   
-      // Canvas de meilleure qualité
+      // Canvas à TAILLE RÉELLE (pas de réduction)
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
-      const scale = 0.75; // Augmenté à 75% au lieu de 50%
-      videoCanvas.width = container.clientWidth * scale;
-      videoCanvas.height = container.clientHeight * scale;
+      
+      // TAILLE COMPLÈTE - pas de réduction !
+      videoCanvas.width = container.clientWidth;
+      videoCanvas.height = container.clientHeight;
+      
       const videoCtx = videoCanvas.getContext("2d", {
         alpha: false,
-        desynchronized: true
+        desynchronized: true,
+        willReadFrequently: false,
       });
   
-      // Arrière-plan noir pour éviter la transparence
+      // Fond noir
       videoCtx.fillStyle = "#111827";
       videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
   
-      // Stream à 60 FPS pour fluidité maximale
+      // Stream à 60 FPS
       const stream = videoCanvas.captureStream(60);
-      
-      // Configuration optimale
+  
+      // Configuration ULTRA HD
+      let mimeType = "video/webm;codecs=vp9";
+      let bitrate = 10000000; // 10 Mbps
+  
+      // Essayer H.264 si disponible (meilleure compatibilité)
+      if (MediaRecorder.isTypeSupported("video/webm;codecs=h264")) {
+        mimeType = "video/webm;codecs=h264";
+      }
+  
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "video/webm;codecs=vp9",
-        videoBitsPerSecond: 5000000, // 5 Mbps pour haute qualité
+        mimeType: mimeType,
+        videoBitsPerSecond: bitrate,
       });
   
       const chunks = [];
@@ -1405,8 +1429,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const date = new Date().toISOString().split("T")[0];
+        const time = new Date().toLocaleTimeString("fr-FR").replace(/:/g, "-");
         a.href = url;
-        a.download = `tissage-timelapse-${date}.webm`;
+        a.download = `tissage-timelapse-${date}-${time}.webm`;
         a.click();
   
         setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -1416,13 +1441,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
   
         const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
-        const duration = (recordedFrames.length * 0.033).toFixed(1); // 30fps
+        const duration = (recordedFrames.length * 0.05).toFixed(1); // 20 FPS final
         alert(
-          `✅ Time-lapse HD exporté!\n\n` +
-          `📦 Taille: ${sizeMB} MB\n` +
-          `🎞️ ${recordedFrames.length} frames à 60fps\n` +
-          `⏱️ Durée: ~${duration}s\n` +
-          `✨ Qualité: Haute définition`
+          `✅ Time-lapse ULTRA HD exporté!\n\n` +
+            `📦 Taille: ${sizeMB} MB\n` +
+            `🎞️ ${recordedFrames.length} frames à 60 FPS\n` +
+            `⏱️ Durée: ~${duration}s\n` +
+            `📺 Résolution: ${videoCanvas.width}x${videoCanvas.height}px\n` +
+            `✨ Qualité: Maximum (${(bitrate / 1000000).toFixed(0)} Mbps)`
         );
   
         recordedFrames = [];
@@ -1430,9 +1456,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
       mediaRecorder.start();
   
-      // Interpolation pour fluidité maximale - répéter chaque frame 3x
-      const repeatFrames = 3; // Chaque frame capturée apparaît 3 fois
-      
+      // Dessiner chaque frame DEUX FOIS pour doublement de durée
+      const framesPerCapture = 2; // Chaque frame capturée = 2 frames vidéo
+  
       for (let i = 0; i < recordedFrames.length; i++) {
         if (cancelled) {
           mediaRecorder.stop();
@@ -1444,22 +1470,36 @@ document.addEventListener("DOMContentLoaded", () => {
   
         await new Promise((resolve, reject) => {
           img.onload = async () => {
-            // Dessiner la frame plusieurs fois pour interpolation
-            for (let repeat = 0; repeat < repeatFrames; repeat++) {
+            // Dessiner plusieurs fois chaque frame pour fluidité
+            for (let repeat = 0; repeat < framesPerCapture; repeat++) {
               if (cancelled) break;
   
+              // Fond
               videoCtx.fillStyle = "#111827";
               videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
-              videoCtx.drawImage(img, 0, 0, videoCanvas.width, videoCanvas.height);
   
-              // Délai réduit pour fluidité (33ms = 30fps)
-              await new Promise((r) => setTimeout(r, 33));
+              // Image à taille réelle
+              videoCtx.drawImage(
+                img,
+                0,
+                0,
+                videoCanvas.width,
+                videoCanvas.height
+              );
+  
+              // Délai pour permettre la capture à 60 FPS
+              // 16.67ms = 60 FPS
+              await new Promise((r) => setTimeout(r, 17));
             }
   
-            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
+            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(
+              0
+            );
             document.getElementById("progress-text").textContent =
-              `Rendu ${i + 1}/${recordedFrames.length} (${progress}%)`;
-            document.getElementById("progress-bar").style.width = `${progress}%`;
+              `Rendu HD ${i + 1}/${recordedFrames.length} (${progress}%)`;
+            document.getElementById(
+              "progress-bar"
+            ).style.width = `${progress}%`;
   
             resolve();
           };
@@ -1467,13 +1507,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
   
-      document.getElementById("progress-text").textContent = 
-        "Finalisation de la vidéo HD...";
-      
-      // Attendre un peu avant de stopper pour capturer les dernières frames
-      await new Promise((r) => setTimeout(r, 500));
-      mediaRecorder.stop();
+      document.getElementById("progress-text").textContent =
+        "Finalisation de la vidéo ULTRA HD...";
   
+      // Attendre pour capturer toutes les frames
+      await new Promise((r) => setTimeout(r, 1000));
+      mediaRecorder.stop();
     } catch (err) {
       console.error("❌ Erreur export vidéo:", err);
   
