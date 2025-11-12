@@ -37,11 +37,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 120;
+    if (!container) return 150;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(100, diagonal * 0.12);
+    return Math.max(120, diagonal * 0.15);
   }
 
   function getUniqueWordPositions() {
@@ -60,6 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!container) return true;
     const width = container.clientWidth;
     const height = container.clientHeight;
+    
+    const margin = 0.1;
+    if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
+      return false;
+    }
     
     const uniquePositions = getUniqueWordPositions();
     
@@ -85,52 +90,26 @@ document.addEventListener("DOMContentLoaded", () => {
     
     bailleul: () => {
       const colors = [
-        "hsl(35, 80%, 68%)",
-        "hsl(42, 85%, 70%)",
-        "hsl(165, 55%, 60%)",
-        "hsl(195, 50%, 65%)",
-        "hsl(18, 70%, 62%)",
-        "hsl(50, 80%, 72%)",
-        "hsl(280, 65%, 68%)",
-        "hsl(340, 75%, 65%)",
-        "hsl(145, 60%, 62%)",
-        "hsl(220, 70%, 68%)",
-        "hsl(25, 75%, 60%)",
-        "hsl(85, 65%, 65%)",
-        "hsl(310, 70%, 68%)",
-        "hsl(180, 60%, 62%)",
-        "hsl(60, 85%, 68%)",
-        "hsl(200, 65%, 65%)",
-        "hsl(330, 80%, 70%)",
-        "hsl(120, 55%, 60%)",
-        "hsl(270, 75%, 65%)",
-        "hsl(15, 80%, 65%)",
+        "hsl(35, 80%, 68%)", "hsl(42, 85%, 70%)", "hsl(165, 55%, 60%)",
+        "hsl(195, 50%, 65%)", "hsl(18, 70%, 62%)", "hsl(50, 80%, 72%)",
+        "hsl(280, 65%, 68%)", "hsl(340, 75%, 65%)", "hsl(145, 60%, 62%)",
+        "hsl(220, 70%, 68%)", "hsl(25, 75%, 60%)", "hsl(85, 65%, 65%)",
+        "hsl(310, 70%, 68%)", "hsl(180, 60%, 62%)", "hsl(60, 85%, 68%)",
+        "hsl(200, 65%, 65%)", "hsl(330, 80%, 70%)", "hsl(120, 55%, 60%)",
+        "hsl(270, 75%, 65%)", "hsl(15, 80%, 65%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
     
     babiole: () => {
       const colors = [
-        "hsl(285, 95%, 70%)",
-        "hsl(185, 90%, 65%)",
-        "hsl(335, 98%, 72%)",
-        "hsl(65, 100%, 62%)",
-        "hsl(160, 88%, 65%)",
-        "hsl(210, 92%, 68%)",
-        "hsl(30, 95%, 68%)",
-        "hsl(120, 85%, 65%)",
-        "hsl(270, 90%, 70%)",
-        "hsl(355, 95%, 68%)",
-        "hsl(45, 100%, 65%)",
-        "hsl(195, 95%, 70%)",
-        "hsl(300, 92%, 72%)",
-        "hsl(90, 88%, 62%)",
-        "hsl(240, 90%, 68%)",
-        "hsl(15, 100%, 65%)",
-        "hsl(165, 95%, 68%)",
-        "hsl(320, 98%, 70%)",
-        "hsl(75, 92%, 65%)",
-        "hsl(225, 88%, 70%)",
+        "hsl(285, 95%, 70%)", "hsl(185, 90%, 65%)", "hsl(335, 98%, 72%)",
+        "hsl(65, 100%, 62%)", "hsl(160, 88%, 65%)", "hsl(210, 92%, 68%)",
+        "hsl(30, 95%, 68%)", "hsl(120, 85%, 65%)", "hsl(270, 90%, 70%)",
+        "hsl(355, 95%, 68%)", "hsl(45, 100%, 65%)", "hsl(195, 95%, 70%)",
+        "hsl(300, 92%, 72%)", "hsl(90, 88%, 62%)", "hsl(240, 90%, 68%)",
+        "hsl(15, 100%, 65%)", "hsl(165, 95%, 68%)", "hsl(320, 98%, 70%)",
+        "hsl(75, 92%, 65%)", "hsl(225, 88%, 70%)",
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
@@ -353,6 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    // CORRECTION CRITIQUE : Les connexions se font sur TOUS les mots
     let connections = [];
 
     if (settings.linkMode === "chronological") {
@@ -363,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (settings.linkMode === "random") {
       displayedWords.forEach((word, index) => {
         if (index === 0) return;
-        const hash = word.text.split('').reduce((acc, char) => 
+        const hash = (word.text + word.timestamp).split('').reduce((acc, char) => 
           ((acc << 5) - acc) + char.charCodeAt(0), 0);
         const targetIndex = Math.abs(hash) % index;
         connections.push([displayedWords[targetIndex], word]);
@@ -424,6 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // Dessiner les connexions
     connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" || typeof word1.y !== "number" ||
@@ -489,6 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
       wordOccurrences[key] = (wordOccurrences[key] || 0) + 1;
     });
 
+    // CORRECTION CRITIQUE : Gestion des particules
     if (settings.enableParticles) {
       particles = particles.filter(p => p.life > 0);
       particles.forEach(p => {
@@ -510,6 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     
+    // CORRECTION CRITIQUE : Tri pour afficher les petits en premier
     const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort((a, b) => {
       const countA = wordOccurrences[a.text.toLowerCase()];
       const countB = wordOccurrences[b.text.toLowerCase()];
@@ -741,7 +724,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const candidates = displayedWords
               .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             if (candidates.length > 0) {
-              const hash = lastNewWord.text.split('').reduce((acc, char) => 
+              const hash = (lastNewWord.text + lastNewWord.timestamp).split('').reduce((acc, char) => 
                 ((acc << 5) - acc) + char.charCodeAt(0), 0);
               const targetIndex = Math.abs(hash) % candidates.length;
               targetWord = candidates[targetIndex];
@@ -841,7 +824,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const minDist = getMinDistance();
       let x, y, attempts = 0;
-      const maxAttempts = 500;
+      const maxAttempts = 1000;
       
       do {
         x = 0.15 + Math.random() * 0.70;
@@ -850,8 +833,8 @@ document.addEventListener("DOMContentLoaded", () => {
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        x = 0.20 + Math.random() * 0.60;
-        y = 0.20 + Math.random() * 0.60;
+        x = 0.2 + Math.random() * 0.6;
+        y = 0.2 + Math.random() * 0.6;
       }
       
       newWordPayload = {
@@ -964,12 +947,12 @@ document.addEventListener("DOMContentLoaded", () => {
     drawWeave();
   });
 
+  // CORRECTION CRITIQUE : Event listener pour les particules
   document.getElementById("particles-toggle").addEventListener("change", (e) => {
     settings.enableParticles = e.target.checked;
     if (!e.target.checked) {
       particles = [];
     }
-    drawWeave();
   });
 
   document.getElementById("line-width").addEventListener("input", (e) => {
