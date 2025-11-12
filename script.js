@@ -366,24 +366,27 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const dpr = window.devicePixelRatio || 1;
     
-    // Forcer les dimensions du conteneur
+    // Utiliser getBoundingClientRect pour les dimensions exactes
     const rect = container.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
     
-    // Appliquer au canvas
+    // Définir la taille du buffer interne (haute résolution)
     canvas.width = width * dpr;
     canvas.height = height * dpr;
+    
+    // Définir la taille CSS (taille d'affichage)
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     
-    // Important : repositionner le contexte
+    // Configurer le contexte pour compenser le DPR
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
-    console.log(`📐 Canvas redimensionné: ${width}x${height}px (DPR: ${dpr})`);
+    console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`);
     
-    drawWeave();
+    // Redessiner immédiatement
+    requestAnimationFrame(() => drawWeave());
   }
 
   function distance(word1, word2) {
@@ -566,39 +569,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawWeave(withBackground = false) {
-      if (!canDraw) return;
+    if (!canDraw) return;
+  
+    const container = document.getElementById("canvas-container");
+    if (!container) return;
     
-      const container = document.getElementById("canvas-container");
-      if (!container) return;
-      
-      // Utiliser les vraies dimensions du conteneur
-      const rect = container.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
+    // Utiliser les dimensions CSS du canvas, pas du conteneur
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+  
+    // Vérification de sécurité
+    if (width === 0 || height === 0) {
+      console.warn("⚠️ Canvas dimensions invalides");
+      return;
+    }
+  
+    // Sauvegarder l'état du contexte
+    ctx.save();
     
-      // Vérification de sécurité
-      if (width === 0 || height === 0) {
-        console.warn("⚠️ Canvas dimensions invalides");
-        return;
-      }
-    
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-      if (withBackground) {
-        ctx.fillStyle = "#111827";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    
-      // Appliquer les transformations APRÈS avoir reset
-      ctx.translate(offsetX, offsetY);
-      ctx.scale(scale, scale);
-    
-      if (displayedWords.length === 0) return;
-    
-      // Le reste de votre code drawWeave...
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+    // IMPORTANT: Reset complet avant de dessiner
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+    if (withBackground) {
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  
+    // Appliquer les transformations (zoom/pan) APRÈS le clear
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+  
+    if (displayedWords.length === 0) {
+      ctx.restore();
+      return;
+    }
+  
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     
       let connections = [];
 
