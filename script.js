@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 100;
+    if (!container) return 80;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(80, diagonal * 0.08);
+    return Math.max(60, diagonal * 0.06);
   }
 
   function isPositionValid(x, y, minDist) {
@@ -156,19 +156,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function animateWeaving() {
-    if (!currentAnimatingConnection) {
-      drawWeave();
-      animationFrame = requestAnimationFrame(animateWeaving);
-      return;
-    }
-    
-    animationProgress += 0.02;
-    if (animationProgress >= 1) {
-      animationProgress = 1;
-      setTimeout(() => {
-        currentAnimatingConnection = null;
-        animationProgress = 0;
-      }, 100);
+    if (currentAnimatingConnection) {
+      animationProgress += 0.03;
+      if (animationProgress >= 1) {
+        animationProgress = 1;
+        setTimeout(() => {
+          currentAnimatingConnection = null;
+          animationProgress = 0;
+        }, 100);
+      }
     }
     
     drawWeave();
@@ -395,7 +391,9 @@ document.addEventListener("DOMContentLoaded", () => {
       ) return;
 
       let progress = 1;
-      if (currentAnimatingConnection && 
+      
+      if (settings.animateLines && 
+          currentAnimatingConnection && 
           currentAnimatingConnection[0] === word1 && 
           currentAnimatingConnection[1] === word2) {
         progress = animationProgress;
@@ -642,12 +640,17 @@ document.addEventListener("DOMContentLoaded", () => {
         updateWordList(newWords);
         updateStats();
         
-        if (settings.animateLines && displayedWords.length > 1) {
-          const lastWord = displayedWords[displayedWords.length - 1];
+        if (settings.animateLines && displayedWords.length > 1 && newWords.length > 0) {
+          const lastWord = newWords[newWords.length - 1];
           let targetWord;
           
           if (settings.linkMode === "chronological") {
-            targetWord = displayedWords[displayedWords.length - 2];
+            const lastIndex = displayedWords.findIndex(
+              w => w.text === lastWord.text && w.timestamp === lastWord.timestamp
+            );
+            if (lastIndex > 0) {
+              targetWord = displayedWords[lastIndex - 1];
+            }
           } else {
             const sorted = displayedWords
               .filter((w) => w !== lastWord)
@@ -709,15 +712,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = wordInput.value.trim();
     if (!text) return;
     
-    const existingWord = displayedWords.find(
-      w => w.text.toLowerCase() === text.toLowerCase()
-    );
-    
-    if (existingWord) {
-      alert("Ce mot existe déjà ! Le point va grossir.");
-      return;
-    }
-    
     const submitButton = wordForm.querySelector("button");
     const originalPlaceholder = wordInput.placeholder;
     wordInput.disabled = true;
@@ -728,17 +722,17 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const minDist = getMinDistance();
     let x, y, attempts = 0;
-    const maxAttempts = 100;
+    const maxAttempts = 150;
     
     do {
-      x = 0.05 + Math.random() * 0.9;
-      y = 0.05 + Math.random() * 0.9;
+      x = 0.02 + Math.random() * 0.96;
+      y = 0.02 + Math.random() * 0.96;
       attempts++;
     } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
     
     if (attempts === maxAttempts) {
-      x = 0.05 + Math.random() * 0.9;
-      y = 0.05 + Math.random() * 0.9;
+      x = 0.02 + Math.random() * 0.96;
+      y = 0.02 + Math.random() * 0.96;
     }
     
     const newWordPayload = {
@@ -889,6 +883,8 @@ document.addEventListener("DOMContentLoaded", () => {
         displayedWords = [];
         wordsList.innerHTML = "";
         particles = [];
+        currentAnimatingConnection = null;
+        animationProgress = 0;
         scale = 1;
         offsetX = 0;
         offsetY = 0;
