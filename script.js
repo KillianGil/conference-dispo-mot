@@ -317,24 +317,36 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    // Grouper les mots par texte pour avoir les mots uniques
+    const uniqueWords = [];
+    const wordMap = new Map();
+    
+    displayedWords.forEach((word) => {
+      const key = word.text.toLowerCase();
+      if (!wordMap.has(key)) {
+        wordMap.set(key, word);
+        uniqueWords.push(word);
+      }
+    });
+
     let connections = [];
 
     if (settings.linkMode === "chronological") {
-      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+      const sortedWords = [...uniqueWords].sort((a, b) => a.timestamp - b.timestamp);
       for (let i = 1; i < sortedWords.length; i++) {
         connections.push([sortedWords[i - 1], sortedWords[i]]);
       }
     } else if (settings.linkMode === "random") {
-      displayedWords.forEach((word, index) => {
+      uniqueWords.forEach((word, index) => {
         if (index === 0) return;
         const hash = word.text.split('').reduce((acc, char) => 
           ((acc << 5) - acc) + char.charCodeAt(0), 0);
         const targetIndex = Math.abs(hash) % index;
-        connections.push([displayedWords[targetIndex], word]);
+        connections.push([uniqueWords[targetIndex], word]);
       });
     } else if (settings.linkMode === "proximity") {
-      displayedWords.forEach((word) => {
-        const distances = displayedWords
+      uniqueWords.forEach((word) => {
+        const distances = uniqueWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, dist: distance(word, w) }))
           .sort((a, b) => a.dist - b.dist)
@@ -342,8 +354,8 @@ document.addEventListener("DOMContentLoaded", () => {
         distances.forEach((d) => connections.push([word, d.word]));
       });
     } else if (settings.linkMode === "color") {
-      displayedWords.forEach((word) => {
-        const similar = displayedWords
+      uniqueWords.forEach((word) => {
+        const similar = uniqueWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, sim: colorSimilarity(word.color, w.color) }))
           .sort((a, b) => a.sim - b.sim)
@@ -351,13 +363,13 @@ document.addEventListener("DOMContentLoaded", () => {
         similar.forEach((s) => connections.push([word, s.word]));
       });
     } else if (settings.linkMode === "resonance") {
-      displayedWords.forEach((word) => {
-        const resonant = displayedWords.filter(
+      uniqueWords.forEach((word) => {
+        const resonant = uniqueWords.filter(
           (w) => w !== word && hasResonance(word, w)
         );
         
         if (resonant.length === 0) {
-          const closest = displayedWords
+          const closest = uniqueWords
             .filter((w) => w !== word)
             .map((w) => ({ word: w, dist: distance(word, w) }))
             .sort((a, b) => a.dist - b.dist)[0];
@@ -376,9 +388,9 @@ document.addEventListener("DOMContentLoaded", () => {
       connectedWords.add(w2);
     });
 
-    displayedWords.forEach((word) => {
-      if (!connectedWords.has(word) && displayedWords.length > 1) {
-        const closest = displayedWords
+    uniqueWords.forEach((word) => {
+      if (!connectedWords.has(word) && uniqueWords.length > 1) {
+        const closest = uniqueWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, dist: distance(word, w) }))
           .sort((a, b) => a.dist - b.dist)[0];
@@ -461,7 +473,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
-    displayedWords.forEach((word) => {
+    
+    uniqueWords.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const baseSize = 15;
       const pointSize = baseSize + (occurrences - 1) * 5;
@@ -516,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
 
-      displayedWords.forEach((word) => {
+      uniqueWords.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = 15 + (occurrences - 1) * 5;
         
@@ -572,9 +585,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const uniqueWords = Object.keys(wordCounts).length;
     let connectionCount = 0;
     if (settings.linkMode === "chronological") {
-      connectionCount = Math.max(0, displayedWords.length - 1);
+      connectionCount = Math.max(0, uniqueWords - 1);
     } else if (settings.linkMode === "proximity" || settings.linkMode === "color") {
-      connectionCount = displayedWords.length * 2;
+      connectionCount = uniqueWords * 2;
     }
 
     let html = `
@@ -655,57 +668,73 @@ document.addEventListener("DOMContentLoaded", () => {
         updateWordList(newWords);
         updateStats();
         
-        if (settings.animateLines && displayedWords.length > 1) {
-          const lastWord = newWords[newWords.length - 1];
+        // Animation uniquement si c'est un nouveau mot unique (pas un doublon)
+        const lastNewWord = newWords[newWords.length - 1];
+        const isDuplicate = displayedWords.some((w) => 
+          w.text.toLowerCase() === lastNewWord.text.toLowerCase() && 
+          w.timestamp !== lastNewWord.timestamp
+        );
+        
+        if (!isDuplicate && settings.animateLines && displayedWords.length > 1) {
+          const uniqueWords = [];
+          const wordMap = new Map();
+          displayedWords.forEach((word) => {
+            const key = word.text.toLowerCase();
+            if (!wordMap.has(key)) {
+              wordMap.set(key, word);
+              uniqueWords.push(word);
+            }
+          });
+          
           let targetWord;
           
           if (settings.linkMode === "chronological") {
-            const allWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+            const allWords = [...uniqueWords].sort((a, b) => a.timestamp - b.timestamp);
             const lastIndex = allWords.findIndex(
-              w => w.text === lastWord.text && w.timestamp === lastWord.timestamp
+              w => w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp
             );
             if (lastIndex > 0) {
               targetWord = allWords[lastIndex - 1];
             }
           } else if (settings.linkMode === "proximity") {
-            const candidates = displayedWords
-              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const candidates = uniqueWords
+              .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             const sorted = candidates
-              .map((w) => ({ word: w, dist: distance(lastWord, w) }))
+              .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
               .sort((a, b) => a.dist - b.dist);
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "color") {
-            const candidates = displayedWords
-              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const candidates = uniqueWords
+              .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             const sorted = candidates
-              .map((w) => ({ word: w, sim: colorSimilarity(lastWord.color, w.color) }))
+              .map((w) => ({ word: w, sim: colorSimilarity(lastNewWord.color, w.color) }))
               .sort((a, b) => a.sim - b.sim);
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "random") {
-            const candidates = displayedWords
-              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
+            const candidates = uniqueWords
+              .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
             if (candidates.length > 0) {
-              const hash = lastWord.text.split('').reduce((acc, char) => 
+              const hash = lastNewWord.text.split('').reduce((acc, char) => 
                 ((acc << 5) - acc) + char.charCodeAt(0), 0);
               const targetIndex = Math.abs(hash) % candidates.length;
               targetWord = candidates[targetIndex];
             }
           } else if (settings.linkMode === "resonance") {
-            const candidates = displayedWords
-              .filter((w) => !(w.text === lastWord.text && w.timestamp === lastWord.timestamp));
-            const resonant = candidates.filter(w => hasResonance(lastWord, w));
+            const candidates = uniqueWords
+              .filter((w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp));
+            const resonant = candidates.filter(w => hasResonance(lastNewWord, w));
             if (resonant.length > 0) {
               targetWord = resonant[0];
             } else {
               const sorted = candidates
-                .map((w) => ({ word: w, dist: distance(lastWord, w) }))
+                .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
                 .sort((a, b) => a.dist - b.dist);
               targetWord = sorted[0]?.word;
             }
           }
           
           if (targetWord) {
-            currentAnimatingConnection = [targetWord, lastWord];
+            currentAnimatingConnection = [targetWord, lastNewWord];
             animationProgress = 0;
           }
         }
@@ -773,6 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let newWordPayload;
     
     if (existingWord) {
+      // Mot existant : réutiliser position et couleur exactes
       newWordPayload = {
         text,
         x: existingWord.x,
@@ -780,33 +810,27 @@ document.addEventListener("DOMContentLoaded", () => {
         color: existingWord.color,
       };
     } else {
+      // Nouveau mot : générer position et couleur
       const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
       const newColor = colorGenerator();
       
       const minDist = getMinDistance();
       let x, y, attempts = 0;
-      const maxAttempts = 300;
+      const maxAttempts = 500;
       
       do {
-        const zone = Math.floor(Math.random() * 9);
-        const zoneX = (zone % 3) / 3;
-        const zoneY = Math.floor(zone / 3) / 3;
-        
-        x = zoneX + 0.15 + Math.random() * 0.18;
-        y = zoneY + 0.15 + Math.random() * 0.18;
+        // Utiliser tout l'espace avec des marges réduites
+        x = 0.08 + Math.random() * 0.84;
+        y = 0.08 + Math.random() * 0.84;
         
         attempts++;
-        
-        if (attempts > maxAttempts * 0.7) {
-          x = 0.15 + Math.random() * 0.7;
-          y = 0.15 + Math.random() * 0.7;
-        }
         
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        x = 0.2 + Math.random() * 0.6;
-        y = 0.2 + Math.random() * 0.6;
+        // Si trop de tentatives, accepter une position avec moins de contraintes
+        x = 0.1 + Math.random() * 0.8;
+        y = 0.1 + Math.random() * 0.8;
       }
       
       newWordPayload = {
