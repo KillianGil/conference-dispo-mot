@@ -4,11 +4,43 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ==================== CANVAS ==================== */
+/* ==================== CANVAS CONTAINER ==================== */
+#canvas-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0f1a;
+}
+
 #weave-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
     touch-action: none;
     user-select: none;
     cursor: grab;
+}
+
+#weave-canvas:active {
+    cursor: grabbing;
+}
+
+/* ==================== MAIN CONTAINER ==================== */
+#main-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    #main-container {
+        flex-direction: row;
+    }
 }
 
 /* ==================== SCROLLBARS ==================== */
@@ -95,27 +127,39 @@ footer button:active {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* ==================== MODALS ==================== */
-/* ==================== MODALS ==================== */
+/* ==================== SETTINGS MODAL ==================== */
 #settings-modal,
 #qr-modal {
     overflow-y: auto;
 }
 
 #settings-modal > div {
-    max-height: 70vh; /* Réduit à 70% de la hauteur */
+    max-height: 70vh;
     overflow-y: auto;
     margin: 1rem auto;
 }
 
-#qr-modal > div {
-    max-width: 400px;
+#settings-modal > div::-webkit-scrollbar {
+    width: 4px;
+}
+
+#settings-modal > div::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#settings-modal > div::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.5);
+    border-radius: 20px;
+}
+
+#settings-modal > div::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(99, 102, 241, 0.7);
 }
 
 @media (max-width: 767px) {
     #settings-modal > div {
         max-width: calc(100vw - 2rem);
-        max-height: 60vh; /* Encore plus petit sur mobile : 60% */
+        max-height: 60vh;
         padding: 1rem;
         margin: 1rem;
     }
@@ -126,7 +170,6 @@ footer button:active {
         margin-bottom: 1rem;
     }
     
-    /* Réduction des espacements internes */
     #settings-modal .mb-6 {
         margin-bottom: 1rem;
     }
@@ -139,7 +182,6 @@ footer button:active {
         margin-top: 0.625rem;
     }
     
-    /* Labels plus compacts */
     #settings-modal label {
         font-size: 0.875rem;
     }
@@ -148,7 +190,6 @@ footer button:active {
         font-size: 0.7rem;
     }
     
-    /* Bouton close plus visible sur mobile */
     #close-settings-button {
         z-index: 10;
         background: rgba(0, 0, 0, 0.3);
@@ -165,7 +206,6 @@ footer button:active {
     }
 }
 
-/* Très petits écrans - encore plus compact */
 @media (max-width: 380px) {
     #settings-modal > div {
         max-height: 55vh;
@@ -175,49 +215,6 @@ footer button:active {
     #settings-modal h3 {
         font-size: 1rem;
     }
-}
-
-@media (max-width: 640px) {
-    #qr-modal > div {
-        max-width: calc(100vw - 3rem);
-        padding: 1.5rem;
-    }
-    
-    #qr-modal h3 {
-        font-size: 1.125rem;
-    }
-    
-    #qr-modal p {
-        font-size: 0.875rem;
-    }
-    
-    #qrcode-display {
-        max-width: 100%;
-        overflow: hidden;
-    }
-    
-    #qrcode-display img {
-        max-width: 100%;
-        height: auto;
-    }
-}
-
-/* Scrollbar personnalisée pour le modal */
-#settings-modal > div::-webkit-scrollbar {
-    width: 4px;
-}
-
-#settings-modal > div::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-#settings-modal > div::-webkit-scrollbar-thumb {
-    background-color: rgba(99, 102, 241, 0.5);
-    border-radius: 20px;
-}
-
-#settings-modal > div::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(99, 102, 241, 0.7);
 }
 
 /* ==================== QR CODE MODAL ==================== */
@@ -275,7 +272,6 @@ footer button:active {
 
 /* ==================== MOBILE (max 767px) ==================== */
 @media (max-width: 767px) {
-    /* Header */
     header h1 {
         font-size: 1.5rem;
     }
@@ -284,14 +280,12 @@ footer button:active {
         font-size: 0.75rem;
     }
     
-    /* Footer */
     footer {
         flex-wrap: wrap;
         gap: 0.5rem;
         padding: 0.5rem;
     }
     
-    /* Word Form */
     #word-form {
         width: 100%;
         order: -1;
@@ -303,7 +297,7 @@ footer button:active {
     #word-input {
         flex: 1;
         min-height: 44px;
-        font-size: 16px; /* Empêche le zoom automatique iOS */
+        font-size: 16px;
         padding: 0.5rem 0.75rem;
     }
     
@@ -317,7 +311,6 @@ footer button:active {
         font-weight: 600;
     }
     
-    /* Footer Buttons */
     footer > div {
         width: 100%;
         justify-content: space-between;
@@ -340,13 +333,11 @@ footer button:active {
         margin: auto;
     }
     
-    /* Word List Items */
     .word-item {
         padding: 0.625rem;
         font-size: 0.875rem;
     }
     
-    /* Stats Panel */
     #stats-panel {
         top: auto;
         bottom: 80px;

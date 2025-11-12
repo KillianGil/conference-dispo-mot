@@ -363,13 +363,26 @@ document.addEventListener("DOMContentLoaded", () => {
   function resizeCanvas() {
     const container = document.getElementById("canvas-container");
     if (!container) return;
+    
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = container.clientWidth * dpr;
-    canvas.height = container.clientHeight * dpr;
-    canvas.style.width = container.clientWidth + "px";
-    canvas.style.height = container.clientHeight + "px";
+    
+    // Forcer les dimensions du conteneur
+    const rect = container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    
+    // Appliquer au canvas
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    
+    // Important : repositionner le contexte
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
+    
+    console.log(`📐 Canvas redimensionné: ${width}x${height}px (DPR: ${dpr})`);
+    
     drawWeave();
   }
 
@@ -553,30 +566,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawWeave(withBackground = false) {
-    if (!canDraw) return;
-
-    const container = document.getElementById("canvas-container");
-    if (!container) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (withBackground) {
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
-
-    if (displayedWords.length === 0) return;
-
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    let connections = [];
+      if (!canDraw) return;
+    
+      const container = document.getElementById("canvas-container");
+      if (!container) return;
+      
+      // Utiliser les vraies dimensions du conteneur
+      const rect = container.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+    
+      // Vérification de sécurité
+      if (width === 0 || height === 0) {
+        console.warn("⚠️ Canvas dimensions invalides");
+        return;
+      }
+    
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+      if (withBackground) {
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    
+      // Appliquer les transformations APRÈS avoir reset
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(scale, scale);
+    
+      if (displayedWords.length === 0) return;
+    
+      // Le reste de votre code drawWeave...
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    
+      let connections = [];
 
     if (settings.linkMode === "chronological") {
       const sortedWords = [...displayedWords].sort(
