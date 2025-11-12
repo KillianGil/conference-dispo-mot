@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tissage Collaboratif </title>
+    <title>Tissage Collaboratif</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="h-full flex flex-col text-gray-200 overflow-hidden">
@@ -21,6 +22,15 @@
     <div id="main-container" class="flex-grow flex flex-col md:flex-row min-h-0 relative">
         <div id="words-panel" class="w-full md:w-1/3 lg:w-1/4 bg-gray-900/80 md:border-r border-gray-700 flex flex-col p-4 md:p-6 overflow-y-auto transition-all duration-300 ease-in-out h-2/5 md:h-auto border-b md:border-b-0">
             <h2 class="text-xl font-bold mb-4 text-white">Liste des Mots</h2>
+            
+            <!-- Filtre de recherche -->
+            <div class="mb-4">
+                <input type="text" id="word-filter" 
+                    placeholder="🔍 Filtrer les mots..." 
+                    class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-transparent border transition text-sm">
+                <div id="filter-count" class="text-xs text-gray-400 mt-1 hidden"></div>
+            </div>
+            
             <ul id="words-list" class="space-y-2 flex-grow"></ul>
         </div>
         
@@ -50,14 +60,25 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
         </button>
         
-        <!-- QR Code button - visible sur mobile aussi -->
         <button id="qr-code-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200" title="QR Code">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5" /></svg>
         </button>
         
-        <!-- Download button - caché sur mobile, visible sur desktop -->
         <button id="download-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200 hidden sm:flex" title="Télécharger">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        </button>
+        
+        <!-- Boutons d'enregistrement -->
+        <button id="record-button" class="bg-red-600 hover:bg-red-700 text-white font-bold p-3 rounded-lg transition duration-200 hidden sm:flex" title="Enregistrer time-lapse">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8"/>
+            </svg>
+        </button>
+        
+        <button id="stop-record-button" class="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg transition duration-200 hidden" title="Arrêter l'enregistrement">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12"/>
+            </svg>
         </button>
         
         <button id="reset-button" class="bg-red-800 hover:bg-red-700 text-white font-bold p-3 rounded-lg transition duration-200" title="Réinitialiser">
@@ -75,142 +96,153 @@
         </div>
     </div>
 
-    <script src="script.js" defer></script>
     <!-- Modal Paramètres -->
-<!-- Modal Paramètres -->
-<div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
-  <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-xl relative max-w-md w-full my-4">
-      <button id="close-settings-button" class="absolute top-3 right-3 text-gray-400 hover:text-white transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-      </button>
-      <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
-      
-      <!-- Le reste du contenu reste identique -->
-      <div class="mb-6">
-          <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
-          <div class="space-y-2">
-              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
-                  <div>
-                      <div>Chronologique</div>
-                      <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
-                  </div>
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50 p-4 overflow-y-auto">
+      <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-xl relative max-w-md w-full my-4">
+          <button id="close-settings-button" class="absolute top-3 right-3 text-gray-400 hover:text-white transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+          </button>
+          <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
+          
+          <div class="mb-6">
+              <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
+              <div class="space-y-2">
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Chronologique</div>
+                          <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Aléatoire</div>
+                          <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Proximité spatiale</div>
+                          <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Harmonie chromatique</div>
+                          <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Résonance textuelle</div>
+                          <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="constellation" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Constellation</div>
+                          <div class="text-xs text-gray-400">Effet étoilé scintillant</div>
+                      </div>
+                  </label>
+                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="link-mode" value="waves" class="mr-3 mt-1 accent-indigo-500">
+                      <div>
+                          <div>Vagues ondulées</div>
+                          <div class="text-xs text-gray-400">Connexions en courbes fluides</div>
+                      </div>
+                  </label>
+              </div>
+          </div>
+
+          <!-- Thème de couleurs -->
+          <div class="mb-6">
+              <label class="block text-gray-300 font-semibold mb-3">🎨 Palette de couleurs</label>
+              <div class="space-y-2">
+                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="color-theme" value="auto" checked class="mr-3 accent-indigo-500">
+                      <span>Aléatoire</span>
+                  </label>
+                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="color-theme" value="bailleul" class="mr-3 accent-indigo-500">
+                      <span>Hélène Bailleul (textile)</span>
+                  </label>
+                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="color-theme" value="babiole" class="mr-3 accent-indigo-500">
+                      <span>Cécile Babiole (numérique)</span>
+                  </label>
+              </div>
+          </div>
+
+          <!-- Options d'affichage -->
+          <div class="mb-6 space-y-3">
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="show-words-toggle" checked class="mr-3 accent-indigo-500">
+                  <span>Afficher les mots sur le canvas</span>
               </label>
-              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
-                  <div>
-                      <div>Aléatoire</div>
-                      <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
-                  </div>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="animate-lines-toggle" checked class="mr-3 accent-indigo-500">
+                  <span>Animation de tissage</span>
               </label>
-              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
-                  <div>
-                      <div>Proximité spatiale</div>
-                      <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
-                  </div>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="resonance-toggle" class="mr-3 accent-indigo-500">
+                  <span>Effet de résonance</span>
               </label>
-              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
-                  <div>
-                      <div>Harmonie chromatique</div>
-                      <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
-                  </div>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="show-timestamp-toggle" checked class="mr-3 accent-indigo-500">
+                  <span>Horodatage des mots</span>
               </label>
-              <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
-                  <div>
-                      <div>Résonance textuelle</div>
-                      <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
-                  </div>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="gradient-toggle" class="mr-3 accent-indigo-500">
+                  <span>Dégradé de couleurs</span>
               </label>
+              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                <input type="checkbox" id="particles-toggle" checked class="mr-3 accent-indigo-500">
+                <span>Effet de particules</span>
+            </label>
+          </div>
+
+          <!-- Épaisseur des lignes -->
+          <div class="mb-4">
+              <label class="block text-gray-300 font-semibold mb-2 text-sm md:text-base">
+                  Épaisseur des fils: <span id="line-width-value" class="text-indigo-400">2</span>px
+              </label>
+              <input type="range" id="line-width" min="1" max="8" value="2" class="w-full accent-indigo-500">
+          </div>
+
+          <div class="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400">
+              💡 Les paramètres modifient l'œuvre en temps réel
+          </div>
+
+          <div class="mt-3 p-3 bg-indigo-900/30 rounded-lg text-xs text-gray-300">
+              🔍 <strong>Zoom :</strong> 
+              <span class="hidden md:inline">Molette ou pincement • Double-clic pour réinitialiser</span>
+              <span class="md:hidden">Pincement à 2 doigts • Double-tap pour réinitialiser</span>
           </div>
       </div>
+    </div>
 
-      <!-- Thème de couleurs -->
-      <div class="mb-6">
-          <label class="block text-gray-300 font-semibold mb-3">🎨 Palette de couleurs</label>
-          <div class="space-y-2">
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="color-theme" value="auto" checked class="mr-3 accent-indigo-500">
-                  <span>Aléatoire</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="color-theme" value="bailleul" class="mr-3 accent-indigo-500">
-                  <span>Hélène Bailleul (textile)</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="radio" name="color-theme" value="babiole" class="mr-3 accent-indigo-500">
-                  <span>Cécile Babiole (numérique)</span>
-              </label>
-          </div>
+    <!-- Panneau Statistiques -->
+    <div id="stats-panel" class="fixed top-20 right-4 bg-gray-800 rounded-2xl shadow-2xl p-6 w-80 max-w-[calc(100vw-2rem)] hidden z-50 max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-white flex items-center">
+              📊 Statistiques
+          </h3>
+          <button id="close-stats-button" class="text-gray-400 hover:text-white transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
       </div>
+      <div id="stats-content">
+          <p class="text-gray-400 text-sm">Chargement...</p>
+      </div>
+    </div>
 
-      <!-- Options d'affichage -->
-      <div class="mb-6 space-y-3">
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-              <input type="checkbox" id="show-words-toggle" checked class="mr-3 accent-indigo-500">
-              <span>Afficher les mots sur le canvas</span>
-          </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-              <input type="checkbox" id="animate-lines-toggle" checked class="mr-3 accent-indigo-500">
-              <span>Animation de tissage</span>
-          </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-              <input type="checkbox" id="resonance-toggle" class="mr-3 accent-indigo-500">
-              <span>Effet de résonance</span>
-          </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-              <input type="checkbox" id="show-timestamp-toggle" checked class="mr-3 accent-indigo-500">
-              <span>Horodatage des mots</span>
-          </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-              <input type="checkbox" id="gradient-toggle" class="mr-3 accent-indigo-500">
-              <span>Dégradé de couleurs</span>
-          </label>
-          <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-            <input type="checkbox" id="particles-toggle" checked class="mr-3 accent-indigo-500">
-            <span>Effet de particules</span>
-        </label>
-      </div>
-
-      <!-- Épaisseur des lignes -->
-      <div class="mb-4">
-          <label class="block text-gray-300 font-semibold mb-2 text-sm md:text-base">
-              Épaisseur des fils: <span id="line-width-value" class="text-indigo-400">2</span>px
-          </label>
-          <input type="range" id="line-width" min="1" max="8" value="2" class="w-full accent-indigo-500">
-      </div>
-
-      <!-- Info sur les paramètres -->
-      <div class="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400">
-          💡 Les paramètres modifient l'œuvre en temps réel
-      </div>
-
-      <!-- Zoom info -->
-      <div class="mt-3 p-3 bg-indigo-900/30 rounded-lg text-xs text-gray-300">
-          🔍 <strong>Zoom :</strong> 
-          <span class="hidden md:inline">Molette ou pincement • Double-clic pour réinitialiser</span>
-          <span class="md:hidden">Pincement à 2 doigts • Double-tap pour réinitialiser</span>
-      </div>
-  </div>
-</div>
-<!-- Panneau Statistiques -->
-<div id="stats-panel" class="fixed top-20 right-4 bg-gray-800 rounded-2xl shadow-2xl p-6 w-80 max-w-[calc(100vw-2rem)] hidden z-50 max-h-[calc(100vh-6rem)] overflow-y-auto">
-  <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-bold text-white flex items-center">
-          📊 Statistiques
-      </h3>
-      <button id="close-stats-button" class="text-gray-400 hover:text-white transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-      </button>
-  </div>
-  <div id="stats-content">
-      <p class="text-gray-400 text-sm">Chargement...</p>
-  </div>
-</div>
+    <script src="script.js" defer></script>
 </body>
 </html>
-
