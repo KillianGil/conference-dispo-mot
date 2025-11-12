@@ -73,6 +73,29 @@ document.addEventListener("DOMContentLoaded", () => {
     RESET_PASSWORD: "tissage2025",
   };
 
+  // ... vos variables existantes ...
+
+  // ✅ Vérifier si le compteur est bloqué alors qu'il n'y a pas de mots
+  async function checkAndUnblockUser() {
+    try {
+      const response = await fetch("/api/words");
+      const words = await response.json();
+      
+      if (words.length === 0) {
+        // Aucun mot sur le serveur = reset forcé du compteur local
+        localStorage.removeItem("userWordCount");
+        wordInput.disabled = false;
+        wordForm.querySelector("button").disabled = false;
+        wordInput.placeholder = "Partagez un mot...";
+        console.log("✅ Compteur débloqué (aucun mot sur le serveur)");
+      }
+    } catch (err) {
+      console.error("Erreur vérification:", err);
+    }
+  }
+
+  checkAndUnblockUser();
+
   // Système de comptage par utilisateur
   function getUserWordCount() {
     try {
@@ -182,66 +205,72 @@ document.addEventListener("DOMContentLoaded", () => {
   function findValidPosition() {
     const container = document.getElementById("canvas-container");
     if (!container) return { x: 0.5, y: 0.5 };
-
+  
     const minDist = getAdaptiveMinDistance();
     const width = container.clientWidth;
     const height = container.clientHeight;
-
-    for (let i = 0; i < 30; i++) {
-      const x = 0.05 + Math.random() * 0.9;
-      const y = 0.05 + Math.random() * 0.9;
+  
+    // PHASE 1: Essais aléatoires sur TOUTE la surface (y compris droite et bas)
+    for (let i = 0; i < 50; i++) {
+      const x = 0.08 + Math.random() * 0.84; // 8% à 92%
+      const y = 0.08 + Math.random() * 0.84;
       if (isPositionValid(x, y, minDist)) {
+        console.log(`✓ Position trouvée (aléatoire): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
         return { x, y };
       }
     }
-
+  
+    // PHASE 2: Spirale depuis le centre
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.47;
-    const radiusStep = (minDist / Math.max(width, height)) * 0.8;
-
+    const maxRadius = 0.45; // Jusqu'à 90% de la largeur/hauteur
+    const radiusStep = (minDist / Math.max(width, height)) * 0.5;
+  
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.floor(
-        (2 * Math.PI * radius) / (radiusStep * 0.8)
-      );
-      const actualAngleStep = (2 * Math.PI) / numPoints;
-
+      const numPoints = Math.max(8, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.6)));
+      const angleStep = (2 * Math.PI) / numPoints;
+  
       for (let i = 0; i < numPoints; i++) {
-        const angle = i * actualAngleStep;
+        const angle = i * angleStep + Math.random() * 0.3; // Légère variation
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
-
-        if (x >= 0.03 && x <= 0.97 && y >= 0.03 && y <= 0.97) {
+  
+        if (x >= 0.05 && x <= 0.95 && y >= 0.05 && y <= 0.95) {
           if (isPositionValid(x, y, minDist)) {
+            console.log(`✓ Position trouvée (spirale): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
             return { x, y };
           }
         }
       }
     }
-
-    const step = (minDist / Math.max(width, height)) * 0.7;
-    for (let gridY = 0.05; gridY <= 0.95; gridY += step) {
-      for (let gridX = 0.05; gridX <= 0.95; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.2;
-        const jitterY = (Math.random() - 0.5) * step * 0.2;
-        const x = gridX + jitterX;
-        const y = gridY + jitterY;
-
-        if (isPositionValid(x, y, minDist)) {
+  
+    // PHASE 3: Grille fine sur toute la surface
+    const step = (minDist / Math.max(width, height)) * 0.4;
+    for (let gridY = 0.06; gridY <= 0.94; gridY += step) {
+      for (let gridX = 0.06; gridX <= 0.94; gridX += step) {
+        const jitterX = (Math.random() - 0.5) * step * 0.3;
+        const jitterY = (Math.random() - 0.5) * step * 0.3;
+        const x = Math.max(0.05, Math.min(0.95, gridX + jitterX));
+        const y = Math.max(0.05, Math.min(0.95, gridY + jitterY));
+  
+        if (isPositionValid(x, y, minDist * 0.8)) {
+          console.log(`✓ Position trouvée (grille): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
           return { x, y };
         }
       }
     }
-
-    const fineStep = step * 0.5;
-    for (let gridY = 0.03; gridY <= 0.97; gridY += fineStep) {
-      for (let gridX = 0.03; gridX <= 0.97; gridX += fineStep) {
-        if (isPositionValid(gridX, gridY, minDist * 0.6)) {
-          return { x: gridX, y: gridY };
-        }
+  
+    // PHASE 4: Dernière chance - réduction drastique des contraintes
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const x = 0.1 + Math.random() * 0.8;
+      const y = 0.1 + Math.random() * 0.8;
+      if (isPositionValid(x, y, minDist * 0.5)) {
+        console.warn(`⚠️ Position trouvée (contraintes réduites): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
+        return { x, y };
       }
     }
-
+  
+    console.error("❌ Aucune position valide trouvée");
     return null;
   }
 
@@ -2018,15 +2047,15 @@ document.addEventListener("DOMContentLoaded", () => {
   resetButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-
+  
     console.log("Reset button clicked");
-
+  
     const passwordModal = document.createElement("div");
     passwordModal.id = "password-reset-modal";
     passwordModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
     passwordModal.style.zIndex = "100";
-
+  
     passwordModal.innerHTML = `
       <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full">
         <h3 class="text-xl font-bold text-white mb-4">🔒 Accès Protégé</h3>
@@ -2046,50 +2075,51 @@ document.addEventListener("DOMContentLoaded", () => {
         <p class="text-xs text-gray-500 mt-3 text-center">Action irréversible - Tous les mots seront supprimés</p>
       </div>
     `;
-
+  
     document.body.appendChild(passwordModal);
     console.log("Modal ajouté au DOM");
-
+  
     const passwordInput = document.getElementById("reset-password-input");
     const confirmBtn = document.getElementById("confirm-reset");
     const cancelBtn = document.getElementById("cancel-reset");
-
+  
     setTimeout(() => passwordInput.focus(), 100);
-
+  
     const closeModal = () => {
       if (document.body.contains(passwordModal)) {
         document.body.removeChild(passwordModal);
         console.log("Modal fermé");
       }
     };
-
+  
     cancelBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       closeModal();
     });
-
+  
     passwordModal.addEventListener("click", (e) => {
       if (e.target === passwordModal) {
         closeModal();
       }
     });
-
+  
     const attemptReset = async () => {
       const enteredPassword = passwordInput.value.trim();
       console.log(
         "Tentative reset avec mot de passe:",
         enteredPassword ? "***" : "(vide)"
       );
-
+  
       if (enteredPassword === CONFIG.RESET_PASSWORD) {
         console.log("✓ Mot de passe correct");
         closeModal();
-
+  
         try {
           const response = await fetch("/api/words", { method: "DELETE" });
           console.log("Réponse DELETE:", response.status);
-
+  
+          // Nettoyage complet de l'état local
           displayedWords = [];
           wordsList.innerHTML = "";
           particles.forEach((p) => recycleParticle(p));
@@ -2100,17 +2130,36 @@ document.addEventListener("DOMContentLoaded", () => {
           offsetX = 0;
           offsetY = 0;
           wordOccurrencesCache.clear();
-
-          localStorage.removeItem("userWordCount");
-          console.log("LocalStorage nettoyé");
-
+  
+          // ✅ CORRECTION: Nettoyer le localStorage pour TOUS les utilisateurs
+          localStorage.clear(); // Plus radical que removeItem
+          console.log("✅ LocalStorage complètement nettoyé");
+  
+          // Réactiver les inputs
           wordInput.disabled = false;
-          wordForm.querySelector("button").disabled = false;
+          wordInput.value = "";
           wordInput.placeholder = "Partagez un mot...";
-
+          const submitButton = wordForm.querySelector("button");
+          submitButton.disabled = false;
+          submitButton.textContent = "Tisser";
+  
+          // Redessiner
           drawWeave();
           updateStats();
-          alert("✓ Tissage réinitialisé avec succès");
+          
+          // Message de confirmation
+          const confirmDiv = document.createElement("div");
+          confirmDiv.className = "fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce";
+          confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
+          document.body.appendChild(confirmDiv);
+          
+          setTimeout(() => {
+            if (document.body.contains(confirmDiv)) {
+              document.body.removeChild(confirmDiv);
+            }
+          }, 3000);
+  
+          console.log("✅ Reset complet effectué");
         } catch (err) {
           console.error("Erreur reset:", err);
           alert("❌ La réinitialisation a échoué");
@@ -2126,13 +2175,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 2000);
       }
     };
-
+  
     confirmBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       attemptReset();
     });
-
+  
     passwordInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
