@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 100;
+    if (!container) return 120;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const diagonal = Math.sqrt(width * width + height * height);
-    return Math.max(60, diagonal * 0.06); // Réduit pour permettre plus de mots
+    return Math.max(80, diagonal * 0.08);
   }
 
   function getUniquePositions() {
@@ -77,39 +77,59 @@ document.addEventListener("DOMContentLoaded", () => {
   const colorPalettes = {
     auto: () => {
       const hue = Math.random() * 360;
-      const saturation = 70 + Math.random() * 25;
-      const lightness = 50 + Math.random() * 20;
+      const saturation = 65 + Math.random() * 30;
+      const lightness = 45 + Math.random() * 25;
       return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
     },
     
     bailleul: () => {
       const colors = [
-        "hsl(35, 80%, 68%)",
-        "hsl(42, 85%, 70%)",
-        "hsl(165, 55%, 60%)",
-        "hsl(195, 50%, 65%)",
-        "hsl(18, 70%, 62%)",
-        "hsl(50, 80%, 72%)",
-        "hsl(280, 65%, 68%)",
-        "hsl(340, 75%, 65%)",
-        "hsl(145, 60%, 62%)",
-        "hsl(220, 70%, 68%)",
+        "hsl(35, 80%, 68%)",   // Orange doux
+        "hsl(42, 85%, 70%)",   // Jaune doré
+        "hsl(165, 55%, 60%)",  // Turquoise
+        "hsl(195, 50%, 65%)",  // Bleu ciel
+        "hsl(18, 70%, 62%)",   // Terracotta
+        "hsl(50, 80%, 72%)",   // Jaune citron
+        "hsl(280, 65%, 68%)",  // Violet
+        "hsl(340, 75%, 65%)",  // Rose
+        "hsl(145, 60%, 62%)",  // Vert menthe
+        "hsl(220, 70%, 68%)",  // Bleu lavande
+        "hsl(25, 75%, 60%)",   // Corail
+        "hsl(85, 65%, 65%)",   // Vert lime
+        "hsl(310, 70%, 68%)",  // Magenta
+        "hsl(180, 60%, 62%)",  // Cyan
+        "hsl(60, 85%, 68%)",   // Jaune vif
+        "hsl(200, 65%, 65%)",  // Bleu océan
+        "hsl(330, 80%, 70%)",  // Rose fuchsia
+        "hsl(120, 55%, 60%)",  // Vert émeraude
+        "hsl(270, 75%, 65%)",  // Violet profond
+        "hsl(15, 80%, 65%)",   // Rouge orangé
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
     
     babiole: () => {
       const colors = [
-        "hsl(285, 95%, 70%)",
-        "hsl(185, 90%, 65%)",
-        "hsl(335, 98%, 72%)",
-        "hsl(65, 100%, 62%)",
-        "hsl(160, 88%, 65%)",
-        "hsl(210, 92%, 68%)",
-        "hsl(30, 95%, 68%)",
-        "hsl(120, 85%, 65%)",
-        "hsl(270, 90%, 70%)",
-        "hsl(355, 95%, 68%)",
+        "hsl(285, 95%, 70%)",  // Violet électrique
+        "hsl(185, 90%, 65%)",  // Cyan néon
+        "hsl(335, 98%, 72%)",  // Rose néon
+        "hsl(65, 100%, 62%)",  // Jaune fluo
+        "hsl(160, 88%, 65%)",  // Vert néon
+        "hsl(210, 92%, 68%)",  // Bleu électrique
+        "hsl(30, 95%, 68%)",   // Orange vif
+        "hsl(120, 85%, 65%)",  // Vert lime
+        "hsl(270, 90%, 70%)",  // Violet vif
+        "hsl(355, 95%, 68%)",  // Rouge vif
+        "hsl(45, 100%, 65%)",  // Jaune intense
+        "hsl(195, 95%, 70%)",  // Bleu cyan
+        "hsl(300, 92%, 72%)",  // Magenta néon
+        "hsl(90, 88%, 62%)",   // Vert chartreuse
+        "hsl(240, 90%, 68%)",  // Bleu indigo
+        "hsl(15, 100%, 65%)",  // Rouge orangé vif
+        "hsl(165, 95%, 68%)",  // Turquoise néon
+        "hsl(320, 98%, 70%)",  // Rose shocking
+        "hsl(75, 92%, 65%)",   // Vert acide
+        "hsl(225, 88%, 70%)",  // Bleu persan
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
@@ -119,18 +139,18 @@ document.addEventListener("DOMContentLoaded", () => {
     constructor(x, y, color) {
       this.x = x;
       this.y = y;
-      this.vx = (Math.random() - 0.5) * 2;
-      this.vy = (Math.random() - 0.5) * 2;
+      this.vx = (Math.random() - 0.5) * 3;
+      this.vy = (Math.random() - 0.5) * 3;
       this.life = 1;
       this.color = color;
-      this.size = Math.random() * 3 + 2;
+      this.size = Math.random() * 4 + 3;
     }
 
     update() {
       this.x += this.vx;
       this.y += this.vy;
-      this.life -= 0.02;
-      this.vy += 0.1;
+      this.life -= 0.015;
+      this.vy += 0.15;
     }
 
     draw(ctx) {
@@ -174,13 +194,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function animateWeaving() {
     if (currentAnimatingConnection) {
-      animationProgress += 0.04;
+      animationProgress += 0.035;
       if (animationProgress >= 1) {
         animationProgress = 1;
         setTimeout(() => {
           currentAnimatingConnection = null;
           animationProgress = 0;
-        }, 100);
+        }, 150);
       }
     }
     
@@ -330,7 +350,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // Grouper les mots par texte pour avoir les mots uniques
     const uniqueWords = [];
     const wordMap = new Map();
     
@@ -395,7 +414,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Assurer que tous les mots sont connectés (pas seulement ceux dans les modes spécifiques)
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
@@ -442,10 +460,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const y2 = word2.y * height;
 
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 4;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 5;
+      ctx.shadowOffsetY = 5;
 
       ctx.globalAlpha = 1;
       ctx.beginPath();
@@ -461,15 +479,15 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = settings.lineWidth;
+      ctx.lineWidth = settings.lineWidth + 2;
       ctx.stroke();
       ctx.restore();
 
-      ctx.globalAlpha = 0.4;
+      ctx.globalAlpha = 0.5;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
-      ctx.lineWidth = settings.lineWidth + 8;
+      ctx.lineWidth = settings.lineWidth + 10;
       ctx.stroke();
     });
 
@@ -490,44 +508,44 @@ document.addEventListener("DOMContentLoaded", () => {
     
     uniqueWords.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const baseSize = 15;
-      const pointSize = baseSize + (occurrences - 1) * 5;
+      const baseSize = 20;
+      const pointSize = baseSize + (occurrences - 1) * 6;
       
-      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
+      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
       
-      if (Math.random() < 0.05) {
+      if (Math.random() < 0.08) {
         particles.push(new Particle(x, y, word.color));
       }
       
-      const pulseSize = pointSize + 8 + Math.sin(time * 3 + word.timestamp * 0.001) * 3;
+      const pulseSize = pointSize + 10 + Math.sin(time * 3 + word.timestamp * 0.001) * 4;
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.5;
       ctx.stroke();
       
       ctx.beginPath();
       ctx.arc(x, y, pointSize, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 1;
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 18;
       ctx.fill();
       
       ctx.beginPath();
       ctx.arc(x, y, pointSize, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 3;
       ctx.stroke();
       
       ctx.beginPath();
-      ctx.arc(x, y, pointSize * 0.3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.shadowBlur = 5;
+      ctx.arc(x, y, pointSize * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.shadowBlur = 8;
       ctx.shadowColor = 'white';
       ctx.fill();
       
@@ -538,32 +556,32 @@ document.addEventListener("DOMContentLoaded", () => {
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 20;
+      const fontSize = isMobile ? 18 : 24;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
 
       uniqueWords.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
-        const pointSize = 15 + (occurrences - 1) * 5;
+        const pointSize = 20 + (occurrences - 1) * 6;
         
-        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
+        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 10;
+        const textY = y - pointSize - 15;
 
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
 
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 7;
         ctx.strokeText(word.text, x, textY);
 
         ctx.fillStyle = word.color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 18;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
 
@@ -682,7 +700,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateWordList(newWords);
         updateStats();
         
-        // Animation uniquement si c'est un nouveau mot unique (pas un doublon)
         const lastNewWord = newWords[newWords.length - 1];
         const isDuplicate = displayedWords.some((w) => 
           w.text.toLowerCase() === lastNewWord.text.toLowerCase() && 
@@ -816,7 +833,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let newWordPayload;
     
     if (existingWord) {
-      // Mot existant : réutiliser position et couleur exactes
       newWordPayload = {
         text,
         x: existingWord.x,
@@ -824,7 +840,6 @@ document.addEventListener("DOMContentLoaded", () => {
         color: existingWord.color,
       };
     } else {
-      // Nouveau mot : générer position et couleur
       const colorGenerator = colorPalettes[settings.colorTheme] || colorPalettes.auto;
       const newColor = colorGenerator();
       
@@ -833,18 +848,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const maxAttempts = 500;
       
       do {
-        // Utiliser TOUT l'espace avec marges minimales
-        x = 0.05 + Math.random() * 0.90;
-        y = 0.05 + Math.random() * 0.90;
-        
+        x = 0.03 + Math.random() * 0.94;
+        y = 0.03 + Math.random() * 0.94;
         attempts++;
-        
       } while (attempts < maxAttempts && !isPositionValid(x, y, minDist));
       
       if (attempts === maxAttempts) {
-        // Si trop de tentatives, forcer une position
-        x = 0.1 + Math.random() * 0.8;
-        y = 0.1 + Math.random() * 0.8;
+        x = 0.05 + Math.random() * 0.90;
+        y = 0.05 + Math.random() * 0.90;
       }
       
       newWordPayload = {
