@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Configuration globale
   const CONFIG = {
-    MAX_WORDS_PER_USER: 5,
+    MAX_WORDS_PER_USER: 1000,
     RESET_PASSWORD: "tissage2025",
   };
 
