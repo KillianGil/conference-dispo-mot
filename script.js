@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     linkMode: "chronological",
     showWords: true,
     animateLines: true,
-    lineWidth: 5,
+    lineWidth: 2,
     colorTheme: "auto",
     enableResonance: false,
     showTimestamp: true,
@@ -75,19 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Configuration globale
   const CONFIG = {
-    MAX_WORDS_PER_USER: 1000,
+    MAX_WORDS_PER_USER: 5,
     RESET_PASSWORD: "tissage2025",
   };
 
-  // ... vos variables existantes ...
-
-  // ✅ Vérifier si le compteur est bloqué alors qu'il n'y a pas de mots
+  // Vérifier si le compteur est bloqué alors qu'il n'y a pas de mots
   async function checkAndUnblockUser() {
     try {
       const response = await fetch("/api/words");
       const words = await response.json();
       
-      // Si aucun mot OU si l'utilisateur est bloqué depuis >5min
       const lastReset = localStorage.getItem("lastResetTime");
       const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
       
@@ -137,29 +134,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 60;
+    if (!container) return 80;
 
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
     ).size;
 
-    let baseDistance = 60;
-    if (uniqueCount > 80) baseDistance = 35;
-    else if (uniqueCount > 60) baseDistance = 40;
-    else if (uniqueCount > 40) baseDistance = 45;
-    else if (uniqueCount > 25) baseDistance = 50;
-    else if (uniqueCount > 15) baseDistance = 55;
+    let baseDistance = 120;
+    if (uniqueCount > 100) baseDistance = 80;
+    else if (uniqueCount > 80) baseDistance = 90;
+    else if (uniqueCount > 60) baseDistance = 100;
+    else if (uniqueCount > 40) baseDistance = 110;
 
-    return Math.max(30, baseDistance);
+    return Math.max(60, baseDistance);
   }
 
   function getPointRadius(occurrences) {
-    return 18 + (occurrences - 1) * 5;
+    return 22 + (occurrences - 1) * 6;
   }
 
   function getMaxPointSize(occurrences) {
     const pointSize = getPointRadius(occurrences);
-    return pointSize + 20;
+    return pointSize + 25;
   }
 
   function getUniqueWordPositions() {
@@ -186,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    const margin = 0.03;
+    const margin = 0.02;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
@@ -201,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dx = pos.x * width - px;
       const dy = pos.y * height - py;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.25;
+      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.15;
 
       if (dist < requiredDist) {
         return false;
@@ -219,32 +215,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
   
-    // PHASE 1: Essais aléatoires sur TOUTE la surface (y compris droite et bas)
-    for (let i = 0; i < 50; i++) {
-      const x = 0.08 + Math.random() * 0.84; // 8% à 92%
-      const y = 0.08 + Math.random() * 0.84;
+    // PHASE 1: Essais aléatoires sur TOUTE la surface
+    for (let i = 0; i < 100; i++) {
+      const x = 0.05 + Math.random() * 0.9;
+      const y = 0.05 + Math.random() * 0.9;
       if (isPositionValid(x, y, minDist)) {
         console.log(`✓ Position trouvée (aléatoire): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
         return { x, y };
       }
     }
   
-    // PHASE 2: Spirale depuis le centre
+    // PHASE 2: Spirale élargie
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.45; // Jusqu'à 90% de la largeur/hauteur
-    const radiusStep = (minDist / Math.max(width, height)) * 0.5;
+    const maxRadius = 0.48;
+    const radiusStep = (minDist / Math.max(width, height)) * 0.4;
   
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(8, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.6)));
+      const numPoints = Math.max(12, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.5)));
       const angleStep = (2 * Math.PI) / numPoints;
   
       for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.3; // Légère variation
+        const angle = i * angleStep + Math.random() * 0.4;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
   
-        if (x >= 0.05 && x <= 0.95 && y >= 0.05 && y <= 0.95) {
+        if (x >= 0.03 && x <= 0.97 && y >= 0.03 && y <= 0.97) {
           if (isPositionValid(x, y, minDist)) {
             console.log(`✓ Position trouvée (spirale): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
             return { x, y };
@@ -253,33 +249,45 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 3: Grille fine sur toute la surface
-    const step = (minDist / Math.max(width, height)) * 0.4;
-    for (let gridY = 0.06; gridY <= 0.94; gridY += step) {
-      for (let gridX = 0.06; gridX <= 0.94; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.3;
-        const jitterY = (Math.random() - 0.5) * step * 0.3;
-        const x = Math.max(0.05, Math.min(0.95, gridX + jitterX));
-        const y = Math.max(0.05, Math.min(0.95, gridY + jitterY));
+    // PHASE 3: Grille fine plus dense
+    const step = (minDist / Math.max(width, height)) * 0.3;
+    for (let gridY = 0.04; gridY <= 0.96; gridY += step) {
+      for (let gridX = 0.04; gridX <= 0.96; gridX += step) {
+        const jitterX = (Math.random() - 0.5) * step * 0.4;
+        const jitterY = (Math.random() - 0.5) * step * 0.4;
+        const x = Math.max(0.03, Math.min(0.97, gridX + jitterX));
+        const y = Math.max(0.03, Math.min(0.97, gridY + jitterY));
   
-        if (isPositionValid(x, y, minDist * 0.8)) {
+        if (isPositionValid(x, y, minDist * 0.7)) {
           console.log(`✓ Position trouvée (grille): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
           return { x, y };
         }
       }
     }
   
-    // PHASE 4: Dernière chance - réduction drastique des contraintes
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.5)) {
+    // PHASE 4: Contraintes ultra-réduites
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const x = 0.08 + Math.random() * 0.84;
+      const y = 0.08 + Math.random() * 0.84;
+      if (isPositionValid(x, y, minDist * 0.3)) {
         console.warn(`⚠️ Position trouvée (contraintes réduites): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
         return { x, y };
       }
     }
   
-    console.error("❌ Aucune position valide trouvée");
+    // PHASE 5: Position garantie en dernier recours
+    console.error("⚠️ Recherche exhaustive activée");
+    const emergencyStep = 0.05;
+    for (let ey = 0.1; ey <= 0.9; ey += emergencyStep) {
+      for (let ex = 0.1; ex <= 0.9; ex += emergencyStep) {
+        if (isPositionValid(ex, ey, minDist * 0.2)) {
+          console.warn(`🆘 Position d'urgence: ${(ex*100).toFixed(0)}%, ${(ey*100).toFixed(0)}%`);
+          return { x: ex, y: ey };
+        }
+      }
+    }
+  
+    console.error("❌ Aucune position valide trouvée - Canvas plein");
     return null;
   }
 
@@ -404,26 +412,21 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const dpr = window.devicePixelRatio || 1;
     
-    // Utiliser getBoundingClientRect pour les dimensions exactes
     const rect = container.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
     
-    // Définir la taille du buffer interne (haute résolution)
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     
-    // Définir la taille CSS (taille d'affichage)
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     
-    // Configurer le contexte pour compenser le DPR
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     
     console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`);
     
-    // Redessiner immédiatement
     requestAnimationFrame(() => drawWeave());
   }
 
@@ -612,20 +615,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return;
     
-    // Utiliser les dimensions CSS du canvas
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
   
-    // Vérification de sécurité
     if (width === 0 || height === 0) {
       console.warn("⚠️ Canvas dimensions invalides");
       return;
     }
   
-    // Sauvegarder l'état du contexte
     ctx.save();
     
-    // Reset complet avant de dessiner
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -634,7 +633,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
   
-    // Appliquer les transformations (zoom/pan) APRÈS le clear
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
   
@@ -643,7 +641,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
   
-    // Effet Aurora en arrière-plan
     if (settings.enableAurora) {
       const time = Date.now() * 0.0003;
       const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -661,7 +658,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     let connections = [];
   
-    // Calcul des connexions selon le mode choisi
     if (settings.linkMode === "chronological") {
       const sortedWords = [...displayedWords].sort(
         (a, b) => a.timestamp - b.timestamp
@@ -719,7 +715,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
-    // S'assurer que tous les mots sont connectés
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
@@ -737,8 +732,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
-  
-    // ===== EFFETS VISUELS SELON LE MODE =====
   
     // Effet Constellation
     if (settings.linkMode === "constellation") {
@@ -766,7 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     }
   
-    // Effet Waves (vagues ondulées)
+    // Effet Waves
     if (settings.linkMode === "waves") {
       connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width;
@@ -785,10 +778,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const perpY = (dx / len) * offset;
   
         ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 5;
-        ctx.shadowOffsetY = 5;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
   
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -803,13 +796,14 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.strokeStyle = word2.color;
         }
   
-        ctx.lineWidth = settings.lineWidth + 2;
+        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.6);
+        ctx.globalAlpha = 0.7;
         ctx.stroke();
         ctx.restore();
       });
     }
     
-    // Effet Ripple (ondulations)
+    // Effet Ripple
     else if (settings.linkMode === "ripple") {
       const time = Date.now() * 0.001;
       
@@ -817,7 +811,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const x = word.x * width;
         const y = word.y * height;
         
-        // Dessiner 3 cercles ondulants
         for (let ring = 0; ring < 3; ring++) {
           const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
           const radius = 30 + phase * 40;
@@ -826,14 +819,13 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
           ctx.strokeStyle = word.color;
-          ctx.lineWidth = 3;
-          ctx.globalAlpha = opacity * 0.6;
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = opacity * 0.4;
           ctx.stroke();
         }
       });
       ctx.globalAlpha = 1;
       
-      // Connexions basiques
       connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width;
         const y1 = word1.y * height;
@@ -844,14 +836,14 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.strokeStyle = word2.color;
-        ctx.lineWidth = settings.lineWidth;
-        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.4);
+        ctx.globalAlpha = 0.25;
         ctx.stroke();
       });
       ctx.globalAlpha = 1;
     }
   
-    // Effet Spiral (spirale)
+    // Effet Spiral
     else if (settings.linkMode === "spiral") {
       const time = Date.now() * 0.0005;
       const centerX = width / 2;
@@ -861,23 +853,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const x = word.x * width;
         const y = word.y * height;
         
-        // Distance au centre
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
         
-        // Rotation spirale
         const spiralAngle = angle + (distance / 100) * Math.sin(time + index * 0.1);
         const spiralRadius = distance * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
         
         const spiralX = centerX + Math.cos(spiralAngle) * spiralRadius;
         const spiralY = centerY + Math.sin(spiralAngle) * spiralRadius;
         
-        // Tracer ligne spiralée
         ctx.save();
         ctx.shadowColor = word.color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(spiralX, spiralY);
@@ -886,16 +875,16 @@ document.addEventListener("DOMContentLoaded", () => {
         gradient.addColorStop(0, word.color);
         gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = settings.lineWidth + 1;
+        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.4);
+        ctx.globalAlpha = 0.6;
         ctx.stroke();
         ctx.restore();
       });
     }
   
-    // Effet Web (toile d'araignée)
+    // Effet Web
     else if (settings.linkMode === "web") {
       displayedWords.forEach((word) => {
-        // Connecter chaque mot à ses 4 plus proches voisins
         const neighbors = displayedWords
           .filter((w) => w !== word)
           .map((w) => ({ word: w, dist: distance(word, w) }))
@@ -909,15 +898,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const y2 = neighbor.y * height;
           
           ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-          ctx.shadowBlur = 8;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+          ctx.shadowBlur = 4;
           
           ctx.beginPath();
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
           
-          // Opacité basée sur distance
-          const opacity = Math.max(0.2, 1 - dist / 0.5);
+          const opacity = Math.max(0.15, 1 - dist / 0.5);
           
           if (settings.useGradient) {
             const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
@@ -928,8 +916,8 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.strokeStyle = word.color;
           }
           
-          ctx.globalAlpha = opacity * 0.5;
-          ctx.lineWidth = settings.lineWidth;
+          ctx.globalAlpha = opacity * 0.35;
+          ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5);
           ctx.stroke();
           ctx.restore();
         });
@@ -937,7 +925,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     }
   
-    // Effet Pulse (pulsations)
+    // Effet Pulse
     else if (settings.linkMode === "pulse") {
       const time = Date.now() * 0.001;
       
@@ -947,13 +935,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const x2 = word2.x * width;
         const y2 = word2.y * height;
         
-        // Onde qui se propage
         const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
         
-        // Ligne principale
         ctx.save();
         ctx.shadowColor = word2.color;
-        ctx.shadowBlur = 20 * pulse;
+        ctx.shadowBlur = 12 * pulse;
         
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -969,100 +955,90 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.strokeStyle = word2.color;
         }
         
-        ctx.lineWidth = settings.lineWidth + pulse * 5;
-        ctx.globalAlpha = 0.6 + pulse * 0.4;
+        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5 + pulse * 2);
+        ctx.globalAlpha = 0.5 + pulse * 0.3;
         ctx.stroke();
         ctx.restore();
         
-        // Point lumineux qui voyage sur la ligne
         const travelProgress = (time * 0.5 + idx * 0.2) % 1;
         const travelX = x1 + (x2 - x1) * travelProgress;
         const travelY = y1 + (y2 - y1) * travelProgress;
         
         ctx.beginPath();
-        ctx.arc(travelX, travelY, 6, 0, Math.PI * 2);
+        ctx.arc(travelX, travelY, 4, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.shadowColor = "white";
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 12;
         ctx.fill();
       });
       ctx.globalAlpha = 1;
     }
 
-    // Effet Basket (Tressage panier) - CORRIGÉ
-else if (settings.linkMode === "basket") {
-  const time = Date.now() * 0.0003;
-  const gridSize = Math.max(40, settings.weavingDensity || 60);
-  
-  // Créer une grille de tissage
-  for (let y = 0; y < height; y += gridSize) {
-    for (let x = 0; x < width; x += gridSize) {
+    // Effet Basket
+    else if (settings.linkMode === "basket") {
+      const time = Date.now() * 0.0003;
+      const gridSize = Math.max(40, settings.weavingDensity || 60);
       
-      // Trouver le mot le plus proche de cette cellule
-      const cellCenterX = x + gridSize / 2;
-      const cellCenterY = y + gridSize / 2;
-      
-      let closestWord = displayedWords[0];
-      let minDist = Infinity;
-      
-      displayedWords.forEach(word => {
-        const dx = word.x * width - cellCenterX;
-        const dy = word.y * height - cellCenterY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < minDist) {
-          minDist = dist;
-          closestWord = word;
-        }
-      });
-      
-      const cellX = Math.floor(x / gridSize);
-      const cellY = Math.floor(y / gridSize);
-      const pattern = (cellX + cellY) % 4;
-      
-      ctx.save();
-      
-      // Animation de tissage continue
-      const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
-      const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
-      
-      // 4 motifs différents qui se répètent
-      if (pattern === 0 || pattern === 2) {
-        // Bandes horizontales
-        ctx.fillStyle = closestWord.color;
-        ctx.globalAlpha = 0.7 + elevation * 0.2;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 5 * elevation;
-        ctx.shadowOffsetY = 3 * elevation;
-        
-        for (let i = 0; i < 3; i++) {
-          const bandY = y + i * (gridSize / 3);
-          ctx.fillRect(x, bandY, gridSize, gridSize / 4);
-        }
-      } else {
-        // Bandes verticales
-        ctx.fillStyle = closestWord.color;
-        ctx.globalAlpha = 0.5 + elevation * 0.2;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-        ctx.shadowBlur = 3 * elevation;
-        ctx.shadowOffsetX = 2 * elevation;
-        
-        for (let i = 0; i < 3; i++) {
-          const bandX = x + i * (gridSize / 3);
-          ctx.fillRect(bandX, y, gridSize / 4, gridSize);
+      for (let y = 0; y < height; y += gridSize) {
+        for (let x = 0; x < width; x += gridSize) {
+          
+          const cellCenterX = x + gridSize / 2;
+          const cellCenterY = y + gridSize / 2;
+          
+          let closestWord = displayedWords[0];
+          let minDist = Infinity;
+          
+          displayedWords.forEach(word => {
+            const dx = word.x * width - cellCenterX;
+            const dy = word.y * height - cellCenterY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+              minDist = dist;
+              closestWord = word;
+            }
+          });
+          
+          const cellX = Math.floor(x / gridSize);
+          const cellY = Math.floor(y / gridSize);
+          const pattern = (cellX + cellY) % 4;
+          
+          ctx.save();
+          
+          const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
+          const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
+          
+          if (pattern === 0 || pattern === 2) {
+            ctx.fillStyle = closestWord.color;
+            ctx.globalAlpha = 0.7 + elevation * 0.2;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 5 * elevation;
+            ctx.shadowOffsetY = 3 * elevation;
+            
+            for (let i = 0; i < 3; i++) {
+              const bandY = y + i * (gridSize / 3);
+              ctx.fillRect(x, bandY, gridSize, gridSize / 4);
+            }
+          } else {
+            ctx.fillStyle = closestWord.color;
+            ctx.globalAlpha = 0.5 + elevation * 0.2;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+            ctx.shadowBlur = 3 * elevation;
+            ctx.shadowOffsetX = 2 * elevation;
+            
+            for (let i = 0; i < 3; i++) {
+              const bandX = x + i * (gridSize / 3);
+              ctx.fillRect(bandX, y, gridSize / 4, gridSize);
+            }
+          }
+          
+          ctx.restore();
         }
       }
       
-      ctx.restore();
+      ctx.globalAlpha = 1;
     }
-  }
-  
-  ctx.globalAlpha = 1;
-  
-  // ✅ AJOUT : Dessiner les mots par-dessus le tissage
-  // (ce code sera ajouté APRÈS le tissage mais AVANT la section finale des mots)
-}
-
-    // Dessin standard des connexions (pour les autres modes)
+    
+    // Dessin standard des connexions
     else {
       connections.forEach(([word1, word2]) => {
         if (
@@ -1100,12 +1076,12 @@ else if (settings.linkMode === "basket") {
         const y2 = word2.y * height;
   
         ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 5;
-        ctx.shadowOffsetY = 5;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
   
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 0.7;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
@@ -1122,25 +1098,24 @@ else if (settings.linkMode === "basket") {
           ctx.strokeStyle = word2.color;
         }
   
-        ctx.lineWidth = settings.lineWidth + 2;
+        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5);
         ctx.stroke();
         ctx.restore();
   
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.2;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
           x1 + (x2 - x1) * progress,
           y1 + (y2 - y1) * progress
         );
-        ctx.lineWidth = settings.lineWidth + 10;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.8);
         ctx.stroke();
       });
     }
   
     const wordOccurrences = getWordOccurrences();
   
-    // Gestion des particules
     if (settings.enableParticles) {
       const deadParticles = [];
       particles = particles.filter((p) => {
@@ -1164,7 +1139,6 @@ else if (settings.linkMode === "basket") {
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
   
-    // Préparer les mots uniques pour l'affichage
     const uniqueDisplayMap = new Map();
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
@@ -1184,11 +1158,11 @@ else if (settings.linkMode === "basket") {
     // Dessiner les points des mots
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const baseSize = 18;
-      const pointSize = baseSize + (occurrences - 1) * 5;
+      const baseSize = 22;
+      const pointSize = baseSize + (occurrences - 1) * 6;
   
       const isHighlighted = word.highlighted || false;
-      const highlightBonus = isHighlighted ? 8 : 0;
+      const highlightBonus = isHighlighted ? 10 : 0;
       const finalPointSize = pointSize + highlightBonus;
   
       const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
@@ -1200,17 +1174,17 @@ else if (settings.linkMode === "basket") {
         particles.push(getParticle(x, y, word.color));
       }
   
-      const pulseFactor = isHighlighted ? 6 : 4;
+      const pulseFactor = isHighlighted ? 8 : 5;
       const pulseSize =
         finalPointSize +
-        10 +
+        12 +
         Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
           pulseFactor;
   
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
-      ctx.lineWidth = isHighlighted ? 6 : 4;
+      ctx.lineWidth = isHighlighted ? 7 : 5;
       ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
       ctx.stroke();
   
@@ -1219,7 +1193,7 @@ else if (settings.linkMode === "basket") {
       ctx.fillStyle = word.color;
       ctx.globalAlpha = 1;
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = isHighlighted ? 28 : 18;
+      ctx.shadowBlur = isHighlighted ? 32 : 22;
       ctx.fill();
   
       ctx.beginPath();
@@ -1227,13 +1201,13 @@ else if (settings.linkMode === "basket") {
       ctx.strokeStyle = isHighlighted
         ? "rgba(255, 255, 255, 0.95)"
         : "rgba(255, 255, 255, 0.7)";
-      ctx.lineWidth = isHighlighted ? 5 : 3;
+      ctx.lineWidth = isHighlighted ? 6 : 4;
       ctx.stroke();
   
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = "white";
       ctx.fill();
   
@@ -1245,7 +1219,7 @@ else if (settings.linkMode === "basket") {
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 22;
+      const fontSize = isMobile ? 20 : 24;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -1253,26 +1227,26 @@ else if (settings.linkMode === "basket") {
       sortedForDisplay.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const isHighlighted = word.highlighted || false;
-        const highlightBonus = isHighlighted ? 8 : 0;
-        const pointSize = 18 + (occurrences - 1) * 5 + highlightBonus;
+        const highlightBonus = isHighlighted ? 10 : 0;
+        const pointSize = 22 + (occurrences - 1) * 6 + highlightBonus;
   
         const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 12;
+        const textY = y - pointSize - 15;
   
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 4;
   
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 7;
         ctx.strokeText(word.text, x, textY);
   
         ctx.fillStyle = word.color;
-        ctx.shadowBlur = isHighlighted ? 24 : 18;
+        ctx.shadowBlur = isHighlighted ? 28 : 20;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
   
@@ -1281,7 +1255,6 @@ else if (settings.linkMode === "basket") {
       });
     }
   
-    // Restaurer l'état du contexte
     ctx.restore();
   }
 
@@ -1607,7 +1580,6 @@ else if (settings.linkMode === "basket") {
   function startRecording() {
     if (isRecording) return;
   
-    // Vérifier les permissions (seulement côté client)
     const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
     
     if (!isAdmin) {
@@ -1630,15 +1602,13 @@ else if (settings.linkMode === "basket") {
     stopButton.classList.remove("hidden");
     stopButton.classList.add("animate-pulse");
   
-    console.log("🎥 Enregistrement démarré (LOCAL - visible seulement par vous)");
+    console.log("🎥 Enregistrement démarré");
   
-    // Capturer UNE FRAME toutes les 100ms au lieu de 500ms = 5X plus fluide
     recordingInterval = setInterval(() => {
       if (!isRecording) return;
   
       try {
-        // Capturer le canvas ACTUEL en HAUTE QUALITÉ
-        const frame = canvas.toDataURL("image/png"); // PNG pour qualité maximale
+        const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
   
         const estimatedSize =
@@ -1648,7 +1618,6 @@ else if (settings.linkMode === "basket") {
           `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
         );
   
-        // Limite augmentée : 600 frames (1 minute) ou 200 MB
         if (recordedFrames.length >= 600 || estimatedSize > 200) {
           stopRecording();
           alert("⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté.");
@@ -1658,7 +1627,7 @@ else if (settings.linkMode === "basket") {
         stopRecording();
         alert("❌ Erreur mémoire - enregistrement arrêté");
       }
-    }, 100); // 100ms = 10 FPS de capture
+    }, 100);
   }
 
   function stopRecording() {
@@ -1674,9 +1643,7 @@ else if (settings.linkMode === "basket") {
     stopButton.classList.remove("animate-pulse");
     recordButton.classList.remove("hidden");
 
-    const duration = ((Date.now() - recordingStartTime) / 1000).toFixed(
-      1
-    );
+    const duration = ((Date.now() - recordingStartTime) / 1000).toFixed(1);
     console.log(
       `⏹️ Enregistrement arrêté: ${recordedFrames.length} frames en ${duration}s`
     );
@@ -1729,11 +1696,9 @@ else if (settings.linkMode === "basket") {
       document.getElementById("progress-text").textContent =
         "Initialisation du rendu HD...";
   
-      // Canvas à TAILLE RÉELLE (pas de réduction)
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
       
-      // TAILLE COMPLÈTE - pas de réduction !
       videoCanvas.width = container.clientWidth;
       videoCanvas.height = container.clientHeight;
       
@@ -1743,18 +1708,14 @@ else if (settings.linkMode === "basket") {
         willReadFrequently: false,
       });
   
-      // Fond noir
       videoCtx.fillStyle = "#111827";
       videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
   
-      // Stream à 60 FPS
       const stream = videoCanvas.captureStream(60);
   
-      // Configuration ULTRA HD
       let mimeType = "video/webm;codecs=vp9";
-      let bitrate = 10000000; // 10 Mbps
+      let bitrate = 10000000;
   
-      // Essayer H.264 si disponible (meilleure compatibilité)
       if (MediaRecorder.isTypeSupported("video/webm;codecs=h264")) {
         mimeType = "video/webm;codecs=h264";
       }
@@ -1790,7 +1751,7 @@ else if (settings.linkMode === "basket") {
         }
   
         const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
-        const duration = (recordedFrames.length * 0.05).toFixed(1); // 20 FPS final
+        const duration = (recordedFrames.length * 0.05).toFixed(1);
         alert(
           `✅ Time-lapse ULTRA HD exporté!\n\n` +
             `📦 Taille: ${sizeMB} MB\n` +
@@ -1805,8 +1766,7 @@ else if (settings.linkMode === "basket") {
   
       mediaRecorder.start();
   
-      // Dessiner chaque frame DEUX FOIS pour doublement de durée
-      const framesPerCapture = 2; // Chaque frame capturée = 2 frames vidéo
+      const framesPerCapture = 2;
   
       for (let i = 0; i < recordedFrames.length; i++) {
         if (cancelled) {
@@ -1819,15 +1779,12 @@ else if (settings.linkMode === "basket") {
   
         await new Promise((resolve, reject) => {
           img.onload = async () => {
-            // Dessiner plusieurs fois chaque frame pour fluidité
             for (let repeat = 0; repeat < framesPerCapture; repeat++) {
               if (cancelled) break;
   
-              // Fond
               videoCtx.fillStyle = "#111827";
               videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
   
-              // Image à taille réelle
               videoCtx.drawImage(
                 img,
                 0,
@@ -1836,19 +1793,13 @@ else if (settings.linkMode === "basket") {
                 videoCanvas.height
               );
   
-              // Délai pour permettre la capture à 60 FPS
-              // 16.67ms = 60 FPS
               await new Promise((r) => setTimeout(r, 17));
             }
   
-            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(
-              0
-            );
+            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
             document.getElementById("progress-text").textContent =
               `Rendu HD ${i + 1}/${recordedFrames.length} (${progress}%)`;
-            document.getElementById(
-              "progress-bar"
-            ).style.width = `${progress}%`;
+            document.getElementById("progress-bar").style.width = `${progress}%`;
   
             resolve();
           };
@@ -1859,7 +1810,6 @@ else if (settings.linkMode === "basket") {
       document.getElementById("progress-text").textContent =
         "Finalisation de la vidéo ULTRA HD...";
   
-      // Attendre pour capturer toutes les frames
       await new Promise((r) => setTimeout(r, 1000));
       mediaRecorder.stop();
     } catch (err) {
@@ -1881,7 +1831,7 @@ else if (settings.linkMode === "basket") {
       }
     }
   }
-  
+
   async function exportFramesAsImages(progressModal) {
     if (progressModal && document.body.contains(progressModal)) {
       document.body.removeChild(progressModal);
@@ -1960,109 +1910,6 @@ else if (settings.linkMode === "basket") {
     document.getElementById("close-export").addEventListener("click", () => {
       document.body.removeChild(exportModal);
     });
-  }
-  
-  async function exportFramesAsImages(progressModal) {
-    if (progressModal && document.body.contains(progressModal)) {
-      document.body.removeChild(progressModal);
-    }
-  
-    const exportModal = document.createElement("div");
-    exportModal.className =
-      "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4";
-    exportModal.innerHTML = `
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-md">
-        <h3 class="text-xl font-bold text-white mb-4">📸 Export d'images</h3>
-        <p class="text-gray-300 text-sm mb-4">
-          Le GIF n'a pas pu être créé. Téléchargez plutôt :
-        </p>
-        <div class="space-y-3">
-          <button id="export-first" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Image de début
-          </button>
-          <button id="export-middle" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Image du milieu
-          </button>
-          <button id="export-last" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Image de fin
-          </button>
-          <button id="export-all" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📦 Toutes les images (ZIP)
-          </button>
-        </div>
-        <button id="close-export" class="mt-4 text-gray-400 hover:text-white text-sm">
-          Annuler
-        </button>
-        <p class="text-xs text-gray-500 mt-3">${recordedFrames.length} frames disponibles</p>
-      </div>
-    `;
-    document.body.appendChild(exportModal);
-  
-    const downloadImage = (index, name) => {
-      const link = document.createElement("a");
-      link.href = recordedFrames[index];
-      link.download = `tissage-${name}.png`;
-      link.click();
-    };
-  
-    document.getElementById("export-first").addEventListener("click", () => {
-      downloadImage(0, "debut");
-      alert("✅ Image de début téléchargée");
-    });
-  
-    document.getElementById("export-middle").addEventListener("click", () => {
-      const mid = Math.floor(recordedFrames.length / 2);
-      downloadImage(mid, "milieu");
-      alert("✅ Image du milieu téléchargée");
-    });
-  
-    document.getElementById("export-last").addEventListener("click", () => {
-      downloadImage(recordedFrames.length - 1, "fin");
-      alert("✅ Image de fin téléchargée");
-    });
-  
-    document.getElementById("export-all").addEventListener("click", async () => {
-      alert(
-        "⚠️ Téléchargement de toutes les images...\n\n" +
-        `${recordedFrames.length} fichiers vont être téléchargés.\n` +
-        "Cela peut prendre du temps."
-      );
-  
-      // Télécharger toutes les frames avec un délai
-      for (let i = 0; i < recordedFrames.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        const link = document.createElement("a");
-        link.href = recordedFrames[i];
-        link.download = `tissage-frame-${String(i + 1).padStart(4, "0")}.png`;
-        link.click();
-      }
-  
-      alert(`✅ ${recordedFrames.length} images téléchargées`);
-    });
-  
-    document.getElementById("close-export").addEventListener("click", () => {
-      document.body.removeChild(exportModal);
-      recordedFrames = [];
-    });
-  }
-
-  async function exportFramesAsZip(progressModal) {
-    alert(
-      "⚠️ Export GIF non disponible. Téléchargement des frames clés..."
-    );
-
-    const link1 = document.createElement("a");
-    link1.href = recordedFrames[0];
-    link1.download = "timelapse-debut.png";
-    link1.click();
-
-    const link2 = document.createElement("a");
-    link2.href = recordedFrames[recordedFrames.length - 1];
-    link2.download = "timelapse-fin.png";
-    link2.click();
-
-    document.body.removeChild(progressModal);
-    recordedFrames = [];
   }
 
   wordForm.addEventListener("submit", async (e) => {
@@ -2407,7 +2254,6 @@ else if (settings.linkMode === "basket") {
           const response = await fetch("/api/words", { method: "DELETE" });
           console.log("Réponse DELETE:", response.status);
   
-          // Nettoyage complet de l'état local
           displayedWords = [];
           wordsList.innerHTML = "";
           particles.forEach((p) => recycleParticle(p));
@@ -2419,11 +2265,9 @@ else if (settings.linkMode === "basket") {
           offsetY = 0;
           wordOccurrencesCache.clear();
   
-          // ✅ CORRECTION: Nettoyer le localStorage pour TOUS les utilisateurs
           resetUserCounter();
           localStorage.setItem("lastResetTime", Date.now().toString());
   
-          // Réactiver les inputs
           wordInput.disabled = false;
           wordInput.value = "";
           wordInput.placeholder = "Partagez un mot...";
@@ -2431,11 +2275,9 @@ else if (settings.linkMode === "basket") {
           submitButton.disabled = false;
           submitButton.textContent = "Tisser";
   
-          // Redessiner
           drawWeave();
           updateStats();
           
-          // Message de confirmation
           const confirmDiv = document.createElement("div");
           confirmDiv.className = "fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce";
           confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
