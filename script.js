@@ -84,11 +84,16 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/api/words");
       const words = await response.json();
-      
+
       const lastReset = localStorage.getItem("lastResetTime");
-      const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
-      
-      if (words.length === 0 || (getUserWordCount() >= 5 && timeSinceReset > 300000)) {
+      const timeSinceReset = lastReset
+        ? Date.now() - parseInt(lastReset)
+        : Infinity;
+
+      if (
+        words.length === 0 ||
+        (getUserWordCount() >= 5 && timeSinceReset > 300000)
+      ) {
         resetUserCounter();
         wordInput.disabled = false;
         wordForm.querySelector("button").disabled = false;
@@ -132,30 +137,38 @@ document.addEventListener("DOMContentLoaded", () => {
     return canAdd;
   }
 
+  // DISTANCES CONSIDÉRABLEMENT AUGMENTÉES
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 80;
+    if (!container) return 280;
 
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
     ).size;
 
-    let baseDistance = 120;
-    if (uniqueCount > 100) baseDistance = 80;
-    else if (uniqueCount > 80) baseDistance = 90;
-    else if (uniqueCount > 60) baseDistance = 100;
-    else if (uniqueCount > 40) baseDistance = 110;
+    const isMobile = window.innerWidth < 768;
 
-    return Math.max(60, baseDistance);
+    let baseDistance = isMobile ? 280 : 320;
+
+    if (uniqueCount > 100) baseDistance = isMobile ? 220 : 260;
+    else if (uniqueCount > 80) baseDistance = isMobile ? 240 : 280;
+    else if (uniqueCount > 60) baseDistance = isMobile ? 260 : 300;
+    else if (uniqueCount > 40) baseDistance = isMobile ? 270 : 310;
+    else if (uniqueCount > 20) baseDistance = isMobile ? 280 : 320;
+
+    return Math.max(isMobile ? 200 : 240, baseDistance);
   }
 
+  // Taille des points réduite
   function getPointRadius(occurrences) {
-    return 22 + (occurrences - 1) * 6;
+    const isMobile = window.innerWidth < 768;
+    const baseSize = isMobile ? 14 : 16;
+    return baseSize + (occurrences - 1) * 4;
   }
 
   function getMaxPointSize(occurrences) {
     const pointSize = getPointRadius(occurrences);
-    return pointSize + 25;
+    return pointSize + 20;
   }
 
   function getUniqueWordPositions() {
@@ -182,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    const margin = 0.02;
+    const margin = 0.05;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
@@ -197,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dx = pos.x * width - px;
       const dy = pos.y * height - py;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.15;
+      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.3;
 
       if (dist < requiredDist) {
         return false;
@@ -210,83 +223,106 @@ document.addEventListener("DOMContentLoaded", () => {
   function findValidPosition() {
     const container = document.getElementById("canvas-container");
     if (!container) return { x: 0.5, y: 0.5 };
-  
+
     const minDist = getAdaptiveMinDistance();
     const width = container.clientWidth;
     const height = container.clientHeight;
-  
+
     // PHASE 1: Essais aléatoires sur TOUTE la surface
-    for (let i = 0; i < 100; i++) {
-      const x = 0.05 + Math.random() * 0.9;
-      const y = 0.05 + Math.random() * 0.9;
+    for (let i = 0; i < 150; i++) {
+      const x = 0.08 + Math.random() * 0.84;
+      const y = 0.08 + Math.random() * 0.84;
       if (isPositionValid(x, y, minDist)) {
-        console.log(`✓ Position trouvée (aléatoire): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
+        console.log(
+          `✓ Position trouvée (aléatoire): ${(x * 100).toFixed(0)}%, ${(
+            y * 100
+          ).toFixed(0)}%`
+        );
         return { x, y };
       }
     }
-  
-    // PHASE 2: Spirale élargie
+
+    // PHASE 2: Spirale élargie avec plus d'espacement
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.48;
-    const radiusStep = (minDist / Math.max(width, height)) * 0.4;
-  
+    const maxRadius = 0.46;
+    const radiusStep = (minDist / Math.max(width, height)) * 0.5;
+
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(12, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.5)));
+      const numPoints = Math.max(
+        16,
+        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.4))
+      );
       const angleStep = (2 * Math.PI) / numPoints;
-  
+
       for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.4;
+        const angle = i * angleStep + Math.random() * 0.5;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
-  
-        if (x >= 0.03 && x <= 0.97 && y >= 0.03 && y <= 0.97) {
+
+        if (x >= 0.05 && x <= 0.95 && y >= 0.05 && y <= 0.95) {
           if (isPositionValid(x, y, minDist)) {
-            console.log(`✓ Position trouvée (spirale): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
+            console.log(
+              `✓ Position trouvée (spirale): ${(x * 100).toFixed(0)}%, ${(
+                y * 100
+              ).toFixed(0)}%`
+            );
             return { x, y };
           }
         }
       }
     }
-  
-    // PHASE 3: Grille fine plus dense
-    const step = (minDist / Math.max(width, height)) * 0.3;
-    for (let gridY = 0.04; gridY <= 0.96; gridY += step) {
-      for (let gridX = 0.04; gridX <= 0.96; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.4;
-        const jitterY = (Math.random() - 0.5) * step * 0.4;
-        const x = Math.max(0.03, Math.min(0.97, gridX + jitterX));
-        const y = Math.max(0.03, Math.min(0.97, gridY + jitterY));
-  
-        if (isPositionValid(x, y, minDist * 0.7)) {
-          console.log(`✓ Position trouvée (grille): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
+
+    // PHASE 3: Grille plus espacée
+    const step = (minDist / Math.max(width, height)) * 0.4;
+    for (let gridY = 0.06; gridY <= 0.94; gridY += step) {
+      for (let gridX = 0.06; gridX <= 0.94; gridX += step) {
+        const jitterX = (Math.random() - 0.5) * step * 0.3;
+        const jitterY = (Math.random() - 0.5) * step * 0.3;
+        const x = Math.max(0.05, Math.min(0.95, gridX + jitterX));
+        const y = Math.max(0.05, Math.min(0.95, gridY + jitterY));
+
+        if (isPositionValid(x, y, minDist * 0.8)) {
+          console.log(
+            `✓ Position trouvée (grille): ${(x * 100).toFixed(0)}%, ${(
+              y * 100
+            ).toFixed(0)}%`
+          );
           return { x, y };
         }
       }
     }
-  
-    // PHASE 4: Contraintes ultra-réduites
-    for (let attempt = 0; attempt < 50; attempt++) {
-      const x = 0.08 + Math.random() * 0.84;
-      const y = 0.08 + Math.random() * 0.84;
-      if (isPositionValid(x, y, minDist * 0.3)) {
-        console.warn(`⚠️ Position trouvée (contraintes réduites): ${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%`);
+
+    // PHASE 4: Contraintes réduites
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const x = 0.1 + Math.random() * 0.8;
+      const y = 0.1 + Math.random() * 0.8;
+      if (isPositionValid(x, y, minDist * 0.5)) {
+        console.warn(
+          `⚠️ Position trouvée (contraintes réduites): ${(x * 100).toFixed(
+            0
+          )}%, ${(y * 100).toFixed(0)}%`
+        );
         return { x, y };
       }
     }
-  
+
     // PHASE 5: Position garantie en dernier recours
     console.error("⚠️ Recherche exhaustive activée");
-    const emergencyStep = 0.05;
-    for (let ey = 0.1; ey <= 0.9; ey += emergencyStep) {
-      for (let ex = 0.1; ex <= 0.9; ex += emergencyStep) {
-        if (isPositionValid(ex, ey, minDist * 0.2)) {
-          console.warn(`🆘 Position d'urgence: ${(ex*100).toFixed(0)}%, ${(ey*100).toFixed(0)}%`);
+    const emergencyStep = 0.08;
+    for (let ey = 0.12; ey <= 0.88; ey += emergencyStep) {
+      for (let ex = 0.12; ex <= 0.88; ex += emergencyStep) {
+        if (isPositionValid(ex, ey, minDist * 0.3)) {
+          console.warn(
+            `🆘 Position d'urgence: ${(ex * 100).toFixed(0)}%, ${(
+              ey * 100
+            ).toFixed(0)}%`
+          );
           return { x: ex, y: ey };
         }
       }
     }
-  
+
     console.error("❌ Aucune position valide trouvée - Canvas plein");
     return null;
   }
@@ -409,24 +445,26 @@ document.addEventListener("DOMContentLoaded", () => {
   function resizeCanvas() {
     const container = document.getElementById("canvas-container");
     if (!container) return;
-    
+
     const dpr = window.devicePixelRatio || 1;
-    
+
     const rect = container.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
-    
+
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    
-    console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`);
-    
+
+    console.log(
+      `📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`
+    );
+
     requestAnimationFrame(() => drawWeave());
   }
 
@@ -611,53 +649,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function drawWeave(withBackground = false) {
     if (!canDraw) return;
-  
+
     const container = document.getElementById("canvas-container");
     if (!container) return;
-    
+
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-  
+
     if (width === 0 || height === 0) {
       console.warn("⚠️ Canvas dimensions invalides");
       return;
     }
-  
+
     ctx.save();
-    
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
     if (withBackground) {
       ctx.fillStyle = "#111827";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-  
+
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
-  
+
     if (displayedWords.length === 0) {
       ctx.restore();
       return;
     }
-  
-    if (settings.enableAurora) {
-      const time = Date.now() * 0.0003;
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      
-      gradient.addColorStop(0, `hsla(${Math.sin(time) * 60 + 200}, 70%, 50%, 0.1)`);
-      gradient.addColorStop(0.5, `hsla(${Math.cos(time * 1.3) * 60 + 280}, 70%, 50%, 0.15)`);
-      gradient.addColorStop(1, `hsla(${Math.sin(time * 0.7) * 60 + 160}, 70%, 50%, 0.1)`);
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    }
-  
+
+    // Configuration des traits PLUS VISIBLES
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    
+
     let connections = [];
-  
+
     if (settings.linkMode === "chronological") {
       const sortedWords = [...displayedWords].sort(
         (a, b) => a.timestamp - b.timestamp
@@ -700,7 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const resonant = displayedWords.filter(
           (w) => w !== word && hasResonance(word, w)
         );
-  
+
         if (resonant.length === 0) {
           const closest = displayedWords
             .filter((w) => w !== word)
@@ -714,13 +741,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
-  
+
     const connectedWords = new Set();
     connections.forEach(([w1, w2]) => {
       connectedWords.add(w1);
       connectedWords.add(w2);
     });
-  
+
     displayedWords.forEach((word) => {
       if (!connectedWords.has(word) && displayedWords.length > 1) {
         const closest = displayedWords
@@ -732,7 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
-  
+
     // Effet Constellation
     if (settings.linkMode === "constellation") {
       const time = Date.now() * 0.001;
@@ -742,13 +769,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const twinkle = Math.abs(
           Math.sin(time * 2 + word.timestamp * 0.001)
         );
-  
+
         for (let i = 0; i < 3; i++) {
-          const angle = ((time + (i * Math.PI * 2) / 3) * 0.5);
+          const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
           const radius = 30 + Math.sin(time + i) * 10;
           const starX = x + Math.cos(angle) * radius;
           const starY = y + Math.sin(angle) * radius;
-  
+
           ctx.beginPath();
           ctx.arc(starX, starY, 2, 0, Math.PI * 2);
           ctx.fillStyle = word.color;
@@ -758,7 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       ctx.globalAlpha = 1;
     }
-  
+
     // Effet Waves
     if (settings.linkMode === "waves") {
       connections.forEach(([word1, word2]) => {
@@ -766,27 +793,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-  
+
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
         const offset = Math.sin(Date.now() * 0.002) * 50;
-  
+
         const dx = x2 - x1;
         const dy = y2 - y1;
         const len = Math.sqrt(dx * dx + dy * dy);
         const perpX = (-dy / len) * offset;
         const perpY = (dx / len) * offset;
-  
+
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
         ctx.shadowBlur = 8;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
-  
+
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
-  
+
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
           gradient.addColorStop(0, word1.color);
@@ -795,27 +822,27 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           ctx.strokeStyle = word2.color;
         }
-  
-        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.6);
-        ctx.globalAlpha = 0.7;
+
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2);
+        ctx.globalAlpha = 0.85;
         ctx.stroke();
         ctx.restore();
       });
     }
-    
+
     // Effet Ripple
     else if (settings.linkMode === "ripple") {
       const time = Date.now() * 0.001;
-      
+
       displayedWords.forEach((word, index) => {
         const x = word.x * width;
         const y = word.y * height;
-        
+
         for (let ring = 0; ring < 3; ring++) {
           const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
           const radius = 30 + phase * 40;
           const opacity = Math.max(0, 1 - phase / 4);
-          
+
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
           ctx.strokeStyle = word.color;
@@ -825,63 +852,65 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       ctx.globalAlpha = 1;
-      
+
       connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width;
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-        
+
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.strokeStyle = word2.color;
-        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.4);
-        ctx.globalAlpha = 0.25;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
+        ctx.globalAlpha = 0.5;
         ctx.stroke();
       });
       ctx.globalAlpha = 1;
     }
-  
+
     // Effet Spiral
     else if (settings.linkMode === "spiral") {
       const time = Date.now() * 0.0005;
       const centerX = width / 2;
       const centerY = height / 2;
-      
+
       displayedWords.forEach((word, index) => {
         const x = word.x * width;
         const y = word.y * height;
-        
+
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
-        
-        const spiralAngle = angle + (distance / 100) * Math.sin(time + index * 0.1);
-        const spiralRadius = distance * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
-        
+
+        const spiralAngle =
+          angle + (distance / 100) * Math.sin(time + index * 0.1);
+        const spiralRadius =
+          distance * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
+
         const spiralX = centerX + Math.cos(spiralAngle) * spiralRadius;
         const spiralY = centerY + Math.sin(spiralAngle) * spiralRadius;
-        
+
         ctx.save();
         ctx.shadowColor = word.color;
         ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(spiralX, spiralY);
-        
+
         const gradient = ctx.createLinearGradient(x, y, spiralX, spiralY);
         gradient.addColorStop(0, word.color);
         gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.4);
-        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.8);
+        ctx.globalAlpha = 0.75;
         ctx.stroke();
         ctx.restore();
       });
     }
-  
+
     // Effet Web
     else if (settings.linkMode === "web") {
       displayedWords.forEach((word) => {
@@ -890,23 +919,23 @@ document.addEventListener("DOMContentLoaded", () => {
           .map((w) => ({ word: w, dist: distance(word, w) }))
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 4);
-        
+
         neighbors.forEach(({ word: neighbor, dist }) => {
           const x1 = word.x * width;
           const y1 = word.y * height;
           const x2 = neighbor.x * width;
           const y2 = neighbor.y * height;
-          
+
           ctx.save();
           ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
           ctx.shadowBlur = 4;
-          
+
           ctx.beginPath();
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
-          
-          const opacity = Math.max(0.15, 1 - dist / 0.5);
-          
+
+          const opacity = Math.max(0.25, 1 - dist / 0.5);
+
           if (settings.useGradient) {
             const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
             gradient.addColorStop(0, word.color);
@@ -915,36 +944,36 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             ctx.strokeStyle = word.color;
           }
-          
-          ctx.globalAlpha = opacity * 0.35;
-          ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5);
+
+          ctx.globalAlpha = opacity * 0.5;
+          ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
           ctx.stroke();
           ctx.restore();
         });
       });
       ctx.globalAlpha = 1;
     }
-  
+
     // Effet Pulse
     else if (settings.linkMode === "pulse") {
       const time = Date.now() * 0.001;
-      
+
       connections.forEach(([word1, word2], idx) => {
         const x1 = word1.x * width;
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-        
+
         const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
-        
+
         ctx.save();
         ctx.shadowColor = word2.color;
         ctx.shadowBlur = 12 * pulse;
-        
+
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        
+
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
           gradient.addColorStop(0, word1.color);
@@ -954,16 +983,16 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           ctx.strokeStyle = word2.color;
         }
-        
-        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5 + pulse * 2);
-        ctx.globalAlpha = 0.5 + pulse * 0.3;
+
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.0 + pulse * 2);
+        ctx.globalAlpha = 0.7 + pulse * 0.2;
         ctx.stroke();
         ctx.restore();
-        
+
         const travelProgress = (time * 0.5 + idx * 0.2) % 1;
         const travelX = x1 + (x2 - x1) * travelProgress;
         const travelY = y1 + (y2 - y1) * travelProgress;
-        
+
         ctx.beginPath();
         ctx.arc(travelX, travelY, 4, 0, Math.PI * 2);
         ctx.fillStyle = "white";
@@ -978,17 +1007,16 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (settings.linkMode === "basket") {
       const time = Date.now() * 0.0003;
       const gridSize = Math.max(40, settings.weavingDensity || 60);
-      
+
       for (let y = 0; y < height; y += gridSize) {
         for (let x = 0; x < width; x += gridSize) {
-          
           const cellCenterX = x + gridSize / 2;
           const cellCenterY = y + gridSize / 2;
-          
+
           let closestWord = displayedWords[0];
           let minDist = Infinity;
-          
-          displayedWords.forEach(word => {
+
+          displayedWords.forEach((word) => {
             const dx = word.x * width - cellCenterX;
             const dy = word.y * height - cellCenterY;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -997,23 +1025,23 @@ document.addEventListener("DOMContentLoaded", () => {
               closestWord = word;
             }
           });
-          
+
           const cellX = Math.floor(x / gridSize);
           const cellY = Math.floor(y / gridSize);
           const pattern = (cellX + cellY) % 4;
-          
+
           ctx.save();
-          
+
           const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
           const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
-          
+
           if (pattern === 0 || pattern === 2) {
             ctx.fillStyle = closestWord.color;
             ctx.globalAlpha = 0.7 + elevation * 0.2;
             ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
             ctx.shadowBlur = 5 * elevation;
             ctx.shadowOffsetY = 3 * elevation;
-            
+
             for (let i = 0; i < 3; i++) {
               const bandY = y + i * (gridSize / 3);
               ctx.fillRect(x, bandY, gridSize, gridSize / 4);
@@ -1024,21 +1052,21 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
             ctx.shadowBlur = 3 * elevation;
             ctx.shadowOffsetX = 2 * elevation;
-            
+
             for (let i = 0; i < 3; i++) {
               const bandX = x + i * (gridSize / 3);
               ctx.fillRect(bandX, y, gridSize / 4, gridSize);
             }
           }
-          
+
           ctx.restore();
         }
       }
-      
+
       ctx.globalAlpha = 1;
     }
-    
-    // Dessin standard des connexions
+
+    // Dessin standard des connexions - TRAITS PLUS ÉPAIS ET VISIBLES
     else {
       connections.forEach(([word1, word2]) => {
         if (
@@ -1052,9 +1080,9 @@ document.addEventListener("DOMContentLoaded", () => {
           isNaN(word2.y)
         )
           return;
-  
+
         let progress = 1;
-  
+
         if (
           settings.animateLines &&
           currentAnimatingConnection &&
@@ -1069,26 +1097,27 @@ document.addEventListener("DOMContentLoaded", () => {
         ) {
           progress = animationProgress;
         }
-  
+
         const x1 = word1.x * width;
         const y1 = word1.y * height;
         const x2 = word2.x * width;
         const y2 = word2.y * height;
-  
+
+        // Trait principal - PLUS ÉPAIS
         ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-  
-        ctx.globalAlpha = 0.7;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
+        ctx.globalAlpha = 0.9; // Plus opaque
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
           x1 + (x2 - x1) * progress,
           y1 + (y2 - y1) * progress
         );
-  
+
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
           gradient.addColorStop(0, word1.color);
@@ -1097,25 +1126,26 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           ctx.strokeStyle = word2.color;
         }
-  
-        ctx.lineWidth = Math.max(1, settings.lineWidth * 0.5);
+
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2); // Plus épais
         ctx.stroke();
         ctx.restore();
-  
-        ctx.globalAlpha = 0.2;
+
+        // Trait secondaire lumineux - PLUS VISIBLE
+        ctx.globalAlpha = 0.4; // Plus opaque
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
           x1 + (x2 - x1) * progress,
           y1 + (y2 - y1) * progress
         );
-        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.8);
+        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5); // Plus épais
         ctx.stroke();
       });
     }
-  
+
     const wordOccurrences = getWordOccurrences();
-  
+
     if (settings.enableParticles) {
       const deadParticles = [];
       particles = particles.filter((p) => {
@@ -1126,7 +1156,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       });
       deadParticles.forEach((p) => recycleParticle(p));
-  
+
       particles.forEach((p) => {
         p.update();
         p.draw(ctx);
@@ -1135,10 +1165,10 @@ document.addEventListener("DOMContentLoaded", () => {
       particles.forEach((p) => recycleParticle(p));
       particles = [];
     }
-  
+
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
-  
+
     const uniqueDisplayMap = new Map();
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
@@ -1146,7 +1176,7 @@ document.addEventListener("DOMContentLoaded", () => {
         uniqueDisplayMap.set(key, word);
       }
     });
-  
+
     const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort(
       (a, b) => {
         const countA = wordOccurrences[a.text.toLowerCase()];
@@ -1154,107 +1184,106 @@ document.addEventListener("DOMContentLoaded", () => {
         return countA - countB;
       }
     );
-  
-    // Dessiner les points des mots
+
+    // Dessiner les points des mots - PLUS PETITS
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const baseSize = 22;
-      const pointSize = baseSize + (occurrences - 1) * 6;
-  
+      const pointSize = getPointRadius(occurrences);
+
       const isHighlighted = word.highlighted || false;
-      const highlightBonus = isHighlighted ? 10 : 0;
+      const highlightBonus = isHighlighted ? 6 : 0;
       const finalPointSize = pointSize + highlightBonus;
-  
-      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
-      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
+
+      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
-  
-      if (settings.enableParticles && Math.random() < 0.08) {
+
+      if (settings.enableParticles && Math.random() < 0.06) {
         particles.push(getParticle(x, y, word.color));
       }
-  
-      const pulseFactor = isHighlighted ? 8 : 5;
+
+      const pulseFactor = isHighlighted ? 6 : 4;
       const pulseSize =
         finalPointSize +
-        12 +
+        10 +
         Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
           pulseFactor;
-  
+
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
-      ctx.lineWidth = isHighlighted ? 7 : 5;
+      ctx.lineWidth = isHighlighted ? 5 : 4;
       ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
       ctx.stroke();
-  
+
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
       ctx.globalAlpha = 1;
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = isHighlighted ? 32 : 22;
+      ctx.shadowBlur = isHighlighted ? 28 : 20;
       ctx.fill();
-  
+
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
       ctx.strokeStyle = isHighlighted
         ? "rgba(255, 255, 255, 0.95)"
         : "rgba(255, 255, 255, 0.7)";
-      ctx.lineWidth = isHighlighted ? 6 : 4;
+      ctx.lineWidth = isHighlighted ? 5 : 3;
       ctx.stroke();
-  
+
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = "white";
       ctx.fill();
-  
+
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
     });
-  
-    // Dessiner les textes des mots
+
+    // Dessiner les textes des mots - PLUS PETITS
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 20 : 24;
+      const fontSize = isMobile ? 16 : 18; // Réduit
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-  
+
       sortedForDisplay.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const isHighlighted = word.highlighted || false;
-        const highlightBonus = isHighlighted ? 10 : 0;
-        const pointSize = 22 + (occurrences - 1) * 6 + highlightBonus;
-  
-        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 4;
-        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 4;
+        const highlightBonus = isHighlighted ? 6 : 0;
+        const pointSize = getPointRadius(occurrences) + highlightBonus;
+
+        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 15;
-  
+        const textY = y - pointSize - 18; // Plus d'espace
+
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 14;
-        ctx.shadowOffsetX = 4;
-        ctx.shadowOffsetY = 4;
-  
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
         ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 7;
+        ctx.lineWidth = 6;
         ctx.strokeText(word.text, x, textY);
-  
+
         ctx.fillStyle = word.color;
-        ctx.shadowBlur = isHighlighted ? 28 : 20;
+        ctx.shadowBlur = isHighlighted ? 24 : 18;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
-  
+
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
       });
     }
-  
+
     ctx.restore();
   }
 
@@ -1274,9 +1303,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sorted = Object.entries(wordCounts).sort(([, a], [, b]) => b - a);
     const totalWords = displayedWords.length;
-    const timestamps = displayedWords
-      .map((w) => w.timestamp)
-      .filter(Boolean);
+    const timestamps = displayedWords.map((w) => w.timestamp).filter(Boolean);
     let timeSpan = 0;
     if (timestamps.length > 1) {
       const oldest = Math.min(...timestamps);
@@ -1358,8 +1385,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok)
-        throw new Error(`Erreur réseau: ${response.status}`);
+      if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
       const fetchedWords = await response.json();
       if (!Array.isArray(fetchedWords)) {
         console.error("❌ Réponse inattendue:", fetchedWords);
@@ -1438,11 +1464,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (candidates.length > 0) {
               const hash = (lastNewWord.text + lastNewWord.timestamp)
                 .split("")
-                .reduce(
-                  (acc, char) =>
-                    (acc << 5) - acc + char.charCodeAt(0),
-                  0
-                );
+                .reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
               const targetIndex = Math.abs(hash) % candidates.length;
               targetWord = candidates[targetIndex];
             }
@@ -1461,10 +1483,7 @@ document.addEventListener("DOMContentLoaded", () => {
               targetWord = resonant[0];
             } else {
               const sorted = candidates
-                .map((w) => ({
-                  word: w,
-                  dist: distance(lastNewWord, w),
-                }))
+                .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
                 .sort((a, b) => a.dist - b.dist);
               targetWord = sorted[0]?.word;
             }
@@ -1486,12 +1505,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateWordList(newWords = []) {
-    const existingItems = Array.from(
-      wordsList.querySelectorAll(".word-item")
-    );
-    const currentTexts = displayedWords.map(
-      (w) => `${w.text}-${w.timestamp}`
-    );
+    const existingItems = Array.from(wordsList.querySelectorAll(".word-item"));
+    const currentTexts = displayedWords.map((w) => `${w.text}-${w.timestamp}`);
     existingItems.forEach((item) => {
       if (!currentTexts.includes(item.dataset.key)) {
         item.remove();
@@ -1513,8 +1528,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const textSpan = document.createElement("span");
       textSpan.textContent = word.text;
-      textSpan.className =
-        "text-gray-100 truncate flex-grow font-medium";
+      textSpan.className = "text-gray-100 truncate flex-grow font-medium";
 
       li.appendChild(colorDot);
       li.appendChild(textSpan);
@@ -1579,48 +1593,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startRecording() {
     if (isRecording) return;
-  
+
     const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
-    
+
     if (!isAdmin) {
-      const password = prompt("🔒 Mot de passe administrateur pour l'enregistrement :");
+      const password = prompt(
+        "🔒 Mot de passe administrateur pour l'enregistrement :"
+      );
       if (password !== CONFIG.RESET_PASSWORD) {
         alert("❌ Accès refusé");
         return;
       }
       localStorage.setItem("isRecordingAdmin", "true");
     }
-  
+
     recordedFrames = [];
     isRecording = true;
     recordingStartTime = Date.now();
-  
+
     const recordButton = document.getElementById("record-button");
     const stopButton = document.getElementById("stop-record-button");
-  
+
     recordButton.classList.add("hidden");
     stopButton.classList.remove("hidden");
     stopButton.classList.add("animate-pulse");
-  
+
     console.log("🎥 Enregistrement démarré");
-  
+
     recordingInterval = setInterval(() => {
       if (!isRecording) return;
-  
+
       try {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
-  
+
         const estimatedSize =
           recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
-        
+
         console.log(
           `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
         );
-  
+
         if (recordedFrames.length >= 600 || estimatedSize > 200) {
           stopRecording();
-          alert("⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté.");
+          alert(
+            "⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté."
+          );
         }
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
@@ -1660,7 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("❌ Aucune frame à exporter");
       return;
     }
-  
+
     const progressModal = document.createElement("div");
     progressModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-50";
@@ -1681,75 +1699,77 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
     document.body.appendChild(progressModal);
-  
+
     let cancelled = false;
     document.getElementById("cancel-export").addEventListener("click", () => {
       cancelled = true;
       document.body.removeChild(progressModal);
     });
-  
+
     try {
       if (!window.MediaRecorder) {
         throw new Error("MediaRecorder non supporté");
       }
-  
+
       document.getElementById("progress-text").textContent =
         "Initialisation du rendu HD...";
-  
+
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
-      
+
       videoCanvas.width = container.clientWidth;
       videoCanvas.height = container.clientHeight;
-      
+
       const videoCtx = videoCanvas.getContext("2d", {
         alpha: false,
         desynchronized: true,
         willReadFrequently: false,
       });
-  
+
       videoCtx.fillStyle = "#111827";
       videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
-  
+
       const stream = videoCanvas.captureStream(60);
-  
+
       let mimeType = "video/webm;codecs=vp9";
       let bitrate = 10000000;
-  
+
       if (MediaRecorder.isTypeSupported("video/webm;codecs=h264")) {
         mimeType = "video/webm;codecs=h264";
       }
-  
+
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType,
         videoBitsPerSecond: bitrate,
       });
-  
+
       const chunks = [];
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunks.push(e.data);
         }
       };
-  
+
       mediaRecorder.onstop = () => {
         if (cancelled) return;
-  
+
         const blob = new Blob(chunks, { type: "video/webm" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const date = new Date().toISOString().split("T")[0];
-        const time = new Date().toLocaleTimeString("fr-FR").replace(/:/g, "-");
+        const time = new Date()
+          .toLocaleTimeString("fr-FR")
+          .replace(/:/g, "-");
         a.href = url;
         a.download = `tissage-timelapse-${date}-${time}.webm`;
         a.click();
-  
+
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-  
+
         if (document.body.contains(progressModal)) {
           document.body.removeChild(progressModal);
         }
-  
+
         const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
         const duration = (recordedFrames.length * 0.05).toFixed(1);
         alert(
@@ -1760,31 +1780,31 @@ document.addEventListener("DOMContentLoaded", () => {
             `📺 Résolution: ${videoCanvas.width}x${videoCanvas.height}px\n` +
             `✨ Qualité: Maximum (${(bitrate / 1000000).toFixed(0)} Mbps)`
         );
-  
+
         recordedFrames = [];
       };
-  
+
       mediaRecorder.start();
-  
+
       const framesPerCapture = 2;
-  
+
       for (let i = 0; i < recordedFrames.length; i++) {
         if (cancelled) {
           mediaRecorder.stop();
           return;
         }
-  
+
         const img = new Image();
         img.src = recordedFrames[i];
-  
+
         await new Promise((resolve, reject) => {
           img.onload = async () => {
             for (let repeat = 0; repeat < framesPerCapture; repeat++) {
               if (cancelled) break;
-  
+
               videoCtx.fillStyle = "#111827";
               videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
-  
+
               videoCtx.drawImage(
                 img,
                 0,
@@ -1792,38 +1812,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 videoCanvas.width,
                 videoCanvas.height
               );
-  
+
               await new Promise((r) => setTimeout(r, 17));
             }
-  
-            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
+
+            const progress = (
+              ((i + 1) / recordedFrames.length) *
+              100
+            ).toFixed(0);
             document.getElementById("progress-text").textContent =
               `Rendu HD ${i + 1}/${recordedFrames.length} (${progress}%)`;
             document.getElementById("progress-bar").style.width = `${progress}%`;
-  
+
             resolve();
           };
           img.onerror = () => reject(new Error("Erreur chargement image"));
         });
       }
-  
+
       document.getElementById("progress-text").textContent =
         "Finalisation de la vidéo ULTRA HD...";
-  
+
       await new Promise((r) => setTimeout(r, 1000));
       mediaRecorder.stop();
     } catch (err) {
       console.error("❌ Erreur export vidéo:", err);
-  
+
       if (document.body.contains(progressModal)) {
         document.body.removeChild(progressModal);
       }
-  
+
       const retry = confirm(
         "❌ Erreur lors de la création de la vidéo.\n\n" +
           "Voulez-vous télécharger les images clés à la place ?"
       );
-  
+
       if (retry) {
         await exportFramesAsImages(null);
       } else {
@@ -1836,7 +1859,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (progressModal && document.body.contains(progressModal)) {
       document.body.removeChild(progressModal);
     }
-  
+
     const exportModal = document.createElement("div");
     exportModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4";
@@ -1867,46 +1890,48 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
     document.body.appendChild(exportModal);
-  
+
     const downloadImage = (index, name) => {
       const link = document.createElement("a");
       link.href = recordedFrames[index];
       link.download = `tissage-${name}.png`;
       link.click();
     };
-  
+
     document.getElementById("export-first").addEventListener("click", () => {
       downloadImage(0, "01-debut");
       alert("✅ Première image téléchargée");
     });
-  
+
     document.getElementById("export-middle").addEventListener("click", () => {
       const mid = Math.floor(recordedFrames.length / 2);
       downloadImage(mid, "02-milieu");
       alert("✅ Image du milieu téléchargée");
     });
-  
+
     document.getElementById("export-last").addEventListener("click", () => {
       downloadImage(recordedFrames.length - 1, "03-fin");
       alert("✅ Dernière image téléchargée");
     });
-  
-    document.getElementById("export-key-frames").addEventListener("click", () => {
-      const indices = [
-        0,
-        Math.floor(recordedFrames.length * 0.25),
-        Math.floor(recordedFrames.length * 0.5),
-        Math.floor(recordedFrames.length * 0.75),
-        recordedFrames.length - 1,
-      ];
-  
-      indices.forEach((idx, i) => {
-        setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
+
+    document
+      .getElementById("export-key-frames")
+      .addEventListener("click", () => {
+        const indices = [
+          0,
+          Math.floor(recordedFrames.length * 0.25),
+          Math.floor(recordedFrames.length * 0.5),
+          Math.floor(recordedFrames.length * 0.75),
+          recordedFrames.length - 1,
+        ];
+
+        indices.forEach((idx, i) => {
+          setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
+        });
+
+        alert("✅ 5 images clés téléchargées");
       });
-  
-      alert("✅ 5 images clés téléchargées");
-    });
-  
+
     document.getElementById("close-export").addEventListener("click", () => {
       document.body.removeChild(exportModal);
     });
@@ -1995,8 +2020,7 @@ document.addEventListener("DOMContentLoaded", () => {
       wordInput.value = "";
       submitButton.textContent = "✓";
 
-      const remaining =
-        CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
+      const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
       console.log("Mots restants:", remaining);
 
       if (remaining > 0) {
@@ -2047,9 +2071,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const settingsButton = document.getElementById("settings-button");
   const settingsModal = document.getElementById("settings-modal");
-  const closeSettingsButton = document.getElementById(
-    "close-settings-button"
-  );
+  const closeSettingsButton = document.getElementById("close-settings-button");
 
   settingsButton.addEventListener("click", () => {
     settingsModal.classList.remove("hidden");
@@ -2065,22 +2087,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document
-    .querySelectorAll('input[name="link-mode"]')
-    .forEach((radio) => {
-      radio.addEventListener("change", (e) => {
-        settings.linkMode = e.target.value;
-        drawWeave();
-      });
+  document.querySelectorAll('input[name="link-mode"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      settings.linkMode = e.target.value;
+      drawWeave();
     });
+  });
 
-  document
-    .querySelectorAll('input[name="color-theme"]')
-    .forEach((radio) => {
-      radio.addEventListener("change", (e) => {
-        settings.colorTheme = e.target.value;
-      });
+  document.querySelectorAll('input[name="color-theme"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      settings.colorTheme = e.target.value;
     });
+  });
 
   document
     .getElementById("show-words-toggle")
@@ -2110,12 +2128,10 @@ document.addEventListener("DOMContentLoaded", () => {
       updateWordList(displayedWords);
     });
 
-  document
-    .getElementById("gradient-toggle")
-    .addEventListener("change", (e) => {
-      settings.useGradient = e.target.checked;
-      drawWeave();
-    });
+  document.getElementById("gradient-toggle").addEventListener("change", (e) => {
+    settings.useGradient = e.target.checked;
+    drawWeave();
+  });
 
   document
     .getElementById("particles-toggle")
@@ -2127,14 +2143,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-  document
-    .getElementById("line-width")
-    .addEventListener("input", (e) => {
-      settings.lineWidth = parseInt(e.target.value);
-      document.getElementById("line-width-value").textContent =
-        e.target.value;
-      drawWeave();
-    });
+  document.getElementById("line-width").addEventListener("input", (e) => {
+    settings.lineWidth = parseInt(e.target.value);
+    document.getElementById("line-width-value").textContent = e.target.value;
+    drawWeave();
+  });
 
   togglePanelButton.addEventListener("click", () =>
     mainContainer.classList.toggle("panel-hidden")
@@ -2182,15 +2195,15 @@ document.addEventListener("DOMContentLoaded", () => {
   resetButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-  
+
     console.log("Reset button clicked");
-  
+
     const passwordModal = document.createElement("div");
     passwordModal.id = "password-reset-modal";
     passwordModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
     passwordModal.style.zIndex = "100";
-  
+
     passwordModal.innerHTML = `
       <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full">
         <h3 class="text-xl font-bold text-white mb-4">🔒 Accès Protégé</h3>
@@ -2210,50 +2223,50 @@ document.addEventListener("DOMContentLoaded", () => {
         <p class="text-xs text-gray-500 mt-3 text-center">Action irréversible - Tous les mots seront supprimés</p>
       </div>
     `;
-  
+
     document.body.appendChild(passwordModal);
     console.log("Modal ajouté au DOM");
-  
+
     const passwordInput = document.getElementById("reset-password-input");
     const confirmBtn = document.getElementById("confirm-reset");
     const cancelBtn = document.getElementById("cancel-reset");
-  
+
     setTimeout(() => passwordInput.focus(), 100);
-  
+
     const closeModal = () => {
       if (document.body.contains(passwordModal)) {
         document.body.removeChild(passwordModal);
         console.log("Modal fermé");
       }
     };
-  
+
     cancelBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       closeModal();
     });
-  
+
     passwordModal.addEventListener("click", (e) => {
       if (e.target === passwordModal) {
         closeModal();
       }
     });
-  
+
     const attemptReset = async () => {
       const enteredPassword = passwordInput.value.trim();
       console.log(
         "Tentative reset avec mot de passe:",
         enteredPassword ? "***" : "(vide)"
       );
-  
+
       if (enteredPassword === CONFIG.RESET_PASSWORD) {
         console.log("✓ Mot de passe correct");
         closeModal();
-  
+
         try {
           const response = await fetch("/api/words", { method: "DELETE" });
           console.log("Réponse DELETE:", response.status);
-  
+
           displayedWords = [];
           wordsList.innerHTML = "";
           particles.forEach((p) => recycleParticle(p));
@@ -2264,31 +2277,33 @@ document.addEventListener("DOMContentLoaded", () => {
           offsetX = 0;
           offsetY = 0;
           wordOccurrencesCache.clear();
-  
+
           resetUserCounter();
           localStorage.setItem("lastResetTime", Date.now().toString());
-  
+
           wordInput.disabled = false;
           wordInput.value = "";
           wordInput.placeholder = "Partagez un mot...";
           const submitButton = wordForm.querySelector("button");
           submitButton.disabled = false;
           submitButton.textContent = "Tisser";
-  
+
           drawWeave();
           updateStats();
-          
+
           const confirmDiv = document.createElement("div");
-          confirmDiv.className = "fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce";
-          confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
+          confirmDiv.className =
+            "fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce";
+          confirmDiv.textContent =
+            "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
           document.body.appendChild(confirmDiv);
-          
+
           setTimeout(() => {
             if (document.body.contains(confirmDiv)) {
               document.body.removeChild(confirmDiv);
             }
           }, 3000);
-  
+
           console.log("✅ Reset complet effectué");
         } catch (err) {
           console.error("Erreur reset:", err);
@@ -2305,13 +2320,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 2000);
       }
     };
-  
+
     confirmBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       attemptReset();
     });
-  
+
     passwordInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -2358,7 +2373,12 @@ document.addEventListener("DOMContentLoaded", () => {
   animateWeaving();
 
   const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-  console.log("Compteur initial:", getUserWordCount(), "/ Restants:", remaining);
+  console.log(
+    "Compteur initial:",
+    getUserWordCount(),
+    "/ Restants:",
+    remaining
+  );
 
   if (remaining === 0) {
     wordInput.placeholder = "Limite atteinte (5 mots max)";
