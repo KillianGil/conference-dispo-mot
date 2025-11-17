@@ -137,28 +137,27 @@ document.addEventListener("DOMContentLoaded", () => {
     return canAdd;
   }
 
-  // DISTANCES CONSIDÉRABLEMENT AUGMENTÉES
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 280;
-
+    if (!container) return 0.15; // 15% de l'écran par défaut
+  
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
     ).size;
-
+  
     const isMobile = window.innerWidth < 768;
-
-    let baseDistance = isMobile ? 280 : 320;
-
-    if (uniqueCount > 100) baseDistance = isMobile ? 220 : 260;
-    else if (uniqueCount > 80) baseDistance = isMobile ? 240 : 280;
-    else if (uniqueCount > 60) baseDistance = isMobile ? 260 : 300;
-    else if (uniqueCount > 40) baseDistance = isMobile ? 270 : 310;
-    else if (uniqueCount > 20) baseDistance = isMobile ? 280 : 320;
-
-    return Math.max(isMobile ? 200 : 240, baseDistance);
+  
+    // Distance en POURCENTAGE de la largeur du canvas
+    let baseDistance = isMobile ? 0.12 : 0.15; // 12-15% de l'écran
+  
+    if (uniqueCount > 100) baseDistance = isMobile ? 0.08 : 0.10;
+    else if (uniqueCount > 80) baseDistance = isMobile ? 0.09 : 0.11;
+    else if (uniqueCount > 60) baseDistance = isMobile ? 0.10 : 0.12;
+    else if (uniqueCount > 40) baseDistance = isMobile ? 0.11 : 0.13;
+    else if (uniqueCount > 20) baseDistance = isMobile ? 0.12 : 0.14;
+  
+    return Math.max(isMobile ? 0.07 : 0.09, baseDistance);
   }
-
   // Taille des points réduite
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
@@ -192,31 +191,32 @@ document.addEventListener("DOMContentLoaded", () => {
   function isPositionValid(x, y, minDist) {
     const container = document.getElementById("canvas-container");
     if (!container) return true;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    const margin = 0.05;
+  
+    // Marges augmentées
+    const margin = 0.08;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
-
+  
     const uniquePositions = getUniqueWordPositions();
     const newMaxSize = getMaxPointSize(1);
-
-    const px = x * width;
-    const py = y * height;
-
+  
     for (const pos of uniquePositions) {
-      const dx = pos.x * width - px;
-      const dy = pos.y * height - py;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const requiredDist = minDist + (pos.maxSize + newMaxSize) * 0.3;
-
+      const dx = pos.x - x;
+      const dy = pos.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy); // Distance en pourcentage
+      
+      // Conversion de la taille des points en pourcentage de l'écran
+      const avgScreenSize = (container.clientWidth + container.clientHeight) / 2;
+      const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
+      
+      const requiredDist = minDist + pointSizePercent * 0.5;
+  
       if (dist < requiredDist) {
         return false;
       }
     }
-
+  
     return true;
   }
 
@@ -224,14 +224,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return { x: 0.5, y: 0.5 };
   
-    const minDist = getAdaptiveMinDistance();
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const minDist = getAdaptiveMinDistance(); // Maintenant en pourcentage
   
-    // PHASE 1: Essais aléatoires avec distance optimale
+    // PHASE 1: Essais aléatoires sur TOUTE la surface avec marges réduites
     for (let i = 0; i < 150; i++) {
-      const x = 0.08 + Math.random() * 0.84;
-      const y = 0.08 + Math.random() * 0.84;
+      const x = 0.1 + Math.random() * 0.8;
+      const y = 0.1 + Math.random() * 0.8;
       if (isPositionValid(x, y, minDist)) {
         console.log(
           `✓ Position trouvée (aléatoire): ${(x * 100).toFixed(0)}%, ${(
@@ -242,25 +240,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 2: Spirale élargie
+    // PHASE 2: Spirale élargie couvrant tout l'écran
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.46;
-    const radiusStep = (minDist / Math.max(width, height)) * 0.5;
+    const maxRadius = 0.48; // Presque tout l'écran
+    const radiusStep = minDist * 0.6;
   
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
       const numPoints = Math.max(
-        16,
-        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.4))
+        20,
+        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
       );
       const angleStep = (2 * Math.PI) / numPoints;
   
       for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.5;
+        const angle = i * angleStep + Math.random() * 0.6;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
   
-        if (x >= 0.05 && x <= 0.95 && y >= 0.05 && y <= 0.95) {
+        if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
           if (isPositionValid(x, y, minDist)) {
             console.log(
               `✓ Position trouvée (spirale): ${(x * 100).toFixed(0)}%, ${(
@@ -273,27 +271,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 3: Distance réduite à 80%
-    for (let i = 0; i < 100; i++) {
-      const x = 0.08 + Math.random() * 0.84;
-      const y = 0.08 + Math.random() * 0.84;
-      if (isPositionValid(x, y, minDist * 0.8)) {
-        console.log(
-          `✓ Position trouvée (distance 80%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
-        return { x, y };
-      }
-    }
-  
-    // PHASE 4: Distance réduite à 60%
-    for (let i = 0; i < 100; i++) {
+    // PHASE 3: Distance réduite à 75%
+    for (let i = 0; i < 120; i++) {
       const x = 0.1 + Math.random() * 0.8;
       const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.6)) {
+      if (isPositionValid(x, y, minDist * 0.75)) {
         console.log(
-          `✓ Position trouvée (distance 60%): ${(x * 100).toFixed(0)}%, ${(
+          `✓ Position trouvée (distance 75%): ${(x * 100).toFixed(0)}%, ${(
             y * 100
           ).toFixed(0)}%`
         );
@@ -301,27 +285,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 5: Distance réduite à 40%
-    for (let i = 0; i < 100; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.4)) {
-        console.log(
-          `✓ Position trouvée (distance 40%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
-        return { x, y };
-      }
-    }
-  
-    // PHASE 6: Distance minimale de 20%
-    for (let i = 0; i < 150; i++) {
+    // PHASE 4: Distance réduite à 50%
+    for (let i = 0; i < 120; i++) {
       const x = 0.12 + Math.random() * 0.76;
       const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.2)) {
+      if (isPositionValid(x, y, minDist * 0.5)) {
         console.log(
-          `✓ Position trouvée (distance 20%): ${(x * 100).toFixed(0)}%, ${(
+          `✓ Position trouvée (distance 50%): ${(x * 100).toFixed(0)}%, ${(
             y * 100
           ).toFixed(0)}%`
         );
@@ -329,18 +299,32 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 7: Grille systématique fine
-    const step = 0.06;
+    // PHASE 5: Distance réduite à 30%
+    for (let i = 0; i < 120; i++) {
+      const x = 0.12 + Math.random() * 0.76;
+      const y = 0.12 + Math.random() * 0.76;
+      if (isPositionValid(x, y, minDist * 0.3)) {
+        console.log(
+          `✓ Position trouvée (distance 30%): ${(x * 100).toFixed(0)}%, ${(
+            y * 100
+          ).toFixed(0)}%`
+        );
+        return { x, y };
+      }
+    }
+  
+    // PHASE 6: Grille systématique très espacée
+    const step = minDist * 0.7;
     for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
       for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.5;
-        const jitterY = (Math.random() - 0.5) * step * 0.5;
-        const x = Math.max(0.1, Math.min(0.9, gridX + jitterX));
-        const y = Math.max(0.1, Math.min(0.9, gridY + jitterY));
+        const jitterX = (Math.random() - 0.5) * step * 0.4;
+        const jitterY = (Math.random() - 0.5) * step * 0.4;
+        const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
+        const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
   
-        if (isPositionValid(x, y, minDist * 0.15)) {
+        if (isPositionValid(x, y, minDist * 0.2)) {
           console.log(
-            `✓ Position trouvée (grille fine): ${(x * 100).toFixed(0)}%, ${(
+            `✓ Position trouvée (grille espacée): ${(x * 100).toFixed(0)}%, ${(
               y * 100
             ).toFixed(0)}%`
           );
@@ -349,13 +333,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 8: Recherche exhaustive sans contrainte
+    // PHASE 7: Recherche exhaustive sans contrainte de distance
     console.warn("⚠️ Mode sans contrainte activé");
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 250; i++) {
       const x = 0.15 + Math.random() * 0.7;
       const y = 0.15 + Math.random() * 0.7;
-      
-      // Vérification uniquement des marges
+  
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
         console.warn(
           `🆘 Position sans contrainte: ${(x * 100).toFixed(0)}%, ${(
@@ -366,40 +349,47 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   
-    // PHASE 9: Position garantie (dernier recours absolu)
+    // PHASE 8: Position garantie dans zones prédéfinies
     console.error("🚨 Position garantie finale");
-    
-    // Trouve une zone moins dense
+  
     const zones = [
-      { x: 0.25, y: 0.25 },
-      { x: 0.75, y: 0.25 },
-      { x: 0.25, y: 0.75 },
-      { x: 0.75, y: 0.75 },
-      { x: 0.5, y: 0.25 },
-      { x: 0.5, y: 0.75 },
-      { x: 0.25, y: 0.5 },
-      { x: 0.75, y: 0.5 },
+      { x: 0.2, y: 0.2 },
+      { x: 0.8, y: 0.2 },
+      { x: 0.2, y: 0.8 },
+      { x: 0.8, y: 0.8 },
+      { x: 0.5, y: 0.2 },
+      { x: 0.5, y: 0.8 },
+      { x: 0.2, y: 0.5 },
+      { x: 0.8, y: 0.5 },
+      { x: 0.35, y: 0.35 },
+      { x: 0.65, y: 0.35 },
+      { x: 0.35, y: 0.65 },
+      { x: 0.65, y: 0.65 },
       { x: 0.5, y: 0.5 },
     ];
   
     for (const zone of zones) {
-      const x = zone.x + (Math.random() - 0.5) * 0.1;
-      const y = zone.y + (Math.random() - 0.5) * 0.1;
-      
+      const x = zone.x + (Math.random() - 0.5) * 0.15;
+      const y = zone.y + (Math.random() - 0.5) * 0.15;
+  
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        console.error(`🔴 Position forcée: ${(x * 100).toFixed(0)}%, ${(y * 100).toFixed(0)}%`);
+        console.error(
+          `🔴 Position forcée: ${(x * 100).toFixed(0)}%, ${(y * 100).toFixed(
+            0
+          )}%`
+        );
         return { x, y };
       }
     }
   
     // Position absolue finale
-    const fallbackX = 0.5 + (Math.random() - 0.5) * 0.3;
-    const fallbackY = 0.5 + (Math.random() - 0.5) * 0.3;
-    
+    const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
+    const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
+  
     console.error("❌ FALLBACK ABSOLU ACTIVÉ");
-    return { 
-      x: Math.max(0.2, Math.min(0.8, fallbackX)), 
-      y: Math.max(0.2, Math.min(0.8, fallbackY))
+    return {
+      x: Math.max(0.2, Math.min(0.8, fallbackX)),
+      y: Math.max(0.2, Math.min(0.8, fallbackY)),
     };
   }
 
