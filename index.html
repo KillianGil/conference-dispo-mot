@@ -198,24 +198,39 @@
               </div>
           </div>
 
-          <!-- Thème de couleurs -->
-          <div class="mb-6">
-              <label class="block text-gray-300 font-semibold mb-3">🎨 Palette de couleurs</label>
-              <div class="space-y-2">
-                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="color-theme" value="auto" checked class="mr-3 accent-indigo-500">
-                      <span>Aléatoire</span>
-                  </label>
-                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="color-theme" value="bailleul" class="mr-3 accent-indigo-500">
-                      <span>Hélène Bailleul (textile)</span>
-                  </label>
-                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="color-theme" value="babiole" class="mr-3 accent-indigo-500">
-                      <span>Cécile Babiole (numérique)</span>
-                  </label>
-              </div>
-          </div>
+          <!-- Sélecteur de couleur -->
+<div class="mb-6">
+    <label class="block text-gray-300 font-semibold mb-3">🎨 Couleur des fils</label>
+    <div class="space-y-3">
+        <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+            <input type="radio" name="color-mode" value="auto" checked class="mr-3 accent-indigo-500">
+            <span>Aléatoire (par défaut)</span>
+        </label>
+        <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+            <input type="radio" name="color-mode" value="custom" class="mr-3 accent-indigo-500">
+            <span>Couleur personnalisée</span>
+        </label>
+    </div>
+    
+    <!-- Sélecteur de couleur personnalisé -->
+    <div id="custom-color-picker" class="mt-4 hidden">
+        <div class="flex gap-3 items-center">
+            <input type="color" id="color-picker-input" value="#6366f1" 
+                class="w-16 h-16 rounded-lg cursor-pointer border-2 border-gray-600 bg-gray-700">
+            <div class="flex-1">
+                <input type="text" id="color-hex-input" value="#6366f1" 
+                    placeholder="#000000"
+                    maxlength="7"
+                    class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-gray-600 font-mono text-sm">
+                <p class="text-xs text-gray-400 mt-1">Format: #RRGGBB</p>
+            </div>
+        </div>
+        <div class="mt-3 p-3 bg-gray-700/50 rounded-lg">
+            <p class="text-xs text-gray-400 mb-2">🎨 Aperçu de la couleur:</p>
+            <div id="color-preview" class="w-full h-12 rounded-lg border-2 border-gray-600" style="background: #6366f1;"></div>
+        </div>
+    </div>
+</div>
 
           <!-- Options d'affichage -->
           <div class="mb-6 space-y-3">

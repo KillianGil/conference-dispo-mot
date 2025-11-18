@@ -367,6 +367,56 @@ footer button:active {
         font-size: 14px;
     }
 }
+/* ==================== COLOR PICKER ==================== */
+#color-picker-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 0;
+    overflow: hidden;
+}
+
+#color-picker-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+#color-picker-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+#color-picker-input::-moz-color-swatch {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+#color-hex-input.border-red-500 {
+    border-color: #ef4444 !important;
+    animation: shake 0.3s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+#custom-color-picker {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 300px;
+        transform: translateY(0);
+    }
+}
 
 /* ==================== TOUCH DEVICES ==================== */
 @media (hover: none) {

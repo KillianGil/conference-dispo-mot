@@ -66,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showWords: true,
     animateLines: true,
     lineWidth: 2,
-    colorTheme: "auto",
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
@@ -399,68 +398,32 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  const colorPalettes = {
-    auto: () => {
-      const hue = Math.random() * 360;
-      const saturation = 65 + Math.random() * 30;
-      const lightness = 45 + Math.random() * 25;
-      return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(
-        lightness
-      )}%)`;
-    },
+ // Générateur de couleurs
+const colorGenerator = {
+  mode: "auto", // 'auto' ou 'custom'
+  customColor: "#6366f1",
 
-    bailleul: () => {
-      const colors = [
-        "hsl(35, 80%, 68%)",
-        "hsl(42, 85%, 70%)",
-        "hsl(165, 55%, 60%)",
-        "hsl(195, 50%, 65%)",
-        "hsl(18, 70%, 62%)",
-        "hsl(50, 80%, 72%)",
-        "hsl(280, 65%, 68%)",
-        "hsl(340, 75%, 65%)",
-        "hsl(145, 60%, 62%)",
-        "hsl(220, 70%, 68%)",
-        "hsl(25, 75%, 60%)",
-        "hsl(85, 65%, 65%)",
-        "hsl(310, 70%, 68%)",
-        "hsl(180, 60%, 62%)",
-        "hsl(60, 85%, 68%)",
-        "hsl(200, 65%, 65%)",
-        "hsl(330, 80%, 70%)",
-        "hsl(120, 55%, 60%)",
-        "hsl(270, 75%, 65%)",
-        "hsl(15, 80%, 65%)",
-      ];
-      return colors[Math.floor(Math.random() * colors.length)];
-    },
+  getColor: function () {
+    if (this.mode === "custom") {
+      return this.customColor;
+    }
+    // Mode aléatoire
+    const hue = Math.random() * 360;
+    const saturation = 65 + Math.random() * 30;
+    const lightness = 45 + Math.random() * 25;
+    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(
+      lightness
+    )}%)`;
+  },
 
-    babiole: () => {
-      const colors = [
-        "hsl(285, 95%, 70%)",
-        "hsl(185, 90%, 65%)",
-        "hsl(335, 98%, 72%)",
-        "hsl(65, 100%, 62%)",
-        "hsl(160, 88%, 65%)",
-        "hsl(210, 92%, 68%)",
-        "hsl(30, 95%, 68%)",
-        "hsl(120, 85%, 65%)",
-        "hsl(270, 90%, 70%)",
-        "hsl(355, 95%, 68%)",
-        "hsl(45, 100%, 65%)",
-        "hsl(195, 95%, 70%)",
-        "hsl(300, 92%, 72%)",
-        "hsl(90, 88%, 62%)",
-        "hsl(240, 90%, 68%)",
-        "hsl(15, 100%, 65%)",
-        "hsl(165, 95%, 68%)",
-        "hsl(320, 98%, 70%)",
-        "hsl(75, 92%, 65%)",
-        "hsl(225, 88%, 70%)",
-      ];
-      return colors[Math.floor(Math.random() * colors.length)];
-    },
-  };
+  setCustomColor: function (color) {
+    this.customColor = color;
+  },
+
+  setMode: function (mode) {
+    this.mode = mode;
+  },
+};
 
   class Particle {
     constructor(x, y, color) {
@@ -2039,9 +2002,7 @@ document.addEventListener("DOMContentLoaded", () => {
         color: existingWord.color,
       };
     } else {
-      const colorGenerator =
-        colorPalettes[settings.colorTheme] || colorPalettes.auto;
-      const newColor = colorGenerator();
+      const newColor = colorGenerator.getColor();
 
       const position = findValidPosition();
 
@@ -2160,11 +2121,69 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelectorAll('input[name="color-theme"]').forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      settings.colorTheme = e.target.value;
-    });
+ // Gestion du mode de couleur (aléatoire / personnalisé)
+document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    const customPicker = document.getElementById("custom-color-picker");
+    if (e.target.value === "custom") {
+      customPicker.classList.remove("hidden");
+      colorGenerator.setMode("custom");
+    } else {
+      customPicker.classList.add("hidden");
+      colorGenerator.setMode("auto");
+    }
   });
+});
+
+// Sélecteur de couleur visuel
+const colorPickerInput = document.getElementById("color-picker-input");
+const colorHexInput = document.getElementById("color-hex-input");
+const colorPreview = document.getElementById("color-preview");
+
+if (colorPickerInput && colorHexInput && colorPreview) {
+  // Synchroniser le sélecteur visuel avec le champ texte
+  colorPickerInput.addEventListener("input", (e) => {
+    const color = e.target.value;
+    colorHexInput.value = color;
+    colorPreview.style.background = color;
+    colorGenerator.setCustomColor(color);
+  });
+
+  // Synchroniser le champ texte avec le sélecteur visuel
+  colorHexInput.addEventListener("input", (e) => {
+    let color = e.target.value.trim();
+
+    // Ajouter # si manquant
+    if (color && !color.startsWith("#")) {
+      color = "#" + color;
+      e.target.value = color;
+    }
+
+    // Valider le format hexadécimal
+    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    if (hexRegex.test(color)) {
+      colorPickerInput.value = color;
+      colorPreview.style.background = color;
+      colorGenerator.setCustomColor(color);
+      e.target.classList.remove("border-red-500");
+    } else if (color.length === 7) {
+      // Format invalide
+      e.target.classList.add("border-red-500");
+    }
+  });
+
+  // Validation au blur
+  colorHexInput.addEventListener("blur", (e) => {
+    let color = e.target.value.trim();
+    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+
+    if (!hexRegex.test(color)) {
+      // Restaurer la dernière couleur valide
+      e.target.value = colorGenerator.customColor;
+      e.target.classList.remove("border-red-500");
+    }
+  });
+}
 
   document
     .getElementById("show-words-toggle")
