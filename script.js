@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 0.15; // 15% de l'écran par défaut
+    if (!container) return 0.225; // 15% de l'écran par défaut -> +50%
   
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
@@ -147,15 +147,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const isMobile = window.innerWidth < 768;
   
     // Distance en POURCENTAGE de la largeur du canvas
-    let baseDistance = isMobile ? 0.12 : 0.15; // 12-15% de l'écran
+    let baseDistance = isMobile ? 0.18 : 0.225; // +50% pour plus d'espace
   
-    if (uniqueCount > 100) baseDistance = isMobile ? 0.08 : 0.10;
-    else if (uniqueCount > 80) baseDistance = isMobile ? 0.09 : 0.11;
-    else if (uniqueCount > 60) baseDistance = isMobile ? 0.10 : 0.12;
-    else if (uniqueCount > 40) baseDistance = isMobile ? 0.11 : 0.13;
-    else if (uniqueCount > 20) baseDistance = isMobile ? 0.12 : 0.14;
+    if (uniqueCount > 100) baseDistance = isMobile ? 0.12 : 0.15;
+    else if (uniqueCount > 80) baseDistance = isMobile ? 0.135 : 0.165;
+    else if (uniqueCount > 60) baseDistance = isMobile ? 0.15 : 0.18;
+    else if (uniqueCount > 40) baseDistance = isMobile ? 0.165 : 0.195;
+    else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
   
-    return Math.max(isMobile ? 0.07 : 0.09, baseDistance);
+    const adaptiveDistance = Math.max(isMobile ? 0.105 : 0.135, baseDistance);
+    return Math.min(0.45, adaptiveDistance); // clamp pour éviter des valeurs trop grandes
   }
   // Taille des points réduite
   function getPointRadius(occurrences) {
