@@ -50,8 +50,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Variables pour l'optimisation du framerate
   let lastFrameTime = 0;
-  const targetFPS = 60;
-  const frameInterval = 1000 / targetFPS;
+  
+  function getTargetFPS() {
+    return displayedWords.length > 100 ? 30 : 60;
+  }
+  
+  function getFrameInterval() {
+    return 1000 / getTargetFPS();
+  }
+  
   let canDraw = true;
 
   // Cache pour les calculs répétitifs
@@ -74,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Configuration globale
   const CONFIG = {
-    MAX_WORDS_PER_USER: 5000,
+    MAX_WORDS_PER_USER: 3,
     RESET_PASSWORD: "tissage2025",
   };
 
@@ -91,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (
         words.length === 0 ||
-        (getUserWordCount() >= 5 && timeSinceReset > 300000)
+        (getUserWordCount() >= 3 && timeSinceReset > 300000)
       ) {
         resetUserCounter();
         wordInput.disabled = false;
@@ -136,9 +143,34 @@ document.addEventListener("DOMContentLoaded", () => {
     return canAdd;
   }
 
+  // Recolorer tous les mots avec la couleur personnalisée
+  function applyCustomColorToAll() {
+    if (colorGenerator.mode === 'custom') {
+      displayedWords.forEach(word => {
+        word.color = colorGenerator.customColor;
+      });
+      wordOccurrencesCache.clear();
+      drawWeave();
+    }
+  }
+
+  // Régénérer des couleurs aléatoires pour tous les mots
+  function regenerateRandomColors() {
+    if (colorGenerator.mode === 'auto') {
+      displayedWords.forEach(word => {
+        const hue = Math.random() * 360;
+        const saturation = 65 + Math.random() * 30;
+        const lightness = 45 + Math.random() * 25;
+        word.color = `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
+      });
+      wordOccurrencesCache.clear();
+      drawWeave();
+    }
+  }
+
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 0.15; // 15% de l'écran par défaut
+    if (!container) return 0.22;
   
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
@@ -146,18 +178,18 @@ document.addEventListener("DOMContentLoaded", () => {
   
     const isMobile = window.innerWidth < 768;
   
-    // Distance en POURCENTAGE de la largeur du canvas
-    let baseDistance = isMobile ? 0.12 : 0.15; // 12-15% de l'écran
+    // Distance augmentée de ~50%
+    let baseDistance = isMobile ? 0.18 : 0.22;
   
-    if (uniqueCount > 100) baseDistance = isMobile ? 0.08 : 0.10;
-    else if (uniqueCount > 80) baseDistance = isMobile ? 0.09 : 0.11;
-    else if (uniqueCount > 60) baseDistance = isMobile ? 0.10 : 0.12;
-    else if (uniqueCount > 40) baseDistance = isMobile ? 0.11 : 0.13;
-    else if (uniqueCount > 20) baseDistance = isMobile ? 0.12 : 0.14;
+    if (uniqueCount > 100) baseDistance = isMobile ? 0.12 : 0.15;
+    else if (uniqueCount > 80) baseDistance = isMobile ? 0.14 : 0.17;
+    else if (uniqueCount > 60) baseDistance = isMobile ? 0.15 : 0.18;
+    else if (uniqueCount > 40) baseDistance = isMobile ? 0.17 : 0.20;
+    else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
   
-    return Math.max(isMobile ? 0.07 : 0.09, baseDistance);
+    return Math.max(isMobile ? 0.12 : 0.14, baseDistance);
   }
-  // Taille des points réduite
+
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
     const baseSize = isMobile ? 14 : 16;
@@ -191,7 +223,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return true;
   
-    // Marges augmentées
     const margin = 0.08;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
@@ -203,9 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const pos of uniquePositions) {
       const dx = pos.x - x;
       const dy = pos.y - y;
-      const dist = Math.sqrt(dx * dx + dy * dy); // Distance en pourcentage
+      const dist = Math.sqrt(dx * dx + dy * dy);
       
-      // Conversion de la taille des points en pourcentage de l'écran
       const avgScreenSize = (container.clientWidth + container.clientHeight) / 2;
       const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
       
@@ -223,26 +253,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return { x: 0.5, y: 0.5 };
   
-    const minDist = getAdaptiveMinDistance(); // Maintenant en pourcentage
+    const minDist = getAdaptiveMinDistance();
   
-    // PHASE 1: Essais aléatoires sur TOUTE la surface avec marges réduites
     for (let i = 0; i < 150; i++) {
       const x = 0.1 + Math.random() * 0.8;
       const y = 0.1 + Math.random() * 0.8;
       if (isPositionValid(x, y, minDist)) {
-        console.log(
-          `✓ Position trouvée (aléatoire): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
   
-    // PHASE 2: Spirale élargie couvrant tout l'écran
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.48; // Presque tout l'écran
+    const maxRadius = 0.48;
     const radiusStep = minDist * 0.6;
   
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
@@ -259,60 +282,36 @@ document.addEventListener("DOMContentLoaded", () => {
   
         if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
           if (isPositionValid(x, y, minDist)) {
-            console.log(
-              `✓ Position trouvée (spirale): ${(x * 100).toFixed(0)}%, ${(
-                y * 100
-              ).toFixed(0)}%`
-            );
             return { x, y };
           }
         }
       }
     }
   
-    // PHASE 3: Distance réduite à 75%
     for (let i = 0; i < 120; i++) {
       const x = 0.1 + Math.random() * 0.8;
       const y = 0.1 + Math.random() * 0.8;
       if (isPositionValid(x, y, minDist * 0.75)) {
-        console.log(
-          `✓ Position trouvée (distance 75%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
   
-    // PHASE 4: Distance réduite à 50%
     for (let i = 0; i < 120; i++) {
       const x = 0.12 + Math.random() * 0.76;
       const y = 0.12 + Math.random() * 0.76;
       if (isPositionValid(x, y, minDist * 0.5)) {
-        console.log(
-          `✓ Position trouvée (distance 50%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
   
-    // PHASE 5: Distance réduite à 30%
     for (let i = 0; i < 120; i++) {
       const x = 0.12 + Math.random() * 0.76;
       const y = 0.12 + Math.random() * 0.76;
       if (isPositionValid(x, y, minDist * 0.3)) {
-        console.log(
-          `✓ Position trouvée (distance 30%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
   
-    // PHASE 6: Grille systématique très espacée
     const step = minDist * 0.7;
     for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
       for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
@@ -322,34 +321,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
   
         if (isPositionValid(x, y, minDist * 0.2)) {
-          console.log(
-            `✓ Position trouvée (grille espacée): ${(x * 100).toFixed(0)}%, ${(
-              y * 100
-            ).toFixed(0)}%`
-          );
           return { x, y };
         }
       }
     }
   
-    // PHASE 7: Recherche exhaustive sans contrainte de distance
     console.warn("⚠️ Mode sans contrainte activé");
     for (let i = 0; i < 250; i++) {
       const x = 0.15 + Math.random() * 0.7;
       const y = 0.15 + Math.random() * 0.7;
   
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        console.warn(
-          `🆘 Position sans contrainte: ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 8: Position garantie dans zones prédéfinies
-    console.error("🚨 Position garantie finale");
   
     const zones = [
       { x: 0.2, y: 0.2 },
@@ -372,20 +357,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const y = zone.y + (Math.random() - 0.5) * 0.15;
   
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        console.error(
-          `🔴 Position forcée: ${(x * 100).toFixed(0)}%, ${(y * 100).toFixed(
-            0
-          )}%`
-        );
         return { x, y };
       }
     }
   
-    // Position absolue finale
     const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
     const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
   
-    console.error("❌ FALLBACK ABSOLU ACTIVÉ");
     return {
       x: Math.max(0.2, Math.min(0.8, fallbackX)),
       y: Math.max(0.2, Math.min(0.8, fallbackY)),
@@ -398,32 +376,31 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
- // Générateur de couleurs
-const colorGenerator = {
-  mode: "auto", // 'auto' ou 'custom'
-  customColor: "#6366f1",
+  // Générateur de couleurs
+  const colorGenerator = {
+    mode: "auto",
+    customColor: "#6366f1",
 
-  getColor: function () {
-    if (this.mode === "custom") {
-      return this.customColor;
-    }
-    // Mode aléatoire
-    const hue = Math.random() * 360;
-    const saturation = 65 + Math.random() * 30;
-    const lightness = 45 + Math.random() * 25;
-    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(
-      lightness
-    )}%)`;
-  },
+    getColor: function () {
+      if (this.mode === "custom") {
+        return this.customColor;
+      }
+      const hue = Math.random() * 360;
+      const saturation = 65 + Math.random() * 30;
+      const lightness = 45 + Math.random() * 25;
+      return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(
+        lightness
+      )}%)`;
+    },
 
-  setCustomColor: function (color) {
-    this.customColor = color;
-  },
+    setCustomColor: function (color) {
+      this.customColor = color;
+    },
 
-  setMode: function (mode) {
-    this.mode = mode;
-  },
-};
+    setMode: function (mode) {
+      this.mode = mode;
+    },
+  };
 
   class Particle {
     constructor(x, y, color) {
@@ -490,10 +467,6 @@ const colorGenerator = {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-    console.log(
-      `📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`
-    );
-
     requestAnimationFrame(() => drawWeave());
   }
 
@@ -517,7 +490,7 @@ const colorGenerator = {
   }
 
   function animateWeaving(timestamp = 0) {
-    if (timestamp - lastFrameTime < frameInterval) {
+    if (timestamp - lastFrameTime < getFrameInterval()) {
       animationFrame = requestAnimationFrame(animateWeaving);
       return;
     }
@@ -686,7 +659,6 @@ const colorGenerator = {
     const height = canvas.clientHeight;
 
     if (width === 0 || height === 0) {
-      console.warn("⚠️ Canvas dimensions invalides");
       return;
     }
 
@@ -708,7 +680,6 @@ const colorGenerator = {
       return;
     }
 
-    // Configuration des traits PLUS VISIBLES
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
@@ -1095,7 +1066,138 @@ const colorGenerator = {
       ctx.globalAlpha = 1;
     }
 
-    // Dessin standard des connexions - TRAITS PLUS ÉPAIS ET VISIBLES
+    // NOUVEAU MODE: Flux temporel
+    else if (settings.linkMode === "timeflow") {
+      const time = Date.now() * 0.0003;
+      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+      
+      for (let i = 1; i < sortedWords.length; i++) {
+        const word1 = sortedWords[i - 1];
+        const word2 = sortedWords[i];
+        
+        const x1 = word1.x * width;
+        const y1 = word1.y * height;
+        const x2 = word2.x * width;
+        const y2 = word2.y * height;
+        
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        
+        const flowOffset = Math.sin(time * 2 + i * 0.5) * 30;
+        const perpX = -(y2 - y1) / Math.hypot(x2 - x1, y2 - y1) * flowOffset;
+        const perpY = (x2 - x1) / Math.hypot(x2 - x1, y2 - y1) * flowOffset;
+        
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 10;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
+        
+        if (settings.useGradient) {
+          const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+          gradient.addColorStop(0, word1.color);
+          gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.5)");
+          gradient.addColorStop(1, word2.color);
+          ctx.strokeStyle = gradient;
+        } else {
+          ctx.strokeStyle = word2.color;
+        }
+        
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.1);
+        ctx.globalAlpha = 0.8;
+        ctx.stroke();
+        ctx.restore();
+        
+        const travelProgress = (time * 0.3 + i * 0.1) % 1;
+        const t = travelProgress;
+        const travelX = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * (midX + perpX) + t * t * x2;
+        const travelY = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * (midY + perpY) + t * t * y2;
+        
+        ctx.beginPath();
+        ctx.arc(travelX, travelY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.shadowColor = word2.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // NOUVEAU MODE: Galaxie
+    else if (settings.linkMode === "galaxy") {
+      const time = Date.now() * 0.0002;
+      
+      let centerX = 0, centerY = 0;
+      displayedWords.forEach(word => {
+        centerX += word.x;
+        centerY += word.y;
+      });
+      centerX = (centerX / displayedWords.length) * width;
+      centerY = (centerY / displayedWords.length) * height;
+      
+      displayedWords.forEach((word, index) => {
+        const x = word.x * width;
+        const y = word.y * height;
+        
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        
+        const orbitAngle = angle + time * (1 + index * 0.01);
+        const orbitX = centerX + Math.cos(orbitAngle) * dist;
+        const orbitY = centerY + Math.sin(orbitAngle) * dist;
+        
+        ctx.save();
+        ctx.shadowColor = word.color;
+        ctx.shadowBlur = 8;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(orbitX, orbitY);
+        ctx.strokeStyle = word.color;
+        ctx.lineWidth = Math.max(1.5, settings.lineWidth * 0.7);
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        ctx.restore();
+        
+        const neighbors = displayedWords
+          .filter(w => w !== word)
+          .map(w => ({
+            word: w,
+            dist: Math.hypot(w.x * width - x, w.y * height - y)
+          }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 2);
+        
+        neighbors.forEach(({ word: neighbor }) => {
+          const nx = neighbor.x * width;
+          const ny = neighbor.y * height;
+          
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(nx, ny);
+          
+          if (settings.useGradient) {
+            const gradient = ctx.createLinearGradient(x, y, nx, ny);
+            gradient.addColorStop(0, word.color);
+            gradient.addColorStop(1, neighbor.color);
+            ctx.strokeStyle = gradient;
+          } else {
+            ctx.strokeStyle = word.color;
+          }
+          
+          ctx.lineWidth = Math.max(1.5, settings.lineWidth * 0.8);
+          ctx.globalAlpha = 0.3;
+          ctx.stroke();
+        });
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    // Dessin standard des connexions
     else {
       connections.forEach(([word1, word2]) => {
         if (
@@ -1132,14 +1234,13 @@ const colorGenerator = {
         const x2 = word2.x * width;
         const y2 = word2.y * height;
 
-        // Trait principal - PLUS ÉPAIS
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
         ctx.shadowBlur = 10;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
 
-        ctx.globalAlpha = 0.9; // Plus opaque
+        ctx.globalAlpha = 0.9;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
@@ -1156,19 +1257,18 @@ const colorGenerator = {
           ctx.strokeStyle = word2.color;
         }
 
-        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2); // Plus épais
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2);
         ctx.stroke();
         ctx.restore();
 
-        // Trait secondaire lumineux - PLUS VISIBLE
-        ctx.globalAlpha = 0.4; // Plus opaque
+        ctx.globalAlpha = 0.4;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(
           x1 + (x2 - x1) * progress,
           y1 + (y2 - y1) * progress
         );
-        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5); // Plus épais
+        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5);
         ctx.stroke();
       });
     }
@@ -1214,7 +1314,7 @@ const colorGenerator = {
       }
     );
 
-    // Dessiner les points des mots - PLUS PETITS
+    // Dessiner les points des mots
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const pointSize = getPointRadius(occurrences);
@@ -1273,11 +1373,11 @@ const colorGenerator = {
       ctx.shadowColor = "transparent";
     });
 
-    // Dessiner les textes des mots - PLUS PETITS
+    // Dessiner les textes des mots avec lisibilité MAXIMALE
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 18; // Réduit
+      const fontSize = isMobile ? 18 : 20;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -1292,19 +1392,25 @@ const colorGenerator = {
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 18; // Plus d'espace
+        const textY = y - pointSize - 22;
 
-        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
+        // Contour noir ultra-épais (couche 1)
+        ctx.shadowColor = "rgba(0, 0, 0, 1)";
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 4;
 
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6;
+        ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+        ctx.lineWidth = 10;
+        ctx.strokeText(word.text, x, textY);
+        
+        // Deuxième couche de contour
+        ctx.lineWidth = 7;
         ctx.strokeText(word.text, x, textY);
 
-        ctx.fillStyle = word.color;
-        ctx.shadowBlur = isHighlighted ? 24 : 18;
+        // Texte toujours BLANC avec glow coloré intense
+        ctx.fillStyle = "white";
+        ctx.shadowBlur = isHighlighted ? 30 : 22;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
 
@@ -1548,7 +1654,7 @@ const colorGenerator = {
         "word-item p-3 rounded-lg flex items-center bg-gray-800/50 hover:bg-gray-700/50 transition-colors";
       li.style.borderLeft = `4px solid ${word.color}`;
       li.dataset.text = word.text;
-      li.dataset.key = `${word.text}-${word.timestamp}`;
+      li.dataset.key = `${word.text}-${w.timestamp}`;
 
       const colorDot = document.createElement("span");
       colorDot.className = "w-3 h-3 rounded-full mr-3 flex-shrink-0";
@@ -1971,11 +2077,8 @@ const colorGenerator = {
     const text = wordInput.value.trim();
     if (!text) return;
 
-    console.log("Tentative d'ajout de mot:", text);
-
     if (!canUserAddWord()) {
       const count = getUserWordCount();
-      console.log("Limite atteinte:", count);
       alert(
         `❌ Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant.\n\nLaissez la place aux autres ! 😊`
       );
@@ -1994,7 +2097,6 @@ const colorGenerator = {
     let newWordPayload;
 
     if (existingWord) {
-      console.log("Mot existant trouvé");
       newWordPayload = {
         text,
         x: existingWord.x,
@@ -2042,20 +2144,18 @@ const colorGenerator = {
       }
 
       incrementUserWordCount();
-      console.log("Mot ajouté avec succès");
 
       wordInput.value = "";
       submitButton.textContent = "✓";
 
       const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-      console.log("Mots restants:", remaining);
 
       if (remaining > 0) {
         wordInput.placeholder = `${remaining} mot${
           remaining > 1 ? "s" : ""
         } restant${remaining > 1 ? "s" : ""}...`;
       } else {
-        wordInput.placeholder = "Limite atteinte (5 mots max)";
+        wordInput.placeholder = "Limite atteinte (3 mots max)";
       }
 
       setTimeout(() => {
@@ -2121,69 +2221,70 @@ const colorGenerator = {
     });
   });
 
- // Gestion du mode de couleur (aléatoire / personnalisé)
-document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
-    const customPicker = document.getElementById("custom-color-picker");
-    if (e.target.value === "custom") {
-      customPicker.classList.remove("hidden");
-      colorGenerator.setMode("custom");
-    } else {
-      customPicker.classList.add("hidden");
-      colorGenerator.setMode("auto");
-    }
-  });
-});
-
-// Sélecteur de couleur visuel
-const colorPickerInput = document.getElementById("color-picker-input");
-const colorHexInput = document.getElementById("color-hex-input");
-const colorPreview = document.getElementById("color-preview");
-
-if (colorPickerInput && colorHexInput && colorPreview) {
-  // Synchroniser le sélecteur visuel avec le champ texte
-  colorPickerInput.addEventListener("input", (e) => {
-    const color = e.target.value;
-    colorHexInput.value = color;
-    colorPreview.style.background = color;
-    colorGenerator.setCustomColor(color);
+  // Gestion du mode de couleur avec application dynamique
+  document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const customPicker = document.getElementById("custom-color-picker");
+      if (e.target.value === "custom") {
+        customPicker.classList.remove("hidden");
+        colorGenerator.setMode("custom");
+        applyCustomColorToAll();
+      } else {
+        customPicker.classList.add("hidden");
+        colorGenerator.setMode("auto");
+        regenerateRandomColors();
+      }
+    });
   });
 
-  // Synchroniser le champ texte avec le sélecteur visuel
-  colorHexInput.addEventListener("input", (e) => {
-    let color = e.target.value.trim();
+  // Sélecteur de couleur visuel
+  const colorPickerInput = document.getElementById("color-picker-input");
+  const colorHexInput = document.getElementById("color-hex-input");
+  const colorPreview = document.getElementById("color-preview");
 
-    // Ajouter # si manquant
-    if (color && !color.startsWith("#")) {
-      color = "#" + color;
-      e.target.value = color;
-    }
-
-    // Valider le format hexadécimal
-    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-    if (hexRegex.test(color)) {
-      colorPickerInput.value = color;
+  if (colorPickerInput && colorHexInput && colorPreview) {
+    colorPickerInput.addEventListener("input", (e) => {
+      const color = e.target.value;
+      colorHexInput.value = color;
       colorPreview.style.background = color;
       colorGenerator.setCustomColor(color);
-      e.target.classList.remove("border-red-500");
-    } else if (color.length === 7) {
-      // Format invalide
-      e.target.classList.add("border-red-500");
-    }
-  });
+      if (colorGenerator.mode === 'custom') {
+        applyCustomColorToAll();
+      }
+    });
 
-  // Validation au blur
-  colorHexInput.addEventListener("blur", (e) => {
-    let color = e.target.value.trim();
-    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    colorHexInput.addEventListener("input", (e) => {
+      let color = e.target.value.trim();
 
-    if (!hexRegex.test(color)) {
-      // Restaurer la dernière couleur valide
-      e.target.value = colorGenerator.customColor;
-      e.target.classList.remove("border-red-500");
-    }
-  });
-}
+      if (color && !color.startsWith("#")) {
+        color = "#" + color;
+        e.target.value = color;
+      }
+
+      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+      if (hexRegex.test(color)) {
+        colorPickerInput.value = color;
+        colorPreview.style.background = color;
+        colorGenerator.setCustomColor(color);
+        e.target.classList.remove("border-red-500");
+        if (colorGenerator.mode === 'custom') {
+          applyCustomColorToAll();
+        }
+      } else if (color.length === 7) {
+        e.target.classList.add("border-red-500");
+      }
+    });
+
+    colorHexInput.addEventListener("blur", (e) => {
+      let color = e.target.value.trim();
+      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+
+      if (!hexRegex.test(color)) {
+        e.target.value = colorGenerator.customColor;
+        e.target.classList.remove("border-red-500");
+      }
+    });
+  }
 
   document
     .getElementById("show-words-toggle")
@@ -2281,8 +2382,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     e.preventDefault();
     e.stopPropagation();
 
-    console.log("Reset button clicked");
-
     const passwordModal = document.createElement("div");
     passwordModal.id = "password-reset-modal";
     passwordModal.className =
@@ -2310,7 +2409,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     `;
 
     document.body.appendChild(passwordModal);
-    console.log("Modal ajouté au DOM");
 
     const passwordInput = document.getElementById("reset-password-input");
     const confirmBtn = document.getElementById("confirm-reset");
@@ -2321,7 +2419,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     const closeModal = () => {
       if (document.body.contains(passwordModal)) {
         document.body.removeChild(passwordModal);
-        console.log("Modal fermé");
       }
     };
 
@@ -2339,18 +2436,12 @@ if (colorPickerInput && colorHexInput && colorPreview) {
 
     const attemptReset = async () => {
       const enteredPassword = passwordInput.value.trim();
-      console.log(
-        "Tentative reset avec mot de passe:",
-        enteredPassword ? "***" : "(vide)"
-      );
 
       if (enteredPassword === CONFIG.RESET_PASSWORD) {
-        console.log("✓ Mot de passe correct");
         closeModal();
 
         try {
           const response = await fetch("/api/words", { method: "DELETE" });
-          console.log("Réponse DELETE:", response.status);
 
           displayedWords = [];
           wordsList.innerHTML = "";
@@ -2388,14 +2479,11 @@ if (colorPickerInput && colorHexInput && colorPreview) {
               document.body.removeChild(confirmDiv);
             }
           }, 3000);
-
-          console.log("✅ Reset complet effectué");
         } catch (err) {
           console.error("Erreur reset:", err);
           alert("❌ La réinitialisation a échoué");
         }
       } else {
-        console.log("✗ Mot de passe incorrect");
         passwordInput.value = "";
         passwordInput.placeholder = "❌ Mot de passe incorrect";
         passwordInput.classList.add("border-2", "border-red-500");
@@ -2458,15 +2546,9 @@ if (colorPickerInput && colorHexInput && colorPreview) {
   animateWeaving();
 
   const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-  console.log(
-    "Compteur initial:",
-    getUserWordCount(),
-    "/ Restants:",
-    remaining
-  );
 
   if (remaining === 0) {
-    wordInput.placeholder = "Limite atteinte (5 mots max)";
+    wordInput.placeholder = "Limite atteinte (3 mots max)";
     wordInput.disabled = true;
     wordForm.querySelector("button").disabled = true;
   } else if (remaining < CONFIG.MAX_WORDS_PER_USER) {
