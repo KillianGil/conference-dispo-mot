@@ -1621,72 +1621,98 @@ function drawWeave(withBackground = false) {
   }
 
   // ==================== DÉTECTION CHEVAUCHEMENTS ====================
+// ==================== DÉTECTION ET RÉSOLUTION DES CHEVAUCHEMENTS (PHYSIQUE) ====================
 function detectAndResolveOverlaps() {
-  const wordOccurrences = getWordOccurrences();
-  const width = canvas.clientWidth || 800;
+  const container = document.getElementById("canvas-container");
+  if (!container) return;
+
+  // On récupère les dimensions réelles pour convertir les pixels en coordonnées 0-1
+  const width = container.clientWidth || 800;
+  const height = container.clientHeight || 600;
   
-  // Regrouper par mot unique
-  const uniqueWords = new Map();
+  // Ratio pour corriger la distance (car Y est souvent plus petit que X en pixels mais vaut 1.0 en coordonnées)
+  const aspectRatio = width / height;
+
+  const wordOccurrences = getWordOccurrences();
+  
+  // 1. Identifier les mots uniques (pour bouger tous les doublons ensemble)
+  const uniqueWordsMap = new Map();
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
-    if (!uniqueWords.has(key)) {
-      uniqueWords.set(key, word);
+    if (!uniqueWordsMap.has(key)) {
+      uniqueWordsMap.set(key, word);
     }
   });
   
-  const uniqueArray = Array.from(uniqueWords.values());
-  let hasOverlaps = false;
+  const uniqueNodes = Array.from(uniqueWordsMap.values());
   
-  // Vérifier chaque paire de mots
-  for (let i = 0; i < uniqueArray.length; i++) {
-    for (let j = i + 1; j < uniqueArray.length; j++) {
-      const word1 = uniqueArray[i];
-      const word2 = uniqueArray[j];
-      
-      const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
-      const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
-      
-      const radius1 = getPointRadius(occurrences1) / width;
-      const radius2 = getPointRadius(occurrences2) / width;
-      
-      const dx = word1.x - word2.x;
-      const dy = word1.y - word2.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      const minDist = radius1 + radius2 + 0.08; // Marge de sécurité
-      
-      if (dist < minDist && dist > 0.001) {
-        hasOverlaps = true;
+  // 2. Boucle de physique (plusieurs passes pour stabiliser le mouvement)
+  // Plus le nombre est élevé, plus c'est stable, mais plus ça consomme (5-8 est bien)
+  const ITERATIONS = 8; 
+
+  for (let k = 0; k < ITERATIONS; k++) {
+    for (let i = 0; i < uniqueNodes.length; i++) {
+      for (let j = i + 1; j < uniqueNodes.length; j++) {
+        const nodeA = uniqueNodes[i];
+        const nodeB = uniqueNodes[j];
+
+        // Calcul des rayons en PIXELS
+        const countA = wordOccurrences[nodeA.text.toLowerCase()] || 1;
+        const countB = wordOccurrences[nodeB.text.toLowerCase()] || 1;
         
-        // Éloigner les deux points proportionnellement
-        const overlap = minDist - dist;
-        const angle = Math.atan2(dy, dx);
+        // On ajoute une marge de 20px pour que les textes ne se touchent pas
+        const radiusA = getPointRadius(countA) + 10; 
+        const radiusB = getPointRadius(countB) + 10;
+
+        // Distance minimale requise en PIXELS
+        const minDistancePx = radiusA + radiusB;
+
+        // Calcul de la distance actuelle (en normalisé corrigé par l'aspect ratio)
+        const dx = (nodeA.x - nodeB.x);
+        const dy = (nodeA.y - nodeB.y) / aspectRatio; // Correction Y
         
-        word1.x += Math.cos(angle) * overlap / 2;
-        word1.y += Math.sin(angle) * overlap / 2;
-        word2.x -= Math.cos(angle) * overlap / 2;
-        word2.y -= Math.sin(angle) * overlap / 2;
-        
-        // Appliquer à tous les mots identiques
-        displayedWords.forEach(w => {
-          if (w.text.toLowerCase() === word1.text.toLowerCase()) {
-            w.x = word1.x;
-            w.y = word1.y;
-          }
-          if (w.text.toLowerCase() === word2.text.toLowerCase()) {
-            w.x = word2.x;
-            w.y = word2.y;
-          }
-        });
+        // Conversion distance normalisée -> pixels
+        const distPx = Math.sqrt(dx*dx + dy*dy) * width;
+
+        if (distPx < minDistancePx && distPx > 0) {
+          // Il y a collision !
+          
+          // Calcul de la force de repousse (overlap) en pixels
+          const overlapPx = minDistancePx - distPx;
+          
+          // Conversion de la force en coordonnées normalisées
+          const moveX = (dx / distPx) * overlapPx / width * 0.5; // 0.5 pour partager le mouvement
+          const moveY = (dy / distPx) * overlapPx / width * 0.5 * aspectRatio;
+
+          // Appliquer le mouvement (éloigner les points)
+          nodeA.x += moveX;
+          nodeA.y += moveY;
+          nodeB.x -= moveX;
+          nodeB.y -= moveY;
+        }
       }
     }
   }
-  
-  if (hasOverlaps) {
-    console.log("⚠️ Chevauchements détectés et corrigés");
-    geometryCache.clear();
-    scheduleRedraw();
-  }
+
+  // 3. Appliquer les nouvelles positions aux doublons et garder dans l'écran
+  uniqueNodes.forEach(node => {
+    // Garder dans les limites de l'écran (avec une marge de 5%)
+    node.x = Math.max(0.05, Math.min(0.95, node.x));
+    node.y = Math.max(0.05, Math.min(0.95, node.y));
+  });
+
+  // Synchroniser tous les mots (si un mot apparaît plusieurs fois, il doit être au même endroit)
+  displayedWords.forEach(word => {
+    const masterNode = uniqueWordsMap.get(word.text.toLowerCase());
+    if (masterNode) {
+      word.x = masterNode.x;
+      word.y = masterNode.y;
+    }
+  });
+
+  // Forcer le redessin des lignes
+  geometryCache.clear();
+  scheduleRedraw();
 }
   // ==================== FETCH WORDS ====================
   async function fetchWords() {
