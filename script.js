@@ -162,8 +162,8 @@ const colorGenerator = {
       return this.customColor;
     }
     const hue = Math.random() * 360;
-    const saturation = 65 + Math.random() * 30;
-    const lightness = 45 + Math.random() * 25;
+    const saturation = 75 + Math.random() * 25; // 🔥 75-100% au lieu de 65-95%
+    const lightness = 55 + Math.random() * 20;  // 🔥 55-75% au lieu de 45-70%
     return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
   },
 
@@ -1321,18 +1321,28 @@ if (settings.showWords) {
     const textPadding = Math.max(22, fontSize * 0.6);
     const textY = y - pointSize - textPadding;
 
-    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-    ctx.shadowBlur = 16;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    // 🔥 Contour noir moins prononcé
+    ctx.shadowColor = "rgba(0, 0, 0, 0.7)"; // De 0.9 à 0.7
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 2; // De 3 à 2
+    ctx.shadowOffsetY = 2; // De 3 à 2
 
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-    ctx.lineWidth = isMobile ? 7 : 8;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.8)"; // De 0.95 à 0.8
+    ctx.lineWidth = isMobile ? 6 : 7; // De 7/8 à 6/7
     ctx.strokeText(word.text, x, textY);
 
-    ctx.fillStyle = word.color;
-    ctx.shadowBlur = isHighlighted ? 28 : 22;
-    ctx.shadowColor = word.color;
+    // 🔥 ÉCLAIRCIR LA COULEUR DU TEXTE (+20% de luminosité)
+    const brightColor = word.color.replace(
+      /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,
+      (match, h, s, l) => {
+        const newL = Math.min(85, parseInt(l) + 20); // +20% luminosité
+        return `hsl(${h}, ${s}%, ${newL}%)`;
+      }
+    );
+
+    ctx.fillStyle = brightColor;
+    ctx.shadowBlur = isHighlighted ? 32 : 26; // Glow plus fort
+    ctx.shadowColor = brightColor;
     ctx.fillText(word.text, x, textY);
 
     ctx.shadowColor = "transparent";
@@ -1800,24 +1810,20 @@ function updateWordListColors() {
 
     recordingInterval = setInterval(() => {
       if (!isRecording) return;
-
+    
       try {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
-
+    
         const estimatedSize =
           recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
-
+    
         console.log(
           `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
         );
-
-        if (recordedFrames.length >= 600 || estimatedSize > 200) {
-          stopRecording();
-          alert(
-            "⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté."
-          );
-        }
+    
+        // 🔥 PLUS DE LIMITE - Enregistrement illimité
+        // (Supprimé : if (recordedFrames.length >= 600 || estimatedSize > 200))
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
         stopRecording();
