@@ -356,34 +356,30 @@ function findValidPosition() {
   const minDist = getAdaptiveMinDistance();
   const center = 0.5;
   
-  // 🔥 CHANGEMENT : On commence TOUJOURS la recherche près du centre
-  // Même s'il y a 100 mots, on vérifie d'abord si une place s'est libérée au milieu.
-  let searchRadius = 0.1; 
+  // La zone de jeu s'agrandit avec le nombre de mots
+  // Mais on peut placer n'importe où DANS cette zone
+  let maxRadius = 0.3 + (displayedWords.length * 0.03);
 
-  // On cherche en cercles concentriques vers l'extérieur
-  for (let expansion = 0; expansion < 200; expansion++) {
+  // On tente 300 fois de trouver une place
+  for (let i = 0; i < 300; i++) {
+      // Angle aléatoire
+      const angle = Math.random() * Math.PI * 2;
       
-      // On bombarde la zone de 40 essais
-      for(let i = 0; i < 40; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          // On cherche DANS le rayon (pas juste sur le bord) pour combler les trous
-          const r = Math.sqrt(Math.random()) * searchRadius; 
-          
-          const x = center + r * Math.cos(angle);
-          const y = center + r * Math.sin(angle);
+      // 🔥 VRAI ALÉATOIRE : Distance aléatoire entre 0 et le max
+      // Math.sqrt assure une distribution uniforme (pas de paquet au centre)
+      const r = Math.sqrt(Math.random()) * maxRadius; 
+      
+      const x = center + r * Math.cos(angle);
+      const y = center + r * Math.sin(angle);
 
-          if (isPositionValid(x, y, minDist)) {
-              return { x, y };
-          }
+      if (isPositionValid(x, y, minDist)) {
+          return { x, y };
       }
-      
-      // Si c'est plein ici, on élargit un tout petit peu
-      searchRadius += 0.05;
   }
 
-  // Secours
+  // Si vraiment on a pas trouvé (très rare), on force un peu plus loin
   const angle = Math.random() * Math.PI * 2;
-  const r = searchRadius + 0.2;
+  const r = maxRadius + 0.2;
   return {
       x: center + r * Math.cos(angle),
       y: center + r * Math.sin(angle)
@@ -1244,127 +1240,139 @@ function findValidPosition() {
       }
     );
 
-    // ==================== DESSIN DES POINTS (AVEC ANIMATION) ====================
-    sortedForDisplay.forEach((word) => {
-      const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const pointSize = getPointRadius(occurrences);
+// ==================== DESSIN DES POINTS (AVEC ANIMATION) ====================
+// Créer une Map pour grouper les mots identiques
+const uniqueWordsMap = new Map();
+sortedForDisplay.forEach((word) => {
+  const key = word.text.toLowerCase();
+  if (!uniqueWordsMap.has(key)) {
+    uniqueWordsMap.set(key, word);
+  }
+});
 
-      const isHighlighted = word.highlighted || false;
-      const highlightBonus = isHighlighted ? 6 : 0;
-      const finalPointSize = pointSize + highlightBonus;
+// Dessiner UN SEUL point par mot unique
+Array.from(uniqueWordsMap.values()).forEach((word) => {
+  const occurrences = wordOccurrences[word.text.toLowerCase()];
+  const pointSize = getPointRadius(occurrences);
 
-      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-      const x = word.x * width + wobbleX;
-      const y = word.y * height + wobbleY;
+  const isHighlighted = word.highlighted || false;
+  const highlightBonus = isHighlighted ? 6 : 0;
+  const finalPointSize = pointSize + highlightBonus;
 
-      // Animation d'apparition
-      const isAppearing = appearingWords.has(word);
-      let appearScale = 1;
-      let appearOpacity = 1;
-      
-      if (isAppearing) {
-        const elapsed = Date.now() - word.timestamp;
-        const progress = Math.min(elapsed / 600, 1);
-        
-        // Effet de "pop" élastique
-        appearScale = 0.3 + progress * 0.7 + Math.sin(progress * Math.PI) * 0.3;
-        appearOpacity = progress;
-      }
+  const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+  const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+  const x = word.x * width + wobbleX;
+  const y = word.y * height + wobbleY;
 
-      if (settings.enableParticles && Math.random() < 0.06) {
-        particles.push(getParticle(x, y, word.color));
-      }
+  // Animation d'apparition
+  const isAppearing = appearingWords.has(word);
+  let appearScale = 1;
+  let appearOpacity = 1;
+  
+  if (isAppearing) {
+    const elapsed = Date.now() - word.timestamp;
+    const progress = Math.min(elapsed / 600, 1);
+    
+    appearScale = 0.3 + progress * 0.7 + Math.sin(progress * Math.PI) * 0.3;
+    appearOpacity = progress;
+  }
 
-      ctx.save();
-      ctx.globalAlpha = appearOpacity;
+  if (settings.enableParticles && Math.random() < 0.06) {
+    particles.push(getParticle(x, y, word.color));
+  }
 
-      const pulseFactor = isHighlighted ? 6 : 4;
-      const pulseSize =
-        (finalPointSize + 10) * appearScale +
-        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
-          pulseFactor;
+  ctx.save();
+  ctx.globalAlpha = appearOpacity;
 
-      ctx.beginPath();
-      ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
-      ctx.strokeStyle = word.color;
-      ctx.lineWidth = isHighlighted ? 5 : 4;
-      ctx.globalAlpha = (isHighlighted ? 0.8 : 0.5) * appearOpacity;
-      ctx.stroke();
+  const pulseFactor = isHighlighted ? 6 : 4;
+  const pulseSize =
+    (finalPointSize + 10) * appearScale +
+    Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
+      pulseFactor;
 
-      ctx.globalAlpha = appearOpacity;
-      ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
-      ctx.fillStyle = word.color;
-      ctx.shadowColor = word.color;
-      ctx.shadowBlur = isHighlighted ? 28 : 20;
-      ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+  ctx.strokeStyle = word.color;
+  ctx.lineWidth = isHighlighted ? 5 : 4;
+  ctx.globalAlpha = (isHighlighted ? 0.8 : 0.5) * appearOpacity;
+  ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
-      ctx.strokeStyle = isHighlighted
-        ? "rgba(255, 255, 255, 0.95)"
-        : "rgba(255, 255, 255, 0.7)";
-      ctx.lineWidth = isHighlighted ? 5 : 3;
-      ctx.stroke();
+  ctx.globalAlpha = appearOpacity;
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
+  ctx.fillStyle = word.color;
+  ctx.shadowColor = word.color;
+  ctx.shadowBlur = isHighlighted ? 28 : 20;
+  ctx.fill();
 
-      ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * 0.35 * appearScale, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = "white";
-      ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
+  ctx.strokeStyle = isHighlighted
+    ? "rgba(255, 255, 255, 0.95)"
+    : "rgba(255, 255, 255, 0.7)";
+  ctx.lineWidth = isHighlighted ? 5 : 3;
+  ctx.stroke();
 
-      ctx.shadowBlur = 0;
-      ctx.shadowColor = "transparent";
-      ctx.restore();
-    });
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize * 0.35 * appearScale, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = "white";
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+  ctx.restore();
+});
 
     // ==================== DESSIN DES TEXTES ====================
-    if (settings.showWords) {
-      ctx.globalAlpha = 1;
-      
-      // Taille : Entre 18px et 48px selon le zoom
-      const fontSize = Math.max(18, Math.min(48, 32 / scale)); 
-      
-      // 🔥 800 = EXTRA BOLD (Très gras pour la lisibilité)
-      ctx.font = `800 ${fontSize}px Inter, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+if (settings.showWords) {
+  ctx.globalAlpha = 1;
+  
+  const fontSize = Math.max(18, Math.min(48, 32 / scale)); 
+  ctx.font = `800 ${fontSize}px Inter, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
-      const visibleWordsCopy = [...visibleWords];
-
-      visibleWordsCopy.forEach((word) => {
-        const occurrences = wordOccurrences[word.text.toLowerCase()];
-        const pointSize = getPointRadius(occurrences);
-
-        const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-        const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-        const x = word.x * width + wobbleX;
-        const y = word.y * height + wobbleY;
-        
-        // 🔥 DÉCALAGE DU TEXTE
-        // On ajoute beaucoup plus d'espace (40 / scale) pour décoller du point
-        const textOffset = pointSize + (40 / scale); 
-        const textY = y + textOffset;
-
-        ctx.save();
-        
-        // 🔥 CONTOUR NOIR PUR
-        ctx.lineJoin = "round";
-        ctx.miterLimit = 2;
-        ctx.lineWidth = 6; // Contour plus épais
-        ctx.strokeStyle = "#000000"; // Noir pur, pas le gris du fond
-        ctx.strokeText(word.text, x, textY);
-
-        // TEXTE COULEUR
-        ctx.fillStyle = word.color;
-        ctx.shadowBlur = 0;
-        ctx.fillText(word.text, x, textY);
-
-        ctx.restore();
-      });
+  // Créer une Map pour n'afficher qu'un texte par mot unique
+  const uniqueWordsMap = new Map();
+  visibleWords.forEach((word) => {
+    const key = word.text.toLowerCase();
+    if (!uniqueWordsMap.has(key)) {
+      uniqueWordsMap.set(key, word);
     }
+  });
+
+  Array.from(uniqueWordsMap.values()).forEach((word) => {
+    const occurrences = wordOccurrences[word.text.toLowerCase()];
+    const pointSize = getPointRadius(occurrences);
+
+    const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+    const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+    const x = word.x * width + wobbleX;
+    const y = word.y * height + wobbleY;
+    
+    // 🔥 DISTANCE RÉDUITE À 30
+    const textOffset = pointSize + (30 / scale); 
+    const textY = y + textOffset;
+
+    ctx.save();
+    
+    // 🔥 CONTOUR NOIR ÉPAIS (8px pour meilleure visibilité)
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#000000";
+    ctx.strokeText(word.text, x, textY);
+
+    // 🔥 TEXTE BLANC PUR (#FFFFFF)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowBlur = 0;
+    ctx.fillText(word.text, x, textY);
+
+    ctx.restore();
+  });
+}
 
     ctx.restore();
   }
@@ -2333,10 +2341,11 @@ function updateWordListColors() {
     if (existingWord) {
       console.log("Mot existant trouvé");
       newWordPayload = {
-        text,
+        text : existingWord.text,
         x: existingWord.x,
         y: existingWord.y,
         color: existingWord.color,
+        radius: existingWord.radius,
       };
     } else {
       const newColor = colorGenerator.getColor();
