@@ -720,6 +720,7 @@ function findValidPosition() {
   }
 
 // ==================== DESSIN PRINCIPAL ====================
+// ==================== DESSIN PRINCIPAL ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
 
@@ -808,6 +809,21 @@ function drawWeave(withBackground = false) {
       const perpX = (-dy / len) * offset;
       const perpY = (dx / len) * offset;
 
+      // Halo d'abord
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = word2.color;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
+      ctx.lineWidth = Math.max(5, settings.lineWidth * 1.8);
+      ctx.strokeStyle = word2.color;
+      ctx.stroke();
+      ctx.restore();
+
+      // Trait avec dégradé
       ctx.save();
       ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
       ctx.shadowBlur = 12;
@@ -826,7 +842,7 @@ function drawWeave(withBackground = false) {
       }
 
       ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 1.0;
       ctx.stroke();
       ctx.restore();
     });
@@ -858,6 +874,21 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
+      // Halo
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = word2.color;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.6);
+      ctx.strokeStyle = word2.color;
+      ctx.stroke();
+      ctx.restore();
+
+      // Trait principal
       ctx.save();
       ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
       ctx.shadowBlur = 10;
@@ -867,7 +898,7 @@ function drawWeave(withBackground = false) {
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = word2.color;
       ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.9;
       ctx.stroke();
       ctx.restore();
     });
@@ -922,6 +953,23 @@ function drawWeave(withBackground = false) {
         const x2 = neighbor.x * width;
         const y2 = neighbor.y * height;
 
+        const opacity = Math.max(0.3, 1 - dist / 0.5);
+
+        // Halo
+        ctx.save();
+        ctx.globalAlpha = opacity * 0.3;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = word.color;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5);
+        ctx.strokeStyle = word.color;
+        ctx.stroke();
+        ctx.restore();
+
+        // Trait avec dégradé
         ctx.save();
         ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
         ctx.shadowBlur = 8;
@@ -929,8 +977,6 @@ function drawWeave(withBackground = false) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-
-        const opacity = Math.max(0.3, 1 - dist / 0.5);
 
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
@@ -941,7 +987,7 @@ function drawWeave(withBackground = false) {
           ctx.strokeStyle = word.color;
         }
 
-        ctx.globalAlpha = opacity * 0.7;
+        ctx.globalAlpha = opacity * 0.8;
         ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
         ctx.stroke();
         ctx.restore();
@@ -959,6 +1005,21 @@ function drawWeave(withBackground = false) {
 
       const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
 
+      // Halo
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.shadowColor = word2.color;
+      ctx.shadowBlur = 15 * pulse;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.6 + pulse * 2.0);
+      ctx.strokeStyle = word2.color;
+      ctx.stroke();
+      ctx.restore();
+
+      // Trait principal
       ctx.save();
       ctx.shadowColor = word2.color;
       ctx.shadowBlur = 12 * pulse;
@@ -978,7 +1039,7 @@ function drawWeave(withBackground = false) {
       }
 
       ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2 + pulse * 1.5);
-      ctx.globalAlpha = 0.8 + pulse * 0.2;
+      ctx.globalAlpha = 0.9 + pulse * 0.1;
       ctx.stroke();
       ctx.restore();
 
@@ -1069,6 +1130,21 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
+      // Halo
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = word2.color;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineWidth = Math.max(5, settings.lineWidth * 1.8);
+      ctx.strokeStyle = word2.color;
+      ctx.stroke();
+      ctx.restore();
+
+      // Trait avec dégradé
       ctx.save();
       ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
       ctx.shadowBlur = 12;
@@ -1083,7 +1159,7 @@ function drawWeave(withBackground = false) {
 
       ctx.strokeStyle = gradient;
       ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
-      ctx.globalAlpha = 0.95;
+      ctx.globalAlpha = 1.0;
       ctx.stroke();
       ctx.restore();
 
@@ -1162,14 +1238,29 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
-      // 🔥 TRAIT PRINCIPAL FIN ET LUMINEUX
+      // 🔥 ÉTAPE 1 : HALO LUMINEUX EN DESSOUS
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.5)"; // Glow blanc
-      ctx.shadowBlur = 15; // Blur fort
+      ctx.globalAlpha = 0.4; // Très transparent
+      ctx.shadowBlur = 20; // Blur fort pour effet lumineux
+      ctx.shadowColor = word2.color;
+      
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
+      
+      ctx.lineWidth = Math.max(6, settings.lineWidth * 2.0); // Large pour halo
+      ctx.strokeStyle = word2.color;
+      ctx.stroke();
+      ctx.restore();
+
+      // 🔥 ÉTAPE 2 : TRAIT PRINCIPAL AVEC DÉGRADÉ PAR-DESSUS
+      ctx.save();
+      ctx.shadowColor = "rgba(255, 255, 255, 0.6)"; // Glow blanc supplémentaire
+      ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      ctx.globalAlpha = 0.95; // Opacité haute
+      ctx.globalAlpha = 1.0; // Opacité maximale pour voir le dégradé
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
@@ -1183,22 +1274,7 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2); // Plus fin
-      ctx.stroke();
-      ctx.restore();
-
-      // 🔥 HALO EXTÉRIEUR SUBTIL
-      ctx.save();
-      ctx.globalAlpha = 0.5; // Opacité modérée
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = word2.color;
-      
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
-      
-      ctx.lineWidth = Math.max(3, settings.lineWidth * 1.6); // Halo léger
-      ctx.strokeStyle = word2.color;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2); // Fin et précis
       ctx.stroke();
       ctx.restore();
     });
