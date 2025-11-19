@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isMobile = window.innerWidth < 768;
 
     // 🔥 DISTANCE RÉDUITE (Rapprochement des points)
-    let baseDistance = isMobile ? 0.20 : 0.25; // Était 0.25 : 0.3
+    let baseDistance = isMobile ? 0.22 : 0.26; // Était 0.25 : 0.3
 
     if (uniqueCount > 50) baseDistance = isMobile ? 0.15 : 0.18;
     else if (uniqueCount > 30) baseDistance = isMobile ? 0.18 : 0.22;
