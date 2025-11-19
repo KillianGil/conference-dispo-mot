@@ -154,23 +154,53 @@ class Particle {
 
 // ==================== GÉNÉRATEUR DE COULEURS ====================
 // ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS ====================
 const colorGenerator = {
   mode: "auto",
   customColor: "#6366f1",
+  lastHues: [], // Éviter les répétitions
 
   getColor: function () {
     if (this.mode === "custom") {
       return this.customColor;
     }
     
-    // 🔥 VRAIE VARIÉTÉ DE COULEURS
-    const hue = Math.random() * 360; // 0-360° : toutes les teintes
+    // 🔥 COULEURS DISTINCTES PAR ZONES
+    const colorZones = [
+      { name: "rouge", hue: [0, 20], sat: [60, 90], light: [45, 65] },
+      { name: "orange", hue: [20, 45], sat: [70, 95], light: [50, 70] },
+      { name: "jaune", hue: [45, 65], sat: [75, 100], light: [55, 75] },
+      { name: "vert clair", hue: [65, 120], sat: [50, 80], light: [45, 70] },
+      { name: "vert foncé", hue: [120, 150], sat: [60, 85], light: [35, 55] },
+      { name: "cyan", hue: [150, 190], sat: [55, 85], light: [50, 70] },
+      { name: "bleu clair", hue: [190, 220], sat: [60, 90], light: [55, 75] },
+      { name: "bleu foncé", hue: [220, 250], sat: [65, 90], light: [40, 60] },
+      { name: "violet", hue: [250, 280], sat: [60, 85], light: [50, 70] },
+      { name: "magenta", hue: [280, 320], sat: [65, 90], light: [45, 65] },
+      { name: "rose", hue: [320, 350], sat: [70, 95], light: [50, 70] }
+    ];
     
-    // Saturation variable : des couleurs pastels ET vives
-    const saturation = 50 + Math.random() * 50; // 50-100%
+    // Éviter les 3 dernières teintes utilisées
+    let zone;
+    let attempts = 0;
+    do {
+      zone = colorZones[Math.floor(Math.random() * colorZones.length)];
+      attempts++;
+    } while (
+      this.lastHues.length > 0 && 
+      this.lastHues.some(h => Math.abs(h - zone.hue[0]) < 30) &&
+      attempts < 20
+    );
     
-    // 🔥 LUMINOSITÉ ÉLARGIE : des couleurs sombres ET claires
-    const lightness = 35 + Math.random() * 45; // 35-80%
+    const hue = zone.hue[0] + Math.random() * (zone.hue[1] - zone.hue[0]);
+    const saturation = zone.sat[0] + Math.random() * (zone.sat[1] - zone.sat[0]);
+    const lightness = zone.light[0] + Math.random() * (zone.light[1] - zone.light[0]);
+    
+    // Mémoriser pour éviter répétitions
+    this.lastHues.push(hue);
+    if (this.lastHues.length > 3) {
+      this.lastHues.shift();
+    }
     
     return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
   },
@@ -817,24 +847,24 @@ function drawWeave(withBackground = false) {
       const perpX = (-dy / len) * offset;
       const perpY = (dx / len) * offset;
 
-      // Halo d'abord
+      // Halo discret
       ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.shadowBlur = 18;
+      ctx.globalAlpha = 0.2;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = word2.color;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
-      ctx.lineWidth = Math.max(5, settings.lineWidth * 1.8);
+      ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
 
       // Trait avec dégradé
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
-      ctx.shadowBlur = 12;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.25)";
+      ctx.shadowBlur = 8;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -849,8 +879,8 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
-      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
+      ctx.globalAlpha = 0.85;
       ctx.stroke();
       ctx.restore();
     });
@@ -884,29 +914,29 @@ function drawWeave(withBackground = false) {
 
       // Halo
       ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.shadowBlur = 15;
+      ctx.globalAlpha = 0.2;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = word2.color;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.6);
+      ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
 
       // Trait principal
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.2)";
+      ctx.shadowBlur = 6;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = word2.color;
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
-      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
+      ctx.globalAlpha = 0.8;
       ctx.stroke();
       ctx.restore();
     });
@@ -933,7 +963,7 @@ function drawWeave(withBackground = false) {
 
       ctx.save();
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(spiralX, spiralY);
@@ -942,8 +972,8 @@ function drawWeave(withBackground = false) {
       gradient.addColorStop(0, word.color);
       gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
-      ctx.globalAlpha = 0.85;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
+      ctx.globalAlpha = 0.8;
       ctx.stroke();
       ctx.restore();
     });
@@ -961,26 +991,26 @@ function drawWeave(withBackground = false) {
         const x2 = neighbor.x * width;
         const y2 = neighbor.y * height;
 
-        const opacity = Math.max(0.3, 1 - dist / 0.5);
+        const opacity = Math.max(0.25, 1 - dist / 0.5);
 
         // Halo
         ctx.save();
-        ctx.globalAlpha = opacity * 0.3;
-        ctx.shadowBlur = 12;
+        ctx.globalAlpha = opacity * 0.2;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = word.color;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5);
+        ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
         ctx.strokeStyle = word.color;
         ctx.stroke();
         ctx.restore();
 
         // Trait avec dégradé
         ctx.save();
-        ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
-        ctx.shadowBlur = 8;
+        ctx.shadowColor = "rgba(255, 255, 255, 0.2)";
+        ctx.shadowBlur = 6;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -995,8 +1025,8 @@ function drawWeave(withBackground = false) {
           ctx.strokeStyle = word.color;
         }
 
-        ctx.globalAlpha = opacity * 0.8;
-        ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
+        ctx.globalAlpha = opacity * 0.7;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
         ctx.stroke();
         ctx.restore();
       });
@@ -1015,14 +1045,14 @@ function drawWeave(withBackground = false) {
 
       // Halo
       ctx.save();
-      ctx.globalAlpha = 0.4;
+      ctx.globalAlpha = 0.25;
       ctx.shadowColor = word2.color;
-      ctx.shadowBlur = 15 * pulse;
+      ctx.shadowBlur = 10 * pulse;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.6 + pulse * 2.0);
+      ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2 + pulse * 1.5);
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
@@ -1030,7 +1060,7 @@ function drawWeave(withBackground = false) {
       // Trait principal
       ctx.save();
       ctx.shadowColor = word2.color;
-      ctx.shadowBlur = 12 * pulse;
+      ctx.shadowBlur = 8 * pulse;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -1046,8 +1076,8 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2 + pulse * 1.5);
-      ctx.globalAlpha = 0.9 + pulse * 0.1;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0 + pulse * 1.0);
+      ctx.globalAlpha = 0.8 + pulse * 0.1;
       ctx.stroke();
       ctx.restore();
 
@@ -1140,22 +1170,22 @@ function drawWeave(withBackground = false) {
 
       // Halo
       ctx.save();
-      ctx.globalAlpha = 0.35;
-      ctx.shadowBlur = 18;
+      ctx.globalAlpha = 0.22;
+      ctx.shadowBlur = 12;
       ctx.shadowColor = word2.color;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.lineWidth = Math.max(5, settings.lineWidth * 1.8);
+      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.4);
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
 
       // Trait avec dégradé
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
-      ctx.shadowBlur = 12;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.25)";
+      ctx.shadowBlur = 8;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -1166,8 +1196,8 @@ function drawWeave(withBackground = false) {
       gradient.addColorStop(1, word2.color);
 
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
-      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
+      ctx.globalAlpha = 0.85;
       ctx.stroke();
       ctx.restore();
 
@@ -1210,7 +1240,7 @@ function drawWeave(withBackground = false) {
       }
     }
   } else {
-    // ==================== 🔥 MODE STANDARD - TRAITS FINS ET LUMINEUX ====================
+    // ==================== 🔥 MODE STANDARD - TRAITS DISCRETS ====================
     connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" ||
@@ -1246,29 +1276,29 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
-      // 🔥 ÉTAPE 1 : HALO LUMINEUX EN DESSOUS
+      // 🔥 HALO TRÈS DISCRET
       ctx.save();
-      ctx.globalAlpha = 0.4; // Très transparent
-      ctx.shadowBlur = 20; // Blur fort pour effet lumineux
+      ctx.globalAlpha = 0.25; // Beaucoup plus transparent
+      ctx.shadowBlur = 12; // Blur réduit
       ctx.shadowColor = word2.color;
       
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
       
-      ctx.lineWidth = Math.max(6, settings.lineWidth * 2.0); // Large pour halo
+      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.4); // Moins large
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
 
-      // 🔥 ÉTAPE 2 : TRAIT PRINCIPAL AVEC DÉGRADÉ PAR-DESSUS
+      // 🔥 TRAIT PRINCIPAL FIN
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.6)"; // Glow blanc supplémentaire
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.3)"; // Glow blanc réduit
+      ctx.shadowBlur = 6; // Moins de blur
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      ctx.globalAlpha = 1.0; // Opacité maximale pour voir le dégradé
+      ctx.globalAlpha = 0.85; // Légèrement transparent
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
@@ -1282,7 +1312,7 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2); // Fin et précis
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0); // Encore plus fin
       ctx.stroke();
       ctx.restore();
     });
