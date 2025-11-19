@@ -338,156 +338,60 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function isPositionValid(x, y, minDist) {
-    const container = document.getElementById("canvas-container");
-    if (!container) return true;
-
-    const margin = 0.08;
-    if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
-      return false;
-    }
-
-    const uniquePositions = getUniqueWordPositions();
-    const newMaxSize = getMaxPointSize(1);
-
-    for (const pos of uniquePositions) {
-      const dx = pos.x - x;
-      const dy = pos.y - y;
+    // Plus aucune limite de bordure (plus de x < 0.1...)
+    
+    // On vérifie uniquement la distance avec les voisins
+    for (const word of displayedWords) {
+      const dx = word.x - x;
+      const dy = word.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
-      const avgScreenSize =
-        (container.clientWidth + container.clientHeight) / 2;
-      const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
-
-      const requiredDist = minDist + pointSizePercent * 0.5;
-
-      if (dist < requiredDist) {
-        return false;
-      }
+      
+      // Si on est trop près d'un autre mot, c'est non
+      if (dist < minDist) return false;
     }
-
     return true;
-  }
+}
 
-  function findValidPosition() {
-    const container = document.getElementById("canvas-container");
-    if (!container) return { x: 0.5, y: 0.5 };
+function findValidPosition() {
+  const minDist = getAdaptiveMinDistance();
+  const center = 0.5;
+  
+  // On commence à chercher près du centre
+  // S'il y a déjà 50 mots, on commence à chercher un peu plus loin directement
+  let searchRadius = 0.2 + (displayedWords.length * 0.02);
 
-    const minDist = getAdaptiveMinDistance();
+  // Tant qu'on ne trouve pas, on élargit la zone de recherche
+  // On limite à 100 tours pour pas faire planter le navigateur
+  for (let expansion = 0; expansion < 100; expansion++) {
+      
+      // On tente 50 positions au hasard dans le rayon actuel
+      for(let i = 0; i < 50; i++) {
+          // Angle totalement aléatoire (0 à 360°)
+          const angle = Math.random() * Math.PI * 2;
+          
+          // Distance aléatoire (racine carrée pour bien répartir)
+          const r = Math.sqrt(Math.random()) * searchRadius; 
+          
+          const x = center + r * Math.cos(angle);
+          const y = center + r * Math.sin(angle);
 
-    for (let i = 0; i < 150; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist)) {
-        return { x, y };
-      }
-    }
-
-    const centerX = 0.5;
-    const centerY = 0.5;
-    const maxRadius = 0.48;
-    const radiusStep = minDist * 0.6;
-
-    for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(
-        20,
-        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
-      );
-      const angleStep = (2 * Math.PI) / numPoints;
-
-      for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.6;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
           if (isPositionValid(x, y, minDist)) {
-            return { x, y };
+              return { x, y };
           }
-        }
       }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.75)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.5)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.3)) {
-        return { x, y };
-      }
-    }
-
-    const step = minDist * 0.7;
-    for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
-      for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.4;
-        const jitterY = (Math.random() - 0.5) * step * 0.4;
-        const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
-        const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
-
-        if (isPositionValid(x, y, minDist * 0.2)) {
-          return { x, y };
-        }
-      }
-    }
-
-    console.warn("⚠️ Mode sans contrainte activé");
-    for (let i = 0; i < 250; i++) {
-      const x = 0.15 + Math.random() * 0.7;
-      const y = 0.15 + Math.random() * 0.7;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const zones = [
-      { x: 0.2, y: 0.2 },
-      { x: 0.8, y: 0.2 },
-      { x: 0.2, y: 0.8 },
-      { x: 0.8, y: 0.8 },
-      { x: 0.5, y: 0.2 },
-      { x: 0.5, y: 0.8 },
-      { x: 0.2, y: 0.5 },
-      { x: 0.8, y: 0.5 },
-      { x: 0.35, y: 0.35 },
-      { x: 0.65, y: 0.35 },
-      { x: 0.35, y: 0.65 },
-      { x: 0.65, y: 0.65 },
-      { x: 0.5, y: 0.5 },
-    ];
-
-    for (const zone of zones) {
-      const x = zone.x + (Math.random() - 0.5) * 0.15;
-      const y = zone.y + (Math.random() - 0.5) * 0.15;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
-    const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
-
-    return {
-      x: Math.max(0.2, Math.min(0.8, fallbackX)),
-      y: Math.max(0.2, Math.min(0.8, fallbackY)),
-    };
+      
+      // Si on a rien trouvé dans cette zone, on élargit le rayon de 10%
+      searchRadius += 0.1;
   }
+
+  // Sécurité : si vraiment tout est bouché, on se met loin au hasard
+  const angle = Math.random() * Math.PI * 2;
+  const r = searchRadius + 0.5;
+  return {
+      x: center + r * Math.cos(angle),
+      y: center + r * Math.sin(angle)
+  };
+}
 
   function findExistingWord(text) {
     return displayedWords.find(
@@ -1423,54 +1327,51 @@ document.addEventListener("DOMContentLoaded", () => {
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       
-      // 🔥 FORMULE MAGIQUE DE LISIBILITÉ
-      // 1. Math.max(14, ...) -> Taille minimum de 14px (pour ne jamais être illisible)
-      // 2. 24 / scale -> Si on dézoome, le texte grossit pour compenser
-      const fontSize = Math.max(14, 24 / scale); 
+      // 🔥 TAILLE AMPHI ÉQUILIBRÉE
+      // Minimum 16px (sur téléphone)
+      // Maximum 42px (quand on dézoome) -> Assez gros pour lire, pas trop pour cacher
+      // La formule "28 / scale" permet de garder une taille constante quand la caméra recule
+      const fontSize = Math.max(16, Math.min(42, 28 / scale)); 
       
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
-      ctx.textBaseline = "middle"; // Centré verticalement sur le point
+      ctx.textBaseline = "middle";
 
-      // On trie pour afficher les textes les plus fréquents au dessus
-      const sortedWords = [...visibleWords].sort((a, b) => {
-         const countA = wordOccurrences[a.text.toLowerCase()] || 0;
-         const countB = wordOccurrences[b.text.toLowerCase()] || 0;
-         return countA - countB;
-      });
+      const visibleWordsCopy = [...visibleWords];
 
-      sortedWords.forEach((word) => {
+      visibleWordsCopy.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
         const pointSize = getPointRadius(occurrences);
 
-        // Calcul position (avec le flottement wobble)
         const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
         
-        // Position du texte : sous le point, ajusté selon le zoom
-        const textY = y + pointSize + (15 / scale);
+        // Texte juste en dessous du point
+        // Le décalage s'adapte aussi pour pas que le texte colle au point quand on dézoome
+        const textOffset = pointSize + (20 / scale); 
+        const textY = y + textOffset;
 
         ctx.save();
         
-        // 1. CONTOUR NOIR ÉPAIS (Outline)
-        // Permet de lire le texte même s'il est par-dessus un trait de même couleur
+        // CONTOUR NOIR (Outline)
+        // 4px c'est suffisant pour détacher le texte des lignes
         ctx.lineJoin = "round";
+        ctx.miterLimit = 2;
         ctx.lineWidth = 4; 
-        ctx.strokeStyle = "#0a0f1a"; // Couleur du fond (noir)
+        ctx.strokeStyle = "#0a0f1a"; 
         ctx.strokeText(word.text, x, textY);
 
-        // 2. LE TEXTE
-        ctx.fillStyle = word.color; // Texte de la couleur du mot
-        // Option alternative : ctx.fillStyle = "white"; (si tu préfères tout blanc)
-        ctx.shadowBlur = 0; // Pas de flou sur le texte pour la netteté
+        // TEXTE
+        ctx.fillStyle = word.color;
+        ctx.shadowBlur = 0;
         ctx.fillText(word.text, x, textY);
 
         ctx.restore();
       });
     }
-
+    
     ctx.restore();
   }
 
