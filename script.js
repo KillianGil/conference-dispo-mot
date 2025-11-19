@@ -176,6 +176,17 @@ const colorGenerator = {
   },
 };
 
+// ==================== ANIMATIONS D'APPARITION ====================
+const appearingWords = new Set();
+
+function animateWordAppearance(word) {
+  appearingWords.add(word);
+  
+  setTimeout(() => {
+    appearingWords.delete(word);
+  }, 600);
+}
+
 // ==================== INITIALISATION DOM ====================
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("weave-canvas");
@@ -1332,7 +1343,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     );
 
-    // ==================== DESSIN DES POINTS ====================
+    // ==================== DESSIN DES POINTS (AVEC ANIMATION) ====================
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const pointSize = getPointRadius(occurrences);
@@ -1346,14 +1357,30 @@ document.addEventListener("DOMContentLoaded", () => {
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
 
+      // Animation d'apparition
+      const isAppearing = appearingWords.has(word);
+      let appearScale = 1;
+      let appearOpacity = 1;
+      
+      if (isAppearing) {
+        const elapsed = Date.now() - word.timestamp;
+        const progress = Math.min(elapsed / 600, 1);
+        
+        // Effet de "pop" élastique
+        appearScale = 0.3 + progress * 0.7 + Math.sin(progress * Math.PI) * 0.3;
+        appearOpacity = progress;
+      }
+
       if (settings.enableParticles && Math.random() < 0.06) {
         particles.push(getParticle(x, y, word.color));
       }
 
+      ctx.save();
+      ctx.globalAlpha = appearOpacity;
+
       const pulseFactor = isHighlighted ? 6 : 4;
       const pulseSize =
-        finalPointSize +
-        10 +
+        (finalPointSize + 10) * appearScale +
         Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
           pulseFactor;
 
@@ -1361,19 +1388,19 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
       ctx.lineWidth = isHighlighted ? 5 : 4;
-      ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
+      ctx.globalAlpha = (isHighlighted ? 0.8 : 0.5) * appearOpacity;
       ctx.stroke();
 
+      ctx.globalAlpha = appearOpacity;
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
-      ctx.globalAlpha = 1;
       ctx.shadowColor = word.color;
       ctx.shadowBlur = isHighlighted ? 28 : 20;
       ctx.fill();
 
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
       ctx.strokeStyle = isHighlighted
         ? "rgba(255, 255, 255, 0.95)"
         : "rgba(255, 255, 255, 0.7)";
@@ -1381,7 +1408,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
+      ctx.arc(x, y, finalPointSize * 0.35 * appearScale, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
       ctx.shadowBlur = 8;
       ctx.shadowColor = "white";
@@ -1389,6 +1416,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
+      ctx.restore();
     });
 
     // ==================== DESSIN DES TEXTES ====================
@@ -1412,6 +1440,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const y = word.y * height + wobbleY;
         const textY = y - pointSize - 18;
 
+        // Animation d'apparition pour le texte
+        const isAppearing = appearingWords.has(word);
+        let textOpacity = 1;
+        
+        if (isAppearing) {
+          const elapsed = Date.now() - word.timestamp;
+          const progress = Math.min(elapsed / 600, 1);
+          textOpacity = progress;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = textOpacity;
+
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 3;
@@ -1426,8 +1467,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
 
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
+        ctx.restore();
       });
     }
 
@@ -1497,7 +1537,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <!-- NOUVELLES STATS AVANCÉES -->
         <div class="bg-gray-700/30 p-3 rounded-lg">
-          <h4 class="text-sm font-semibold text-gray-300 mb-2">🧵 Complexité du tissage</h4>
+          <h4 class="text-sm font-semibold text-gray-300 mb-2">
+          🧵 Complexité du tissage</h4>
           <div class="flex justify-between items-center">
             <span class="text-xs text-gray-400">Croisements de fils</span>
             <span class="text-lg font-bold text-orange-400">${advStats.crossings}</span>
@@ -1604,6 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (!existing) {
           newWords.push(fw);
+          animateWordAppearance(fw); // ANIMATION D'APPARITION
         }
       });
 
@@ -2282,18 +2324,20 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       document.addEventListener("fullscreenchange", () => {
-        const icon = fullscreenButton.querySelector("svg path");
+        const icon = fullscreenButton.querySelector("svg");
         if (document.fullscreenElement) {
-          icon.setAttribute(
-            "d",
-            "M6 18L18 6M6 6l12 12"
-          );
-          fullscreenButton.title = "Quitter le plein écran";
+          // Mode plein écran actif - Icône "Quitter"
+          icon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+          `;
+          fullscreenButton.title = "Quitter le plein écran (Échap)";
         } else {
-          icon.setAttribute(
-            "d",
-            "M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5"
-          );
+          // Mode normal - Icône "Plein écran"
+          icon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+          `;
           fullscreenButton.title = "Plein écran";
         }
       });
@@ -2492,21 +2536,15 @@ document.addEventListener("DOMContentLoaded", () => {
         customPicker.classList.remove("hidden");
         colorGenerator.setMode("custom");
         
-        // APPLIQUER À TOUS LES MOTS
         const customColor = document.getElementById("color-picker-input").value;
         displayedWords.forEach(word => {
           word.color = customColor;
         });
-        wordOccurrencesCache.clear();
-        geometryCache.clear();
         scheduleRedraw();
-        updateWordList(displayedWords);
-        updateStats();
       } else {
         customPicker.classList.add("hidden");
         colorGenerator.setMode("auto");
         
-        // COULEURS ALÉATOIRES À TOUS
         displayedWords.forEach(word => {
           word.color = colorGenerator.getColor();
         });
@@ -2525,23 +2563,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const colorPreview = document.getElementById("color-preview");
 
   if (colorPickerInput && colorHexInput && colorPreview) {
-    colorPickerInput.addEventListener("input", (e) => {
-      const color = e.target.value;
-      colorHexInput.value = color;
-      colorPreview.style.background = color;
+    const applyCustomColor = (color) => {
       colorGenerator.setCustomColor(color);
       
-      // APPLIQUER EN TEMPS RÉEL
       if (document.querySelector('input[name="color-mode"]:checked').value === "custom") {
         displayedWords.forEach(word => {
           word.color = color;
         });
-        wordOccurrencesCache.clear();
-        geometryCache.clear();
         scheduleRedraw();
-        updateWordList(displayedWords);
-        updateStats();
       }
+    };
+
+    colorPickerInput.addEventListener("input", (e) => {
+      const color = e.target.value;
+      colorHexInput.value = color;
+      colorPreview.style.background = color;
+      applyCustomColor(color);
     });
 
     colorHexInput.addEventListener("input", (e) => {
@@ -2556,20 +2593,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (hexRegex.test(color)) {
         colorPickerInput.value = color;
         colorPreview.style.background = color;
-        colorGenerator.setCustomColor(color);
         e.target.classList.remove("border-red-500");
-        
-        // APPLIQUER EN TEMPS RÉEL
-        if (document.querySelector('input[name="color-mode"]:checked').value === "custom") {
-          displayedWords.forEach(word => {
-            word.color = color;
-          });
-          wordOccurrencesCache.clear();
-          geometryCache.clear();
-          scheduleRedraw();
-          updateWordList(displayedWords);
-          updateStats();
-        }
+        applyCustomColor(color);
       } else if (color.length === 7) {
         e.target.classList.add("border-red-500");
       }
@@ -2687,7 +2712,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
     const existingColors = displayedWords.map(w => w.color);
     
-    // Fisher-Yates shuffle
     for (let i = existingColors.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
@@ -2703,7 +2727,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateWordList(displayedWords);
     updateStats();
     
-    // Animation feedback
     const btn = document.getElementById("shuffle-colors-button");
     btn.style.transform = "rotate(360deg)";
     btn.style.transition = "transform 0.6s ease";
@@ -2713,7 +2736,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
     const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
     
-    // Fisher-Yates shuffle
     for (let i = existingPositions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
@@ -2728,7 +2750,6 @@ document.addEventListener("DOMContentLoaded", () => {
     geometryCache.clear();
     scheduleRedraw();
     
-    // Animation feedback
     const btn = document.getElementById("shuffle-positions-button");
     btn.style.transform = "scale(1.2) rotate(180deg)";
     btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
