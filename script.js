@@ -1905,19 +1905,20 @@ function detectAndResolveOverlaps() {
     });
   }
 
-  // ==================== UPDATE WORD LIST COLORS ====================
+// ==================== MISE À JOUR COULEURS LISTE ====================
 function updateWordListColors() {
   const wordItems = document.querySelectorAll('.word-item');
   
   wordItems.forEach(item => {
     const key = item.dataset.key;
+    // Retrouver le mot correspondant dans les données
     const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
     
     if (word) {
       // Mettre à jour la bordure gauche
       item.style.borderLeft = `4px solid ${word.color}`;
       
-      // Mettre à jour le point coloré
+      // Mettre à jour le point coloré (le span avec classe w-3)
       const colorDot = item.querySelector('span.w-3');
       if (colorDot) {
         colorDot.style.backgroundColor = word.color;
@@ -2646,28 +2647,33 @@ function updateWordListColors() {
     });
   }
 
-  // Color mode
-// Color mode
 // Color mode
 document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     const customPicker = document.getElementById("custom-color-picker");
+    
     if (e.target.value === "custom") {
+      // Mode Personnalisé
       customPicker.classList.remove("hidden");
       colorGenerator.setMode("custom");
       
       const customColor = document.getElementById("color-picker-input").value;
+      
+      // Appliquer la couleur à TOUS les mots
       displayedWords.forEach(word => {
         word.color = customColor;
       });
       
       colorsShuffled = false;
       scheduleRedraw();
-      updateWordListColors(); // 🔥 AJOUTER ICI
+      updateWordListColors(); // <--- AJOUT ICI : Met à jour la liste
+      
     } else {
+      // Mode Aléatoire
       customPicker.classList.add("hidden");
       colorGenerator.setMode("auto");
       
+      // Régénérer des couleurs aléatoires
       displayedWords.forEach(word => {
         word.color = colorGenerator.getColor();
       });
@@ -2676,12 +2682,11 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
       wordOccurrencesCache.clear();
       geometryCache.clear();
       scheduleRedraw();
-      updateWordListColors(); // 🔥 AJOUTER ICI
+      updateWordListColors(); // <--- AJOUT ICI : Met à jour la liste
       updateStats();
     }
   });
 });
-
   // Color picker
   const colorPickerInput = document.getElementById("color-picker-input");
   const colorHexInput = document.getElementById("color-hex-input");
@@ -2696,6 +2701,7 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
           word.color = color;
         });
         scheduleRedraw();
+        updateWordListColors();
       }
     };
 
