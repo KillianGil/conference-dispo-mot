@@ -153,6 +153,7 @@ class Particle {
 }
 
 // ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS ====================
 const colorGenerator = {
   mode: "auto",
   customColor: "#6366f1",
@@ -161,9 +162,16 @@ const colorGenerator = {
     if (this.mode === "custom") {
       return this.customColor;
     }
-    const hue = Math.random() * 360;
-    const saturation = 75 + Math.random() * 25; // 🔥 75-100% au lieu de 65-95%
-    const lightness = 55 + Math.random() * 20;  // 🔥 55-75% au lieu de 45-70%
+    
+    // 🔥 VRAIE VARIÉTÉ DE COULEURS
+    const hue = Math.random() * 360; // 0-360° : toutes les teintes
+    
+    // Saturation variable : des couleurs pastels ET vives
+    const saturation = 50 + Math.random() * 50; // 50-100%
+    
+    // 🔥 LUMINOSITÉ ÉLARGIE : des couleurs sombres ET claires
+    const lightness = 35 + Math.random() * 45; // 35-80%
+    
     return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
   },
 
