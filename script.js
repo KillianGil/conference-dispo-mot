@@ -54,24 +54,7 @@ const MODE_DESCRIPTIONS = {
   web: "Réseau interconnecté dense",
   pulse: "Ondes de choc lumineuses",
   basket: "Motif de vannerie croisé",
-  flow: "Animation fluide chronologique avec effet de flux",
-};
-
-// Prévisualisations des modes
-const MODE_PREVIEWS = {
-  chronological: "→ → → (séquence temporelle)",
-  random: "⚡ ↔ ↕ (connexions aléatoires)",
-  proximity: "⊕ ⊙ ⊗ (mots proches)",
-  color: "🌈 (harmonie chromatique)",
-  resonance: "💫 (lettres communes)",
-  constellation: "✨ ⋆ ☆ (effet étoilé)",
-  waves: "〰️ ∼ ≈ (courbes fluides)",
-  ripple: "◎ ◉ ○ (ondulations)",
-  spiral: "🌀 (spirale hypnotique)",
-  web: "🕸️ (réseau dense)",
-  pulse: "⚡ ⚡ ⚡ (ondes lumineuses)",
-  basket: "⊞ ⊟ (vannerie)",
-  flow: "⟿ ⇝ ⟹ (flux temporel)",
+  flow: "Particule lumineuse voyageant à travers le tissage chronologique",
 };
 
 // ==================== UTILITAIRES ====================
@@ -238,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     linkMode: "chronological",
     showWords: true,
     animateLines: true,
-    lineWidth: 2,
+    lineWidth: 2.5,
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
@@ -525,7 +508,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const x = word.x * width * scale + offsetX;
     const y = word.y * height * scale + offsetY;
 
-    // Marge généreuse pour éviter les disparitions prématurées
     const margin = Math.max(200, Math.max(width, height) * 0.3);
 
     return (
@@ -551,6 +533,107 @@ document.addEventListener("DOMContentLoaded", () => {
 
     wordOccurrencesCache.set(cacheKey, counts);
     return counts;
+  }
+
+  // ==================== STATISTIQUES AVANCÉES ====================
+  function calculateAdvancedStats() {
+    if (displayedWords.length === 0) return null;
+
+    // 1. CROISEMENTS DE TRAITS
+    function doSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const det = (x2 - x1) * (y4 - y3) - (x4 - x3) * (y2 - y1);
+      if (det === 0) return false;
+      
+      const lambda = ((y4 - y3) * (x4 - x1) + (x3 - x4) * (y4 - y1)) / det;
+      const gamma = ((y1 - y2) * (x4 - x1) + (x2 - x1) * (y4 - y1)) / det;
+      
+      return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+
+    const connections = calculateConnections(settings.linkMode, displayedWords, 1, 1);
+    let crossings = 0;
+    
+    for (let i = 0; i < connections.length; i++) {
+      for (let j = i + 1; j < connections.length; j++) {
+        const [w1a, w1b] = connections[i];
+        const [w2a, w2b] = connections[j];
+        
+        if (doSegmentsIntersect(
+          w1a.x, w1a.y, w1b.x, w1b.y,
+          w2a.x, w2a.y, w2b.x, w2b.y
+        )) {
+          crossings++;
+        }
+      }
+    }
+
+    // 2. INTENSITÉ LUMINEUSE
+    function hslToLightness(hslString) {
+      const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+      return match ? parseInt(match[3]) : 50;
+    }
+
+    const lightnesses = displayedWords.map(w => hslToLightness(w.color));
+    const avgLightness = lightnesses.reduce((a, b) => a + b, 0) / lightnesses.length;
+    const lightIntensity = avgLightness > 55 ? "Lumineuse ✨" : 
+                          avgLightness > 45 ? "Équilibrée ⚖️" : 
+                          "Sombre 🌙";
+
+    // 3. PALETTE CHROMATIQUE
+    const colorCounts = {};
+    displayedWords.forEach(w => {
+      const hue = w.color.match(/hsl\((\d+)/)[1];
+      const hueRange = Math.floor(hue / 30) * 30;
+      colorCounts[hueRange] = (colorCounts[hueRange] || 0) + 1;
+    });
+
+    const topColors = Object.entries(colorCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([hue, count]) => ({
+        color: `hsl(${hue}, 70%, 60%)`,
+        name: getColorName(parseInt(hue)),
+        count: count,
+        percentage: ((count / displayedWords.length) * 100).toFixed(1)
+      }));
+
+    // 4. DISPERSION SPATIALE
+    const centerX = displayedWords.reduce((sum, w) => sum + w.x, 0) / displayedWords.length;
+    const centerY = displayedWords.reduce((sum, w) => sum + w.y, 0) / displayedWords.length;
+    const avgDistance = displayedWords.reduce((sum, w) => {
+      const dx = w.x - centerX;
+      const dy = w.y - centerY;
+      return sum + Math.sqrt(dx * dx + dy * dy);
+    }, 0) / displayedWords.length;
+    
+    const dispersion = avgDistance > 0.3 ? "Étendue 🌍" : 
+                      avgDistance > 0.2 ? "Répartie 🎯" : 
+                      "Concentrée 🔬";
+
+    // 5. DIVERSITÉ
+    const wordOccurrences = getWordOccurrences();
+    const uniqueWords = Object.keys(wordOccurrences).length;
+    const diversity = ((uniqueWords / displayedWords.length) * 100).toFixed(0);
+
+    return {
+      crossings,
+      lightIntensity,
+      avgLightness: avgLightness.toFixed(0),
+      topColors,
+      dispersion,
+      avgDistance: (avgDistance * 100).toFixed(0),
+      diversity
+    };
+  }
+
+  function getColorName(hue) {
+    if (hue < 15 || hue >= 345) return "Rouge";
+    if (hue < 45) return "Orange";
+    if (hue < 75) return "Jaune";
+    if (hue < 165) return "Vert";
+    if (hue < 255) return "Bleu";
+    if (hue < 285) return "Violet";
+    return "Rose";
   }
 
   // ==================== CALCUL DES CONNEXIONS (AVEC CACHE) ====================
@@ -662,20 +745,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return;
 
-    // Forcer un reflow pour obtenir les vraies dimensions
     const displayValue = container.style.display;
     container.style.display = "none";
-    void container.offsetHeight; // Force reflow
+    void container.offsetHeight;
     container.style.display = displayValue || "";
 
     const dpr = window.devicePixelRatio || 1;
     const rect = container.getBoundingClientRect();
 
-    // Utiliser les dimensions réelles du conteneur
     const width = rect.width;
     const height = rect.height;
 
-    // Vérification de sécurité
     if (width === 0 || height === 0) {
       console.warn("⚠️ Dimensions invalides, nouvelle tentative...");
       setTimeout(resizeCanvas, 100);
@@ -742,7 +822,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
 
-    // Vérification plus robuste
     const rect = container.getBoundingClientRect();
     const actualWidth = rect.width;
     const actualHeight = rect.height;
@@ -772,8 +851,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // Pas de filtrage agressif - on garde tous les mots
-    // Le GPU gère le clipping automatiquement
     const visibleWords = displayedWords;
 
     const connections = calculateConnections(
@@ -1068,11 +1145,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctx.globalAlpha = 1;
     } else if (settings.linkMode === "flow") {
-      const time = Date.now() * 0.0008;
+      const time = Date.now() * 0.001;
       const sortedWords = [...displayedWords].sort(
         (a, b) => a.timestamp - b.timestamp
       );
 
+      // Dessiner les traits FIXES
       for (let i = 1; i < sortedWords.length; i++) {
         const word1 = sortedWords[i - 1];
         const word2 = sortedWords[i];
@@ -1082,49 +1160,65 @@ document.addEventListener("DOMContentLoaded", () => {
         const x2 = word2.x * width;
         const y2 = word2.y * height;
 
-        const flowProgress = (time + i * 0.1) % 2;
-        const flowIntensity = Math.sin(flowProgress * Math.PI);
-
         ctx.save();
-        ctx.shadowColor = word2.color;
-        ctx.shadowBlur = 15 * flowIntensity;
-
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2;
-        const controlOffset = 30 * Math.sin(time * 2 + i);
+        ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+        ctx.shadowBlur = 6;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.quadraticCurveTo(
-          midX + controlOffset,
-          midY - controlOffset,
-          x2,
-          y2
-        );
+        ctx.lineTo(x2, y2);
 
         const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
         gradient.addColorStop(0, word1.color);
-        gradient.addColorStop(flowProgress / 2, "white");
         gradient.addColorStop(1, word2.color);
 
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = Math.max(
-          2,
-          settings.lineWidth * (1 + flowIntensity * 0.5)
-        );
-        ctx.globalAlpha = 0.7 + flowIntensity * 0.2;
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2);
+        ctx.globalAlpha = 0.85;
         ctx.stroke();
         ctx.restore();
 
-        const particleX = x1 + (x2 - x1) * (flowProgress / 2);
-        const particleY = y1 + (y2 - y1) * (flowProgress / 2);
+        // Particule lumineuse qui voyage sur TOUT le chemin
+        const totalSegments = sortedWords.length - 1;
+        const globalProgress = (time * 0.3) % totalSegments;
+        const currentSegment = Math.floor(globalProgress);
+        const segmentProgress = globalProgress - currentSegment;
 
-        ctx.beginPath();
-        ctx.arc(particleX, particleY, 5, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = word2.color;
-        ctx.fill();
+        if (i - 1 === currentSegment) {
+          const particleX = x1 + (x2 - x1) * segmentProgress;
+          const particleY = y1 + (y2 - y1) * segmentProgress;
+
+          // Particule principale
+          ctx.save();
+          ctx.shadowColor = "white";
+          ctx.shadowBlur = 25;
+          ctx.beginPath();
+          ctx.arc(particleX, particleY, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "white";
+          ctx.fill();
+
+          // Halo coloré
+          ctx.beginPath();
+          ctx.arc(particleX, particleY, 12, 0, Math.PI * 2);
+          ctx.strokeStyle = word2.color;
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.6;
+          ctx.stroke();
+
+          // Traînée lumineuse
+          for (let trail = 1; trail <= 3; trail++) {
+            const trailProgress = Math.max(0, segmentProgress - trail * 0.08);
+            const trailX = x1 + (x2 - x1) * trailProgress;
+            const trailY = y1 + (y2 - y1) * trailProgress;
+            
+            ctx.beginPath();
+            ctx.arc(trailX, trailY, 4 - trail, 0, Math.PI * 2);
+            ctx.fillStyle = word2.color;
+            ctx.globalAlpha = 0.3 / trail;
+            ctx.fill();
+          }
+          ctx.restore();
+        }
       }
     } else {
       // Mode standard
@@ -1378,6 +1472,8 @@ document.addEventListener("DOMContentLoaded", () => {
       connectionCount = displayedWords.length * 2;
     }
 
+    const advStats = calculateAdvancedStats();
+
     let html = `
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
@@ -1386,8 +1482,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="text-xs text-gray-400">Contributions</div>
           </div>
           <div class="bg-gray-700/50 p-3 rounded-lg">
-            <div class="text-2xl font-bold text-indigo-400">${uniqueWords}</div>
-            <div class="text-xs text-gray-400">Mots uniques</div>
+            <div class="text-2xl font-bold text-indigo-400">${advStats.diversity}%</div>
+            <div class="text-xs text-gray-400">Diversité</div>
           </div>
           <div class="bg-gray-700/50 p-3 rounded-lg">
             <div class="text-2xl font-bold text-indigo-400">${connectionCount}</div>
@@ -1398,6 +1494,58 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="text-xs text-gray-400">Minutes</div>
           </div>
         </div>
+
+        <!-- NOUVELLES STATS AVANCÉES -->
+        <div class="bg-gray-700/30 p-3 rounded-lg">
+          <h4 class="text-sm font-semibold text-gray-300 mb-2">🧵 Complexité du tissage</h4>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-400">Croisements de fils</span>
+            <span class="text-lg font-bold text-orange-400">${advStats.crossings}</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-700/30 p-3 rounded-lg">
+          <h4 class="text-sm font-semibold text-gray-300 mb-2">✨ Intensité lumineuse</h4>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs text-gray-400">Luminosité moyenne</span>
+            <span class="text-sm font-bold text-yellow-400">${advStats.lightIntensity}</span>
+          </div>
+          <div class="w-full bg-gray-600 rounded-full h-2">
+            <div class="bg-gradient-to-r from-gray-800 via-gray-500 to-white h-2 rounded-full" 
+                 style="width: ${advStats.avgLightness}%"></div>
+          </div>
+        </div>
+
+        <div class="bg-gray-700/30 p-3 rounded-lg">
+          <h4 class="text-sm font-semibold text-gray-300 mb-2">🎨 Palette chromatique</h4>
+          <div class="space-y-2">
+            ${advStats.topColors.map((c, i) => `
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full border-2 border-gray-600" 
+                     style="background: ${c.color}; box-shadow: 0 0 10px ${c.color}"></div>
+                <div class="flex-1">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-300">${c.name}</span>
+                    <span class="text-xs text-gray-400">${c.percentage}%</span>
+                  </div>
+                  <div class="w-full bg-gray-600 rounded-full h-1 mt-1">
+                    <div class="h-1 rounded-full" 
+                         style="width: ${c.percentage}%; background: ${c.color}"></div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="bg-gray-700/30 p-3 rounded-lg">
+          <h4 class="text-sm font-semibold text-gray-300 mb-2">🗺️ Dispersion spatiale</h4>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-400">Répartition de l'espace</span>
+            <span class="text-sm font-bold text-blue-400">${advStats.dispersion}</span>
+          </div>
+        </div>
+
         <div class="mt-4">
           <h4 class="text-sm font-semibold text-gray-300 mb-2">🔝 Top 5 des mots</h4>
           <div class="space-y-2">
@@ -2133,7 +2281,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Mise à jour de l'icône
       document.addEventListener("fullscreenchange", () => {
         const icon = fullscreenButton.querySelector("svg path");
         if (document.fullscreenElement) {
@@ -2161,7 +2308,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Tentative d'ajout de mot:", text);
 
-    // Vérification mots interdits
     if (isForbidden(text)) {
       wordInput.value = "";
       wordInput.placeholder = "⚠️ Mot inapproprié";
@@ -2319,7 +2465,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Link mode selector avec prévisualisation
+  // Link mode selector
   const linkModeSelect = document.getElementById("link-mode-select");
   const modeDescription = document.getElementById("mode-description");
 
@@ -2328,11 +2474,9 @@ document.addEventListener("DOMContentLoaded", () => {
       settings.linkMode = e.target.value;
 
       const description = MODE_DESCRIPTIONS[e.target.value];
-      const preview = MODE_PREVIEWS[e.target.value] || "";
 
       modeDescription.innerHTML = `
         <div class="font-medium mb-1">${description}</div>
-        ${preview ? `<div class="text-xs text-gray-400 font-mono mt-1">${preview}</div>` : ""}
       `;
 
       geometryCache.clear();
@@ -2347,9 +2491,30 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target.value === "custom") {
         customPicker.classList.remove("hidden");
         colorGenerator.setMode("custom");
+        
+        // APPLIQUER À TOUS LES MOTS
+        const customColor = document.getElementById("color-picker-input").value;
+        displayedWords.forEach(word => {
+          word.color = customColor;
+        });
+        wordOccurrencesCache.clear();
+        geometryCache.clear();
+        scheduleRedraw();
+        updateWordList(displayedWords);
+        updateStats();
       } else {
         customPicker.classList.add("hidden");
         colorGenerator.setMode("auto");
+        
+        // COULEURS ALÉATOIRES À TOUS
+        displayedWords.forEach(word => {
+          word.color = colorGenerator.getColor();
+        });
+        wordOccurrencesCache.clear();
+        geometryCache.clear();
+        scheduleRedraw();
+        updateWordList(displayedWords);
+        updateStats();
       }
     });
   });
@@ -2365,6 +2530,18 @@ document.addEventListener("DOMContentLoaded", () => {
       colorHexInput.value = color;
       colorPreview.style.background = color;
       colorGenerator.setCustomColor(color);
+      
+      // APPLIQUER EN TEMPS RÉEL
+      if (document.querySelector('input[name="color-mode"]:checked').value === "custom") {
+        displayedWords.forEach(word => {
+          word.color = color;
+        });
+        wordOccurrencesCache.clear();
+        geometryCache.clear();
+        scheduleRedraw();
+        updateWordList(displayedWords);
+        updateStats();
+      }
     });
 
     colorHexInput.addEventListener("input", (e) => {
@@ -2381,6 +2558,18 @@ document.addEventListener("DOMContentLoaded", () => {
         colorPreview.style.background = color;
         colorGenerator.setCustomColor(color);
         e.target.classList.remove("border-red-500");
+        
+        // APPLIQUER EN TEMPS RÉEL
+        if (document.querySelector('input[name="color-mode"]:checked').value === "custom") {
+          displayedWords.forEach(word => {
+            word.color = color;
+          });
+          wordOccurrencesCache.clear();
+          geometryCache.clear();
+          scheduleRedraw();
+          updateWordList(displayedWords);
+          updateStats();
+        }
       } else if (color.length === 7) {
         e.target.classList.add("border-red-500");
       }
@@ -2442,15 +2631,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   document.getElementById("line-width").addEventListener("input", (e) => {
-    settings.lineWidth = parseInt(e.target.value);
+    settings.lineWidth = parseFloat(e.target.value);
     document.getElementById("line-width-value").textContent = e.target.value;
     scheduleRedraw();
   });
 
-  // Panel toggle avec redimensionnement
+  // Panel toggle
   togglePanelButton.addEventListener("click", () => {
     mainContainer.classList.toggle("panel-hidden");
-    // Attendre la fin de la transition CSS
     setTimeout(() => resizeCanvas(), 350);
   });
 
@@ -2495,7 +2683,59 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Reset button avec modal sécurisé
+  // Shuffle buttons
+  document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
+    const existingColors = displayedWords.map(w => w.color);
+    
+    // Fisher-Yates shuffle
+    for (let i = existingColors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
+    }
+    
+    displayedWords.forEach((word, i) => {
+      word.color = existingColors[i];
+    });
+    
+    wordOccurrencesCache.clear();
+    geometryCache.clear();
+    scheduleRedraw();
+    updateWordList(displayedWords);
+    updateStats();
+    
+    // Animation feedback
+    const btn = document.getElementById("shuffle-colors-button");
+    btn.style.transform = "rotate(360deg)";
+    btn.style.transition = "transform 0.6s ease";
+    setTimeout(() => { btn.style.transform = ""; }, 600);
+  });
+
+  document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
+    const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
+    
+    // Fisher-Yates shuffle
+    for (let i = existingPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
+    }
+    
+    displayedWords.forEach((word, i) => {
+      word.x = existingPositions[i].x;
+      word.y = existingPositions[i].y;
+    });
+    
+    wordOccurrencesCache.clear();
+    geometryCache.clear();
+    scheduleRedraw();
+    
+    // Animation feedback
+    const btn = document.getElementById("shuffle-positions-button");
+    btn.style.transform = "scale(1.2) rotate(180deg)";
+    btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => { btn.style.transform = ""; }, 500);
+  });
+
+  // Reset button
   resetButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
