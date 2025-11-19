@@ -370,126 +370,130 @@ document.addEventListener("DOMContentLoaded", () => {
     return true;
   }
 
-  function findValidPosition() {
-    const container = document.getElementById("canvas-container");
-    if (!container) return { x: 0.5, y: 0.5 };
-
-    const minDist = getAdaptiveMinDistance();
-
-    for (let i = 0; i < 150; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist)) {
-        return { x, y };
-      }
-    }
-
-    const centerX = 0.5;
-    const centerY = 0.5;
-    const maxRadius = 0.48;
-    const radiusStep = minDist * 0.6;
-
-    for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(
-        20,
-        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
-      );
-      const angleStep = (2 * Math.PI) / numPoints;
-
-      for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.6;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
-          if (isPositionValid(x, y, minDist)) {
-            return { x, y };
-          }
-        }
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.75)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.5)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.3)) {
-        return { x, y };
-      }
-    }
-
-    const step = minDist * 0.7;
-    for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
-      for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.4;
-        const jitterY = (Math.random() - 0.5) * step * 0.4;
-        const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
-        const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
-
-        if (isPositionValid(x, y, minDist * 0.2)) {
-          return { x, y };
-        }
-      }
-    }
-
-    console.warn("⚠️ Mode sans contrainte activé");
-    for (let i = 0; i < 250; i++) {
-      const x = 0.15 + Math.random() * 0.7;
-      const y = 0.15 + Math.random() * 0.7;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const zones = [
-      { x: 0.2, y: 0.2 },
-      { x: 0.8, y: 0.2 },
-      { x: 0.2, y: 0.8 },
-      { x: 0.8, y: 0.8 },
-      { x: 0.5, y: 0.2 },
-      { x: 0.5, y: 0.8 },
-      { x: 0.2, y: 0.5 },
-      { x: 0.8, y: 0.5 },
-      { x: 0.35, y: 0.35 },
-      { x: 0.65, y: 0.35 },
-      { x: 0.35, y: 0.65 },
-      { x: 0.65, y: 0.65 },
-      { x: 0.5, y: 0.5 },
-    ];
-
-    for (const zone of zones) {
-      const x = zone.x + (Math.random() - 0.5) * 0.15;
-      const y = zone.y + (Math.random() - 0.5) * 0.15;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
-    const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
-
-    return {
-      x: Math.max(0.2, Math.min(0.8, fallbackX)),
-      y: Math.max(0.2, Math.min(0.8, fallbackY)),
-    };
+ // ==================== BOUNDING BOX DYNAMIQUE ====================
+function getBoundingBox() {
+  if (displayedWords.length === 0) {
+    return { minX: 0.3, maxX: 0.7, minY: 0.3, maxY: 0.7 };
   }
+  
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  
+  displayedWords.forEach(word => {
+    minX = Math.min(minX, word.x);
+    maxX = Math.max(maxX, word.x);
+    minY = Math.min(minY, word.y);
+    maxY = Math.max(maxY, word.y);
+  });
+  
+  // Élargir la bbox de 15% pour permettre l'expansion
+  const marginX = (maxX - minX) * 0.15 || 0.1;
+  const marginY = (maxY - minY) * 0.15 || 0.1;
+  
+  return {
+    minX: Math.max(0.08, minX - marginX),
+    maxX: Math.min(0.92, maxX + marginX),
+    minY: Math.max(0.08, minY - marginY),
+    maxY: Math.min(0.92, maxY + marginY),
+  };
+}
+
+// ==================== DISTANCE AU PLUS PROCHE VOISIN ====================
+function getDistanceToNearestNeighbor(x, y) {
+  if (displayedWords.length === 0) return Infinity;
+  
+  const uniquePositions = getUniqueWordPositions();
+  
+  let minDist = Infinity;
+  for (const pos of uniquePositions) {
+    const dx = pos.x - x;
+    const dy = pos.y - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < minDist) {
+      minDist = dist;
+    }
+  }
+  
+  return minDist;
+}
+
+// ==================== BEST-CANDIDATE (Mitchell's Algorithm) ====================
+function findValidPosition() {
+  const container = document.getElementById("canvas-container");
+  if (!container) return { x: 0.5, y: 0.5 };
+  
+  const minDist = getAdaptiveMinDistance();
+  
+  // Placement spécial pour les 5 premiers mots (initialisation)
+  if (displayedWords.length < 5) {
+    const initialPositions = [
+      { x: 0.5, y: 0.5 },   // Centre
+      { x: 0.25, y: 0.25 }, // Haut-gauche
+      { x: 0.75, y: 0.25 }, // Haut-droite
+      { x: 0.25, y: 0.75 }, // Bas-gauche
+      { x: 0.75, y: 0.75 }, // Bas-droite
+    ];
+    
+    for (const pos of initialPositions) {
+      if (isPositionValid(pos.x, pos.y, minDist)) {
+        return pos;
+      }
+    }
+  }
+  
+  // Best-Candidate Algorithm
+  const bbox = getBoundingBox();
+  const numCandidates = 50;
+  
+  let bestCandidate = null;
+  let bestDistance = 0;
+  
+  // Générer et évaluer les candidats
+  for (let i = 0; i < numCandidates; i++) {
+    const candidate = {
+      x: bbox.minX + Math.random() * (bbox.maxX - bbox.minX),
+      y: bbox.minY + Math.random() * (bbox.maxY - bbox.minY),
+    };
+    
+    // Vérifier si la position est valide
+    if (!isPositionValid(candidate.x, candidate.y, minDist)) {
+      continue;
+    }
+    
+    // Mesurer la distance au plus proche voisin
+    const distToNearest = getDistanceToNearestNeighbor(candidate.x, candidate.y);
+    
+    // Garder le candidat le plus isolé
+    if (distToNearest > bestDistance) {
+      bestDistance = distToNearest;
+      bestCandidate = candidate;
+    }
+  }
+  
+  // Si on a trouvé un bon candidat
+  if (bestCandidate) {
+    return bestCandidate;
+  }
+  
+  // Fallback : élargir la zone de recherche
+  console.warn("⚠️ Élargissement de la zone de recherche...");
+  
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const x = 0.1 + Math.random() * 0.8;
+    const y = 0.1 + Math.random() * 0.8;
+    
+    if (isPositionValid(x, y, minDist * 0.7)) {
+      return { x, y };
+    }
+  }
+  
+  // Dernier recours : position aléatoire avec contraintes minimales
+  console.warn("⚠️ Placement d'urgence");
+  return {
+    x: 0.2 + Math.random() * 0.6,
+    y: 0.2 + Math.random() * 0.6,
+  };
+}
 
   function findExistingWord(text) {
     return displayedWords.find(
