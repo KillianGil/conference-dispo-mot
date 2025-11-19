@@ -99,11 +99,12 @@ body {
 
 /* ==================== TOGGLE PANEL BUTTON ==================== */
 #toggle-panel-button {
-    top: -15px; /* 🔥 Bouton au-dessus du canvas */
+    position: absolute;
+    top: 10px; /* 🔥 Position haute sur mobile */
     left: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    z-index: 20; /* 🔥 Au-dessus de tout */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 30; /* 🔥 Au-dessus de tout */
 }
 
 #toggle-panel-button svg {
