@@ -288,20 +288,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==================== CALCULS DE POSITION ====================
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 0.225;
+    if (!container) return 0.3;
 
     const uniqueCount = new Set(
       displayedWords.map((w) => w.text.toLowerCase())
     ).size;
     const isMobile = window.innerWidth < 768;
 
-    let baseDistance = isMobile ? 0.18 : 0.225;
+    let baseDistance = isMobile ? 0.25 : 0.3;
 
-    if (uniqueCount > 100) baseDistance = isMobile ? 0.12 : 0.15;
-    else if (uniqueCount > 80) baseDistance = isMobile ? 0.135 : 0.165;
-    else if (uniqueCount > 60) baseDistance = isMobile ? 0.15 : 0.18;
-    else if (uniqueCount > 40) baseDistance = isMobile ? 0.165 : 0.195;
-    else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
+    if (uniqueCount > 50) baseDistance = isMobile ? 0.18 : 0.22;
+    else if (uniqueCount > 30) baseDistance = isMobile ? 0.20 : 0.25;
+    else if (uniqueCount > 15) baseDistance = isMobile ? 0.22 : 0.28;
 
     const adaptiveDistance = Math.max(
       isMobile ? 0.105 : 0.135,
@@ -1424,49 +1422,49 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==================== DESSIN DES TEXTES ====================
     if (settings.showWords) {
       ctx.globalAlpha = 1;
-      const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 18;
+      
+      // 🔥 FORMULE MAGIQUE DE LISIBILITÉ
+      // 1. Math.max(14, ...) -> Taille minimum de 14px (pour ne jamais être illisible)
+      // 2. 24 / scale -> Si on dézoome, le texte grossit pour compenser
+      const fontSize = Math.max(14, 24 / scale); 
+      
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
+      ctx.textBaseline = "middle"; // Centré verticalement sur le point
 
-      sortedForDisplay.forEach((word) => {
+      // On trie pour afficher les textes les plus fréquents au dessus
+      const sortedWords = [...visibleWords].sort((a, b) => {
+         const countA = wordOccurrences[a.text.toLowerCase()] || 0;
+         const countB = wordOccurrences[b.text.toLowerCase()] || 0;
+         return countA - countB;
+      });
+
+      sortedWords.forEach((word) => {
         const occurrences = wordOccurrences[word.text.toLowerCase()];
-        const isHighlighted = word.highlighted || false;
-        const highlightBonus = isHighlighted ? 6 : 0;
-        const pointSize = getPointRadius(occurrences) + highlightBonus;
+        const pointSize = getPointRadius(occurrences);
 
+        // Calcul position (avec le flottement wobble)
         const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 18;
-
-        // Animation d'apparition pour le texte
-        const isAppearing = appearingWords.has(word);
-        let textOpacity = 1;
         
-        if (isAppearing) {
-          const elapsed = Date.now() - word.timestamp;
-          const progress = Math.min(elapsed / 600, 1);
-          textOpacity = progress;
-        }
+        // Position du texte : sous le point, ajusté selon le zoom
+        const textY = y + pointSize + (15 / scale);
 
         ctx.save();
-        ctx.globalAlpha = textOpacity;
-
-        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
-
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6;
+        
+        // 1. CONTOUR NOIR ÉPAIS (Outline)
+        // Permet de lire le texte même s'il est par-dessus un trait de même couleur
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 4; 
+        ctx.strokeStyle = "#0a0f1a"; // Couleur du fond (noir)
         ctx.strokeText(word.text, x, textY);
 
-        ctx.fillStyle = word.color;
-        ctx.shadowBlur = isHighlighted ? 24 : 18;
-        ctx.shadowColor = word.color;
+        // 2. LE TEXTE
+        ctx.fillStyle = word.color; // Texte de la couleur du mot
+        // Option alternative : ctx.fillStyle = "white"; (si tu préfères tout blanc)
+        ctx.shadowBlur = 0; // Pas de flou sur le texte pour la netteté
         ctx.fillText(word.text, x, textY);
 
         ctx.restore();
