@@ -809,8 +809,8 @@ function drawWeave(withBackground = false) {
       const perpY = (dx / len) * offset;
 
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
-      ctx.shadowBlur = 15;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+      ctx.shadowBlur = 12;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -825,8 +825,8 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 2.0);
-      ctx.globalAlpha = 0.95;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
+      ctx.globalAlpha = 0.9;
       ctx.stroke();
       ctx.restore();
     });
@@ -859,14 +859,14 @@ function drawWeave(withBackground = false) {
       const y2 = word2.y * height;
 
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
-      ctx.shadowBlur = 12;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
+      ctx.shadowBlur = 10;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = word2.color;
-      ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.5);
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
       ctx.globalAlpha = 0.7;
       ctx.stroke();
       ctx.restore();
@@ -894,7 +894,7 @@ function drawWeave(withBackground = false) {
 
       ctx.save();
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(spiralX, spiralY);
@@ -903,7 +903,7 @@ function drawWeave(withBackground = false) {
       gradient.addColorStop(0, word.color);
       gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.3);
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
       ctx.globalAlpha = 0.85;
       ctx.stroke();
       ctx.restore();
@@ -924,7 +924,7 @@ function drawWeave(withBackground = false) {
 
         ctx.save();
         ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -942,7 +942,7 @@ function drawWeave(withBackground = false) {
         }
 
         ctx.globalAlpha = opacity * 0.7;
-        ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.5);
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0);
         ctx.stroke();
         ctx.restore();
       });
@@ -961,7 +961,7 @@ function drawWeave(withBackground = false) {
 
       ctx.save();
       ctx.shadowColor = word2.color;
-      ctx.shadowBlur = 15 * pulse;
+      ctx.shadowBlur = 12 * pulse;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -977,7 +977,7 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 1.8 + pulse * 2.5);
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2 + pulse * 1.5);
       ctx.globalAlpha = 0.8 + pulse * 0.2;
       ctx.stroke();
       ctx.restore();
@@ -1070,9 +1070,8 @@ function drawWeave(withBackground = false) {
       const y2 = word2.y * height;
 
       ctx.save();
-      // 🔥 LUMINOSITÉ AUGMENTÉE
-      ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
-      ctx.shadowBlur = 15;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+      ctx.shadowBlur = 12;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -1083,8 +1082,8 @@ function drawWeave(withBackground = false) {
       gradient.addColorStop(1, word2.color);
 
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 2.0);
-      ctx.globalAlpha = 1.0; // Opacité max
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2);
+      ctx.globalAlpha = 0.95;
       ctx.stroke();
       ctx.restore();
 
@@ -1127,7 +1126,7 @@ function drawWeave(withBackground = false) {
       }
     }
   } else {
-    // ==================== 🔥 MODE STANDARD - TRAITS LUMINEUX ====================
+    // ==================== 🔥 MODE STANDARD - TRAITS FINS ET LUMINEUX ====================
     connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" ||
@@ -1163,14 +1162,14 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
-      // 🔥 TRAIT PRINCIPAL ULTRA LUMINEUX
+      // 🔥 TRAIT PRINCIPAL FIN ET LUMINEUX
       ctx.save();
-      ctx.shadowColor = "rgba(255, 255, 255, 0.6)"; // Glow blanc fort
-      ctx.shadowBlur = 20; // Blur augmenté
+      ctx.shadowColor = "rgba(255, 255, 255, 0.5)"; // Glow blanc
+      ctx.shadowBlur = 15; // Blur fort
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
 
-      ctx.globalAlpha = 1.0; // Opacité maximale
+      ctx.globalAlpha = 0.95; // Opacité haute
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
@@ -1184,21 +1183,21 @@ function drawWeave(withBackground = false) {
         ctx.strokeStyle = word2.color;
       }
 
-      ctx.lineWidth = Math.max(4, settings.lineWidth * 2.0);
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.2); // Plus fin
       ctx.stroke();
       ctx.restore();
 
-      // 🔥 HALO EXTÉRIEUR RENFORCÉ
+      // 🔥 HALO EXTÉRIEUR SUBTIL
       ctx.save();
-      ctx.globalAlpha = 0.7; // Opacité augmentée
-      ctx.shadowBlur = 30; // Blur augmenté
+      ctx.globalAlpha = 0.5; // Opacité modérée
+      ctx.shadowBlur = 18;
       ctx.shadowColor = word2.color;
       
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
       
-      ctx.lineWidth = Math.max(6, settings.lineWidth * 2.8);
+      ctx.lineWidth = Math.max(3, settings.lineWidth * 1.6); // Halo léger
       ctx.strokeStyle = word2.color;
       ctx.stroke();
       ctx.restore();
@@ -1362,7 +1361,6 @@ function drawWeave(withBackground = false) {
 
   ctx.restore();
 }
-
   // ==================== STATISTIQUES ====================
   function updateStats() {
     const statsPanel = document.getElementById("stats-panel");
