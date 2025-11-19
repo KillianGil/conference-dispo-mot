@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
     linkMode: "chronological",
     showWords: true,
     animateLines: true,
-    lineWidth: 4,
+    lineWidth: 6,
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
@@ -1303,7 +1303,7 @@ Array.from(uniqueWordsMap.values()).forEach((word) => {
 if (settings.showWords) {
   ctx.globalAlpha = 1;
   const isMobile = window.innerWidth < 768;
-  const fontSize = isMobile ? 16 : 18;
+  const fontSize = isMobile ? 22 : 28;
   ctx.font = `bold ${fontSize}px Inter, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
@@ -1318,19 +1318,20 @@ if (settings.showWords) {
     const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
-    const textY = y - pointSize - 18;
+    const textPadding = Math.max(22, fontSize * 0.6);
+    const textY = y - pointSize - textPadding;
 
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
 
     ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-    ctx.lineWidth = 6;
+    ctx.lineWidth = isMobile ? 7 : 8;
     ctx.strokeText(word.text, x, textY);
 
     ctx.fillStyle = word.color;
-    ctx.shadowBlur = isHighlighted ? 24 : 18;
+    ctx.shadowBlur = isHighlighted ? 28 : 22;
     ctx.shadowColor = word.color;
     ctx.fillText(word.text, x, textY);
 
