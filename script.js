@@ -417,21 +417,49 @@ function getDistanceToNearestNeighbor(x, y) {
   return minDist;
 }
 
-// ==================== BEST-CANDIDATE (Mitchell's Algorithm) ====================
+// ==================== BOUNDING BOX DYNAMIQUE (version conservatrice) ====================
+function getBoundingBox() {
+  if (displayedWords.length === 0) {
+    return { minX: 0.25, maxX: 0.75, minY: 0.25, maxY: 0.75 };
+  }
+  
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  
+  displayedWords.forEach(word => {
+    minX = Math.min(minX, word.x);
+    maxX = Math.max(maxX, word.x);
+    minY = Math.min(minY, word.y);
+    maxY = Math.max(maxY, word.y);
+  });
+  
+  // Élargir progressivement la bbox (plus on a de mots, plus on élargit)
+  const expansionFactor = Math.min(0.25, displayedWords.length * 0.002);
+  const marginX = Math.max(0.15, (maxX - minX) * expansionFactor);
+  const marginY = Math.max(0.15, (maxY - minY) * expansionFactor);
+  
+  return {
+    minX: Math.max(0.08, minX - marginX),
+    maxX: Math.min(0.92, maxX + marginX),
+    minY: Math.max(0.08, minY - marginY),
+    maxY: Math.min(0.92, maxY + marginY),
+  };
+}
+
+// ==================== PLACEMENT AMÉLIORÉ (CONSERVATIF) ====================
 function findValidPosition() {
   const container = document.getElementById("canvas-container");
   if (!container) return { x: 0.5, y: 0.5 };
-  
+
   const minDist = getAdaptiveMinDistance();
-  
-  // Placement spécial pour les 5 premiers mots (initialisation)
+
+  // Phase 1 : Positions initiales prédéfinies (5 premiers mots)
   if (displayedWords.length < 5) {
     const initialPositions = [
       { x: 0.5, y: 0.5 },   // Centre
-      { x: 0.25, y: 0.25 }, // Haut-gauche
-      { x: 0.75, y: 0.25 }, // Haut-droite
-      { x: 0.25, y: 0.75 }, // Bas-gauche
-      { x: 0.75, y: 0.75 }, // Bas-droite
+      { x: 0.3, y: 0.3 },   // Haut-gauche
+      { x: 0.7, y: 0.3 },   // Haut-droite
+      { x: 0.3, y: 0.7 },   // Bas-gauche
+      { x: 0.7, y: 0.7 },   // Bas-droite
     ];
     
     for (const pos of initialPositions) {
@@ -440,66 +468,108 @@ function findValidPosition() {
       }
     }
   }
-  
-  // Best-Candidate Algorithm
+
+  // Phase 2 : Essais dans la bounding box élargie (priorité)
   const bbox = getBoundingBox();
-  const numCandidates = 50;
   
-  let bestCandidate = null;
-  let bestDistance = 0;
-  
-  // Générer et évaluer les candidats
-  for (let i = 0; i < numCandidates; i++) {
-    const candidate = {
-      x: bbox.minX + Math.random() * (bbox.maxX - bbox.minX),
-      y: bbox.minY + Math.random() * (bbox.maxY - bbox.minY),
-    };
+  for (let i = 0; i < 200; i++) {
+    const x = bbox.minX + Math.random() * (bbox.maxX - bbox.minX);
+    const y = bbox.minY + Math.random() * (bbox.maxY - bbox.minY);
     
-    // Vérifier si la position est valide
-    if (!isPositionValid(candidate.x, candidate.y, minDist)) {
-      continue;
-    }
-    
-    // Mesurer la distance au plus proche voisin
-    const distToNearest = getDistanceToNearestNeighbor(candidate.x, candidate.y);
-    
-    // Garder le candidat le plus isolé
-    if (distToNearest > bestDistance) {
-      bestDistance = distToNearest;
-      bestCandidate = candidate;
-    }
-  }
-  
-  // Si on a trouvé un bon candidat
-  if (bestCandidate) {
-    return bestCandidate;
-  }
-  
-  // Fallback : élargir la zone de recherche
-  console.warn("⚠️ Élargissement de la zone de recherche...");
-  
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const x = 0.1 + Math.random() * 0.8;
-    const y = 0.1 + Math.random() * 0.8;
-    
-    if (isPositionValid(x, y, minDist * 0.7)) {
+    if (isPositionValid(x, y, minDist)) {
       return { x, y };
     }
   }
+
+  // Phase 3 : Essais dans tout le canvas
+  for (let i = 0; i < 200; i++) {
+    const x = 0.1 + Math.random() * 0.8;
+    const y = 0.1 + Math.random() * 0.8;
+    
+    if (isPositionValid(x, y, minDist)) {
+      return { x, y };
+    }
+  }
+
+  // Phase 4 : Spirale depuis le centre (pour remplir intelligemment)
+  const centerX = 0.5;
+  const centerY = 0.5;
+  const maxRadius = 0.45;
+  const radiusStep = minDist * 0.5;
+
+  for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
+    const numPoints = Math.max(30, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.5)));
+    const angleStep = (2 * Math.PI) / numPoints;
+
+    for (let i = 0; i < numPoints; i++) {
+      const angle = i * angleStep + Math.random() * angleStep * 0.3;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+
+      if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
+        if (isPositionValid(x, y, minDist)) {
+          return { x, y };
+        }
+      }
+    }
+  }
+
+  // Phase 5 : Grille systématique (dernier recours)
+  const step = minDist * 0.8;
+  for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
+    for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
+      const jitterX = (Math.random() - 0.5) * step * 0.4;
+      const jitterY = (Math.random() - 0.5) * step * 0.4;
+      const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
+      const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
+
+      if (isPositionValid(x, y, minDist * 0.8)) {
+        return { x, y };
+      }
+    }
+  }
+
+  // Phase 6 : Assouplir les contraintes progressivement
+  const relaxFactors = [0.7, 0.6, 0.5, 0.4];
   
-  // Dernier recours : position aléatoire avec contraintes minimales
-  console.warn("⚠️ Placement d'urgence");
+  for (const factor of relaxFactors) {
+    for (let i = 0; i < 150; i++) {
+      const x = 0.12 + Math.random() * 0.76;
+      const y = 0.12 + Math.random() * 0.76;
+      
+      if (isPositionValid(x, y, minDist * factor)) {
+        console.warn(`⚠️ Placement avec contraintes assouplies (${(factor * 100).toFixed(0)}%)`);
+        return { x, y };
+      }
+    }
+  }
+
+  // Phase 7 : Vraiment dernier recours (très rare)
+  console.error("❌ Canvas saturé - Placement d'urgence");
+  const fallbackPositions = [
+    { x: 0.5, y: 0.2 },
+    { x: 0.5, y: 0.8 },
+    { x: 0.2, y: 0.5 },
+    { x: 0.8, y: 0.5 },
+    { x: 0.35, y: 0.35 },
+    { x: 0.65, y: 0.35 },
+    { x: 0.35, y: 0.65 },
+    { x: 0.65, y: 0.65 },
+  ];
+
+  for (const pos of fallbackPositions) {
+    const x = pos.x + (Math.random() - 0.5) * 0.1;
+    const y = pos.y + (Math.random() - 0.5) * 0.1;
+    if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
+      return { x, y };
+    }
+  }
+
   return {
-    x: 0.2 + Math.random() * 0.6,
-    y: 0.2 + Math.random() * 0.6,
+    x: 0.5 + (Math.random() - 0.5) * 0.3,
+    y: 0.5 + (Math.random() - 0.5) * 0.3,
   };
 }
-
-  function findExistingWord(text) {
-    return displayedWords.find(
-      (w) => w.text.toLowerCase() === text.toLowerCase()
-    );
-  }
 
   // ==================== CALCULS GÉOMÉTRIQUES ====================
   function distance(word1, word2) {
