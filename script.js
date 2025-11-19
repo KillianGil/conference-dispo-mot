@@ -307,11 +307,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     return Math.min(0.45, adaptiveDistance);
   }
-
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
-    const baseSize = isMobile ? 20 : 24; // 🔥 Augmenté de 14/16 à 20/24
-    return baseSize + (occurrences - 1) * 5; // 🔥 Augmenté de 4 à 5
+    const baseSize = isMobile ? 20 : 24; // 🔥 Points plus gros
+    return baseSize + (occurrences - 1) * 5; // 🔥 Croissance augmentée
   }
 
   function getMaxPointSize(occurrences) {
@@ -1236,136 +1235,109 @@ function drawWeave(withBackground = false) {
     }
   );
 
-  // ==================== DESSIN DES POINTS (AVEC ANIMATION) ====================
-  const uniqueWordsMap = new Map();
-  sortedForDisplay.forEach((word) => {
-    const key = word.text.toLowerCase();
-    if (!uniqueWordsMap.has(key)) {
-      uniqueWordsMap.set(key, word);
-    }
-  });
+// ==================== DESSIN DES POINTS ====================
+const uniqueWordsMap = new Map();
+sortedForDisplay.forEach((word) => {
+  const key = word.text.toLowerCase();
+  if (!uniqueWordsMap.has(key)) {
+    uniqueWordsMap.set(key, word);
+  }
+});
+
+Array.from(uniqueWordsMap.values()).forEach((word) => {
+  const occurrences = wordOccurrences[word.text.toLowerCase()];
+  const pointSize = getPointRadius(occurrences);
+
+  const isHighlighted = word.highlighted || false;
+  const highlightBonus = isHighlighted ? 6 : 0;
+  const finalPointSize = pointSize + highlightBonus;
+
+  const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+  const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+  const x = word.x * width + wobbleX;
+  const y = word.y * height + wobbleY;
+
+  if (settings.enableParticles && Math.random() < 0.06) {
+    particles.push(getParticle(x, y, word.color));
+  }
+
+  const pulseFactor = isHighlighted ? 6 : 4;
+  const pulseSize =
+    finalPointSize +
+    10 +
+    Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
+
+  ctx.beginPath();
+  ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+  ctx.strokeStyle = word.color;
+  ctx.lineWidth = isHighlighted ? 5 : 4;
+  ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+  ctx.fillStyle = word.color;
+  ctx.globalAlpha = 1;
+  ctx.shadowColor = word.color;
+  ctx.shadowBlur = isHighlighted ? 28 : 20;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+  ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
+  ctx.lineWidth = isHighlighted ? 5 : 3;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = "white";
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+});
+
+// ==================== DESSIN DES TEXTES ====================
+if (settings.showWords) {
+  ctx.globalAlpha = 1;
+  const isMobile = window.innerWidth < 768;
+  const fontSize = isMobile ? 16 : 18;
+  ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
 
   Array.from(uniqueWordsMap.values()).forEach((word) => {
     const occurrences = wordOccurrences[word.text.toLowerCase()];
-    const pointSize = getPointRadius(occurrences);
-
     const isHighlighted = word.highlighted || false;
     const highlightBonus = isHighlighted ? 6 : 0;
-    const finalPointSize = pointSize + highlightBonus;
+    const pointSize = getPointRadius(occurrences) + highlightBonus;
 
     const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
     const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
+    const textY = y - pointSize - 18;
 
-    const isAppearing = appearingWords.has(word);
-    let appearScale = 1;
-    let appearOpacity = 1;
-    
-    if (isAppearing) {
-      const elapsed = Date.now() - word.timestamp;
-      const progress = Math.min(elapsed / 600, 1);
-      
-      appearScale = 0.3 + progress * 0.7 + Math.sin(progress * Math.PI) * 0.3;
-      appearOpacity = progress;
-    }
+    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
 
-    if (settings.enableParticles && Math.random() < 0.06) {
-      particles.push(getParticle(x, y, word.color));
-    }
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
+    ctx.lineWidth = 6;
+    ctx.strokeText(word.text, x, textY);
 
-    ctx.save();
-    ctx.globalAlpha = appearOpacity;
-
-    const pulseFactor = isHighlighted ? 6 : 4;
-    const pulseSize =
-      (finalPointSize + 10) * appearScale +
-      Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
-        pulseFactor;
-
-    ctx.beginPath();
-    ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
-    ctx.strokeStyle = word.color;
-    ctx.lineWidth = isHighlighted ? 5 : 4;
-    ctx.globalAlpha = (isHighlighted ? 0.8 : 0.5) * appearOpacity;
-    ctx.stroke();
-
-    ctx.globalAlpha = appearOpacity;
-    ctx.beginPath();
-    ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
     ctx.fillStyle = word.color;
+    ctx.shadowBlur = isHighlighted ? 24 : 18;
     ctx.shadowColor = word.color;
-    ctx.shadowBlur = isHighlighted ? 28 : 20;
-    ctx.fill();
+    ctx.fillText(word.text, x, textY);
 
-    ctx.beginPath();
-    ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
-    ctx.strokeStyle = isHighlighted
-      ? "rgba(255, 255, 255, 0.95)"
-      : "rgba(255, 255, 255, 0.7)";
-    ctx.lineWidth = isHighlighted ? 5 : 3;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(x, y, finalPointSize * 0.35 * appearScale, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = "white";
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
     ctx.shadowColor = "transparent";
-    ctx.restore();
+    ctx.shadowBlur = 0;
   });
-
-  // ==================== DESSIN DES TEXTES ====================
-  if (settings.showWords) {
-    ctx.globalAlpha = 1;
-    
-    const fontSize = Math.max(22, Math.min(56, 40 / scale)); 
-    ctx.font = `900 ${fontSize}px Inter, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    const uniqueWordsMap = new Map();
-    visibleWords.forEach((word) => {
-      const key = word.text.toLowerCase();
-      if (!uniqueWordsMap.has(key)) {
-        uniqueWordsMap.set(key, word);
-      }
-    });
-
-    Array.from(uniqueWordsMap.values()).forEach((word) => {
-      const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const pointSize = getPointRadius(occurrences);
-
-      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-      const x = word.x * width + wobbleX;
-      const y = word.y * height + wobbleY;
-      
-      const textOffset = pointSize + (45 / scale); 
-      const textY = y + textOffset;
-
-      ctx.save();
-      
-      // CONTOUR NOIR MASSIF
-      ctx.lineJoin = "round";
-      ctx.miterLimit = 2;
-      ctx.lineWidth = 16;
-      ctx.strokeStyle = "#000000";
-      ctx.strokeText(word.text, x, textY);
-      ctx.strokeText(word.text, x, textY);
-
-      // TEXTE COULEUR ÉCLATANTE
-      ctx.fillStyle = word.color;
-      ctx.shadowColor = "#FFFFFF";
-      ctx.shadowBlur = 12;
-      ctx.fillText(word.text, x, textY);
-
-      ctx.restore();
-    });
-  }
+}
 
   ctx.restore();
 }
