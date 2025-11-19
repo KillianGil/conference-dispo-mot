@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
     linkMode: "chronological",
     showWords: true,
     animateLines: true,
-    lineWidth: 2.5,
+    lineWidth: 4,
     enableResonance: false,
     showTimestamp: true,
     useGradient: true,
@@ -310,8 +310,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
-    const baseSize = isMobile ? 14 : 16;
-    return baseSize + (occurrences - 1) * 4;
+    const baseSize = isMobile ? 20 : 24; // 🔥 Augmenté de 14/16 à 20/24
+    return baseSize + (occurrences - 1) * 5; // 🔥 Augmenté de 4 à 5
   }
 
   function getMaxPointSize(occurrences) {
@@ -1325,13 +1325,13 @@ Array.from(uniqueWordsMap.values()).forEach((word) => {
   ctx.restore();
 });
 
-    // ==================== DESSIN DES TEXTES ====================
-// ==================== DESSIN DES TEXTES ====================
+ // ==================== DESSIN DES TEXTES ====================
 if (settings.showWords) {
   ctx.globalAlpha = 1;
   
-  const fontSize = Math.max(18, Math.min(48, 32 / scale)); 
-  ctx.font = `800 ${fontSize}px Inter, sans-serif`;
+  // 🔥 Texte encore plus gros
+  const fontSize = Math.max(20, Math.min(52, 36 / scale)); 
+  ctx.font = `900 ${fontSize}px Inter, sans-serif`; // 🔥 900 = Ultra-bold
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
@@ -1353,34 +1353,40 @@ if (settings.showWords) {
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
     
-    // 🔥 DISTANCE RÉDUITE À 30
-    const textOffset = pointSize + (30 / scale); 
+    // 🔥 DISTANCE AUGMENTÉE À 40 (compromis entre 30 et 50)
+    const textOffset = pointSize + (40 / scale); 
     const textY = y + textOffset;
 
     ctx.save();
     
-    // 🔥 CONTOUR NOIR TRÈS ÉPAIS (10px pour lisibilité maximale)
+    // 🔥 TRIPLE CONTOUR pour visibilité maximale
+    // Contour noir ultra-épais
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 14; // 🔥 Encore plus épais
     ctx.strokeStyle = "#000000";
     ctx.strokeText(word.text, x, textY);
 
-    // 🔥 TEXTE COLORÉ avec légère luminosité augmentée
-    // On éclaircit la couleur HSL pour qu'elle ressorte mieux sur le contour noir
+    // Contour blanc moyen
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.strokeText(word.text, x, textY);
+
+    // 🔥 TEXTE COLORÉ avec luminosité max
     const lightColor = word.color.replace(
       /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,
       (match, h, s, l) => {
-        const newL = Math.min(75, parseInt(l) + 15); // +15% de luminosité, max 75%
-        return `hsl(${h}, ${s}%, ${newL}%)`;
+        const newL = Math.min(80, parseInt(l) + 25); // 🔥 +25% de luminosité
+        const newS = Math.min(100, parseInt(s) + 10); // 🔥 +10% de saturation
+        return `hsl(${h}, ${newS}%, ${newL}%)`;
       }
     );
     
     ctx.fillStyle = lightColor;
     
-    // Léger glow pour faire ressortir la couleur
-    ctx.shadowColor = word.color;
-    ctx.shadowBlur = 4;
+    // Glow coloré fort
+    ctx.shadowColor = lightColor;
+    ctx.shadowBlur = 8; // 🔥 Doublé
     ctx.fillText(word.text, x, textY);
 
     ctx.restore();
