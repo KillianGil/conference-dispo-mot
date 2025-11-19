@@ -100,17 +100,18 @@ body {
 /* ==================== TOGGLE PANEL BUTTON ==================== */
 #toggle-panel-button {
     position: absolute;
-    top: 10px; /* 🔥 Position haute sur mobile */
+    z-index: 50; /* Au-dessus de tout */
+    
+    /* MOBILE (par défaut) : En haut, centré horizontalement */
+    top: 0; 
     left: 50%;
-    transform: translateX(-50%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    z-index: 30; /* 🔥 Au-dessus de tout */
+    transform: translate(-50%, -50%); /* Remonte de moitié pour chevaucher le bord */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 #toggle-panel-button svg {
     transition: transform 0.3s ease;
 }
-
 /* ==================== PANEL TRANSITIONS ==================== */
 #main-container.panel-hidden #words-panel {
     max-height: 0;
