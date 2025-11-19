@@ -1906,24 +1906,31 @@ function detectAndResolveOverlaps() {
   }
 
 // ==================== MISE À JOUR COULEURS LISTE ====================
-function updateWordListColors() {
+// ==================== MISE À JOUR COULEURS LISTE ====================
+function updateWordListColors(forceColor = null) {
   const wordItems = document.querySelectorAll('.word-item');
   
   wordItems.forEach(item => {
-    const key = item.dataset.key;
-    // Retrouver le mot correspondant dans les données
-    const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
+    let colorToApply;
+
+    if (forceColor) {
+      // Mode Custom : on force la couleur choisie
+      colorToApply = forceColor;
+    } else {
+      // Mode Aléatoire : on cherche la couleur du mot
+      const key = item.dataset.key;
+      const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
+      colorToApply = word ? word.color : '#ffffff';
+    }
+
+    // Appliquer la couleur à la bordure
+    item.style.borderLeft = `4px solid ${colorToApply}`;
     
-    if (word) {
-      // Mettre à jour la bordure gauche
-      item.style.borderLeft = `4px solid ${word.color}`;
-      
-      // Mettre à jour le point coloré (le span avec classe w-3)
-      const colorDot = item.querySelector('span.w-3');
-      if (colorDot) {
-        colorDot.style.backgroundColor = word.color;
-        colorDot.style.boxShadow = `0 0 8px ${word.color}`;
-      }
+    // Appliquer la couleur au point (le cercle coloré)
+    const colorDot = item.querySelector('span.w-3');
+    if (colorDot) {
+      colorDot.style.backgroundColor = colorToApply;
+      colorDot.style.boxShadow = `0 0 8px ${colorToApply}`;
     }
   });
 }
@@ -2646,65 +2653,71 @@ function updateWordListColors() {
       scheduleRedraw();
     });
   }
-
-// Color mode
-document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
-    const customPicker = document.getElementById("custom-color-picker");
-    
-    if (e.target.value === "custom") {
-      // Mode Personnalisé
-      customPicker.classList.remove("hidden");
-      colorGenerator.setMode("custom");
+// ==================== GESTION DES COULEURS ====================
+  
+  // 1. Changement de Mode (Aléatoire vs Personnalisé)
+  document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const customPicker = document.getElementById("custom-color-picker");
       
-      const customColor = document.getElementById("color-picker-input").value;
-      
-      // Appliquer la couleur à TOUS les mots
-      displayedWords.forEach(word => {
-        word.color = customColor;
-      });
-      
-      colorsShuffled = false;
-      scheduleRedraw();
-      updateWordListColors(); // <--- AJOUT ICI : Met à jour la liste
-      
-    } else {
-      // Mode Aléatoire
-      customPicker.classList.add("hidden");
-      colorGenerator.setMode("auto");
-      
-      // Régénérer des couleurs aléatoires
-      displayedWords.forEach(word => {
-        word.color = colorGenerator.getColor();
-      });
-      
-      colorsShuffled = false;
-      wordOccurrencesCache.clear();
-      geometryCache.clear();
-      scheduleRedraw();
-      updateWordListColors(); // <--- AJOUT ICI : Met à jour la liste
-      updateStats();
-    }
+      if (e.target.value === "custom") {
+        // Activation du mode Custom
+        customPicker.classList.remove("hidden");
+        colorGenerator.setMode("custom");
+        
+        const customColor = document.getElementById("color-picker-input").value;
+        
+        // Mettre à jour les données
+        displayedWords.forEach(word => word.color = customColor);
+        
+        // Mettre à jour le visuel
+        scheduleRedraw();
+        updateWordListColors(customColor); // 🔥 On force la couleur sur la liste
+        
+      } else {
+        // Retour au mode Aléatoire
+        customPicker.classList.add("hidden");
+        colorGenerator.setMode("auto");
+        
+        // Régénérer les couleurs
+        displayedWords.forEach(word => word.color = colorGenerator.getColor());
+        
+        colorsShuffled = false;
+        geometryCache.clear();
+        
+        // Mettre à jour le visuel
+        scheduleRedraw();
+        updateWordListColors(); // 🔥 On laisse la fonction chercher les couleurs aléatoires
+      }
+    });
   });
-});
-  // Color picker
+
+  // 2. Sélecteur de couleur (Input)
   const colorPickerInput = document.getElementById("color-picker-input");
   const colorHexInput = document.getElementById("color-hex-input");
   const colorPreview = document.getElementById("color-preview");
 
   if (colorPickerInput && colorHexInput && colorPreview) {
+    
     const applyCustomColor = (color) => {
       colorGenerator.setCustomColor(color);
       
-      if (document.querySelector('input[name="color-mode"]:checked').value === "custom") {
-        displayedWords.forEach(word => {
-          word.color = color;
-        });
+      // Si on est en mode custom, on applique partout immédiatement
+      const isCustomMode = document.querySelector('input[name="color-mode"]:checked').value === "custom";
+      
+      if (isCustomMode) {
+        // 1. Mettre à jour les données
+        displayedWords.forEach(word => word.color = color);
+        
+        // 2. Redessiner le canvas
         scheduleRedraw();
-        updateWordListColors();
+        
+        // 3. Mettre à jour la liste (C'EST ICI QUE ÇA SE JOUE)
+        updateWordListColors(color);
       }
     };
 
+    // Événement quand on bouge le sélecteur
     colorPickerInput.addEventListener("input", (e) => {
       const color = e.target.value;
       colorHexInput.value = color;
@@ -2712,36 +2725,19 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
       applyCustomColor(color);
     });
 
+    // Événement quand on tape le code HEX
     colorHexInput.addEventListener("input", (e) => {
       let color = e.target.value.trim();
-
-      if (color && !color.startsWith("#")) {
-        color = "#" + color;
-        e.target.value = color;
-      }
-
-      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-      if (hexRegex.test(color)) {
+      if (color && !color.startsWith("#")) color = "#" + color;
+      
+      if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
         colorPickerInput.value = color;
         colorPreview.style.background = color;
-        e.target.classList.remove("border-red-500");
         applyCustomColor(color);
-      } else if (color.length === 7) {
-        e.target.classList.add("border-red-500");
-      }
-    });
-
-    colorHexInput.addEventListener("blur", (e) => {
-      let color = e.target.value.trim();
-      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-
-      if (!hexRegex.test(color)) {
-        e.target.value = colorGenerator.customColor;
-        e.target.classList.remove("border-red-500");
       }
     });
   }
-
+  
   // Other toggles
   document
     .getElementById("show-words-toggle")
