@@ -333,17 +333,18 @@ document.addEventListener("DOMContentLoaded", () => {
     ).size;
     const isMobile = window.innerWidth < 768;
 
-    let baseDistance = isMobile ? 0.25 : 0.3;
+    // 🔥 DISTANCE RÉDUITE (Rapprochement des points)
+    let baseDistance = isMobile ? 0.20 : 0.25; // Était 0.25 : 0.3
 
-    if (uniqueCount > 50) baseDistance = isMobile ? 0.18 : 0.22;
-    else if (uniqueCount > 30) baseDistance = isMobile ? 0.20 : 0.25;
-    else if (uniqueCount > 15) baseDistance = isMobile ? 0.22 : 0.28;
+    if (uniqueCount > 50) baseDistance = isMobile ? 0.15 : 0.18;
+    else if (uniqueCount > 30) baseDistance = isMobile ? 0.18 : 0.22;
+    else if (uniqueCount > 15) baseDistance = isMobile ? 0.20 : 0.25;
 
     const adaptiveDistance = Math.max(
-      isMobile ? 0.105 : 0.135,
+      isMobile ? 0.09 : 0.12, // Minimum absolu réduit
       baseDistance
     );
-    return Math.min(0.45, adaptiveDistance);
+    return Math.min(0.40, adaptiveDistance);
   }
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
