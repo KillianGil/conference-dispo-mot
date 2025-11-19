@@ -254,23 +254,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ==================== SYSTÈME NÉBULEUX INFINI (PIXELS) ====================
   
-  function measureWordRadius(text) {
-    ctx.font = "bold 28px Inter, sans-serif"; // 🔥 Police plus grande pour projection
-    const metrics = ctx.measureText(text);
-    return (metrics.width / 2) + 35; // Marge augmentée
-  }
+  // ==================== SYSTÈME DE TAILLE ET COLLISION (ESPACÉ) ====================
 
-  function checkCollision(x, y, radius) {
-    for (const word of displayedWords) {
-      const otherRadius = word.radius || 40;
-      const dist = Math.hypot(x - word.x, y - word.y);
-      
-      if (dist < radius + otherRadius + 15) { // +15px sécurité
-        return true;
-      }
+function measureWordRadius(text, count = 1) {
+  // Taille de base (28px) + 10px par occurrence supplémentaire
+  // On plafonne à 150px pour éviter des cercles géants
+  const sizeIncrease = (count - 1) * 10; 
+  const ctx = document.getElementById("weave-canvas").getContext("2d");
+  ctx.font = "bold 28px Inter, sans-serif";
+  const metrics = ctx.measureText(text);
+  
+  // Rayon = (Largeur texte / 2) + Bonus d'occurrence + Marge de base
+  return (metrics.width / 2) + sizeIncrease + 40; 
+}
+
+function checkCollision(x, y, radius) {
+  for (const word of displayedWords) {
+    // On récupère la taille réelle de l'autre mot (avec ses occurrences)
+    // Si pas de radius stocké, on met une valeur par défaut large
+    const otherRadius = word.radius || 60; 
+    
+    const dist = Math.hypot(x - word.x, y - word.y);
+    
+    // COLLISION : Somme des rayons + GROSSE MARGE (60px) pour aérer
+    if (dist < radius + otherRadius + 60) { 
+      return true;
     }
-    return false;
   }
+  return false;
+}
 
   function findValidPosition(text) {
     // Premier mot au centre absolu
@@ -278,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return { x: 0, y: 0, radius: measureWordRadius(text) };
     }
 
-    const radiusNeeded = measureWordRadius(text);
+    const radiusNeeded = measureWordRadius(text,3);
     let searchRadius = 100;
     
     while (searchRadius < 3500) {
@@ -336,58 +348,62 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function autoFitView(animate = true) {
-    const container = document.getElementById("canvas-container");
-    if (!container) return;
+// ==================== AUTO-ZOOM (ZOOOMÉ !) ====================
+function autoFitView(animate = true) {
+  const container = document.getElementById("canvas-container");
+  if (!container) return;
+  
+  const bbox = calculateBoundingBox();
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  
+  const bboxWidth = bbox.maxX - bbox.minX;
+  const bboxHeight = bbox.maxY - bbox.minY;
+  
+  // On calcule le zoom nécessaire
+  const scaleX = (width * 0.7) / bboxWidth; // 70% de la largeur
+  const scaleY = (height * 0.7) / bboxHeight;
+  
+  // 🔥 LE FIX EST ICI : On empêche le dézoom excessif.
+  // On prend le minimum entre le calcul et 1.0 (taille réelle)
+  // Mais on force un minimum de 0.6 pour ne jamais voir les mots minuscules
+  let targetScale = Math.min(scaleX, scaleY);
+  targetScale = Math.max(targetScale, 0.6); // Ne jamais dézoomer + que 0.6
+  targetScale = Math.min(targetScale, 1.5); // Ne jamais zoomer + que 1.5
+  
+  const centerX = (bbox.minX + bbox.maxX) / 2;
+  const centerY = (bbox.minY + bbox.maxY) / 2;
+  
+  if (animate) {
+    const startScale = scale;
+    const startOffsetX = offsetX;
+    const startOffsetY = offsetY;
+    const duration = 500; // Animation un peu plus lente pour être fluide
+    const startTime = Date.now();
     
-    const bbox = calculateBoundingBox();
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    
-    const bboxWidth = bbox.maxX - bbox.minX;
-    const bboxHeight = bbox.maxY - bbox.minY;
-    
-    const scaleX = (width * 0.80) / bboxWidth;
-    const scaleY = (height * 0.80) / bboxHeight;
-    const targetScale = Math.min(scaleX, scaleY, 1.8);
-    
-    const centerX = (bbox.minX + bbox.maxX) / 2;
-    const centerY = (bbox.minY + bbox.maxY) / 2;
-    
-    if (animate) {
-      const startScale = scale;
-      const startOffsetX = offsetX;
-      const startOffsetY = offsetY;
-      const duration = 400;
-      const startTime = Date.now();
+    function animateStep() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // Ease Out Cubic
       
-      function animateStep() {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        const eased = progress < 0.5 
-          ? 4 * progress * progress * progress 
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-        
-        scale = startScale + (targetScale - startScale) * eased;
-        offsetX = startOffsetX + (-centerX * targetScale - startOffsetX) * eased;
-        offsetY = startOffsetY + (-centerY * targetScale - startOffsetY) * eased;
-        
-        scheduleRedraw();
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateStep);
-        }
-      }
+      scale = startScale + (targetScale - startScale) * eased;
+      offsetX = startOffsetX + (-centerX * targetScale - startOffsetX) * eased;
+      offsetY = startOffsetY + (-centerY * targetScale - startOffsetY) * eased;
       
-      animateStep();
-    } else {
-      scale = targetScale;
-      offsetX = -centerX * targetScale;
-      offsetY = -centerY * targetScale;
       scheduleRedraw();
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateStep);
+      }
     }
+    animateStep();
+  } else {
+    scale = targetScale;
+    offsetX = -centerX * targetScale;
+    offsetY = -centerY * targetScale;
+    scheduleRedraw();
   }
+}
 
   // ==================== CALCULS GÉOMÉTRIQUES ====================
   function distance(word1, word2) {
@@ -2131,65 +2147,56 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==================== EVENT LISTENERS ====================
   wordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    // Normalisation stricte : minuscule et sans espace
     const text = wordInput.value.trim();
     if (!text) return;
-
-    console.log("Tentative d'ajout de mot:", text);
 
     if (isForbidden(text)) {
       wordInput.value = "";
       wordInput.placeholder = "⚠️ Mot inapproprié";
-      wordInput.classList.add("border-2", "border-red-500");
-
-      setTimeout(() => {
-        wordInput.placeholder = "Partagez un mot...";
-        wordInput.classList.remove("border-2", "border-red-500");
-      }, 2500);
-
       return;
     }
 
     if (!canUserAddWord()) {
-      const count = getUserWordCount();
-      console.log("Limite atteinte:", count);
-      alert(
-        `❌ Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant.\n\nLaissez la place aux autres ! 😊`
-      );
-      wordInput.value = "";
+      alert("❌ Limite atteinte.");
       return;
     }
 
     const submitButton = wordForm.querySelector("button");
-    const originalPlaceholder = wordInput.placeholder;
     wordInput.disabled = true;
     submitButton.disabled = true;
     submitButton.textContent = "...";
 
-    const existingWord = findExistingWord(text);
+    // 🔥 RECHERCHE STRICTE (Insensible à la casse)
+    const existingWord = displayedWords.find(
+      w => w.text.toLowerCase().trim() === text.toLowerCase()
+    );
 
     let newWordPayload;
 
     if (existingWord) {
-      console.log("Mot existant trouvé");
+      console.log("🔄 Mot existant : on grossit le point");
+      // On garde EXACTEMENT les mêmes coordonnées
       newWordPayload = {
-        text,
+        text: existingWord.text, // On garde la casse originale
         x: existingWord.x,
         y: existingWord.y,
         color: existingWord.color,
-        radius: existingWord.radius
+        radius: existingWord.radius // On garde le rayon (il sera recalculé à l'affichage)
       };
     } else {
+      console.log("✨ Nouveau mot : on cherche une place");
       const newColor = colorGenerator.getColor();
-      const position = findValidPosition(text); // 🔥 SYSTÈME PIXELS
+      
+      // On calcule le rayon pour 1 occurrence
+      const initialRadius = measureWordRadius(text, 1);
+      // On cherche une place avec ce rayon
+      const position = findValidPosition(text); 
 
       if (!position) {
-        alert(
-          "❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment"
-        );
+        alert("Canvas saturé");
         wordInput.disabled = false;
         submitButton.disabled = false;
-        submitButton.textContent = "Tisser";
-        wordInput.value = "";
         return;
       }
 
@@ -2197,66 +2204,35 @@ document.addEventListener("DOMContentLoaded", () => {
         text,
         x: position.x,
         y: position.y,
-        radius: position.radius,
+        radius: initialRadius, // On stocke le rayon initial
         color: newColor,
       };
     }
 
     try {
-      const response = await fetch("/api/words", {
+      await fetch("/api/words", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newWordPayload),
       });
 
-      if (!response.ok || response.status !== 201) {
-        let errorMsg = `Erreur serveur (${response.status})`;
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorMsg;
-        } catch (err) {}
-        throw new Error(errorMsg);
-      }
-
       incrementUserWordCount();
-      console.log("Mot ajouté avec succès");
-
       wordInput.value = "";
       submitButton.textContent = "✓";
-
-      const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-      console.log("Mots restants:", remaining);
-
-      if (remaining > 0) {
-        wordInput.placeholder = `${remaining} mot${remaining > 1 ? "s" : ""} restant${
-          remaining > 1 ? "s" : ""
-        }...`;
-      } else {
-        wordInput.placeholder = "Limite atteinte (5 mots max)";
-      }
-
+      
       setTimeout(() => {
         submitButton.textContent = "Tisser";
-        if (remaining === 0) {
-          wordInput.disabled = true;
-          submitButton.disabled = true;
-        }
-      }, 800);
-
-      await fetchWords();
-    } catch (error) {
-      console.error("Erreur d'ajout:", error);
-      wordInput.placeholder = error.message;
-      setTimeout(() => {
-        wordInput.placeholder = originalPlaceholder;
-      }, 3000);
-      wordInput.value = "";
-    } finally {
-      if (getUserWordCount() < CONFIG.MAX_WORDS_PER_USER) {
         wordInput.disabled = false;
         submitButton.disabled = false;
         wordInput.focus();
-      }
+      }, 500);
+
+      await fetchWords();
+      
+    } catch (error) {
+      console.error(error);
+      wordInput.disabled = false;
+      submitButton.disabled = false;
     }
   });
 
