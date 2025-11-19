@@ -223,6 +223,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const frameInterval = 1000 / CONFIG.TARGET_FPS;
   let canDraw = true;
   let pendingDraws = false;
+  let colorsShuffled = false;
+  let positionsShuffled = false;
 
   const wordOccurrencesCache = new Map();
   const geometryCache = new Map();
@@ -1624,44 +1626,73 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-
+  
       const response = await fetch(`/api/words?t=${Date.now()}`, {
         signal: controller.signal,
       });
-
+  
       clearTimeout(timeoutId);
-
+  
       if (!response.ok) throw new Error(`Erreur réseau: ${response.status}`);
       const fetchedWords = await response.json();
       if (!Array.isArray(fetchedWords)) {
         console.error("❌ Réponse inattendue:", fetchedWords);
         return;
       }
-
-      const newWords = [];
-      fetchedWords.forEach((fw) => {
-        const existing = displayedWords.find(
-          (dw) => dw.text === fw.text && dw.timestamp === fw.timestamp
-        );
-        if (!existing) {
-          newWords.push(fw);
-          animateWordAppearance(fw); // ANIMATION D'APPARITION
-        }
+  
+      // Créer une map des mots existants pour préserver les modifications
+      const existingWordsMap = new Map();
+      displayedWords.forEach(word => {
+        const key = `${word.text}-${word.timestamp}`;
+        existingWordsMap.set(key, {
+          color: word.color,
+          x: word.x,
+          y: word.y
+        });
       });
-
-      displayedWords = fetchedWords;
+  
+      const newWords = [];
+      const updatedWords = fetchedWords.map(fw => {
+        const key = `${fw.text}-${fw.timestamp}`;
+        const existing = existingWordsMap.get(key);
+        
+        // Si le mot existait déjà
+        if (existing) {
+          // Préserver les couleurs si mélangées OU si couleur custom active
+          if (colorsShuffled || colorGenerator.mode === 'custom') {
+            fw.color = existing.color;
+          }
+          
+          // Préserver les positions si mélangées
+          if (positionsShuffled) {
+            fw.x = existing.x;
+            fw.y = existing.y;
+          }
+        } else {
+          // Nouveau mot : appliquer la couleur custom si active
+          if (colorGenerator.mode === 'custom') {
+            fw.color = colorGenerator.customColor;
+          }
+          newWords.push(fw);
+          animateWordAppearance(fw);
+        }
+        
+        return fw;
+      });
+  
+      displayedWords = updatedWords;
       wordOccurrencesCache.clear();
       geometryCache.clear();
-
+  
       if (newWords.length > 0) {
         updateWordList(newWords);
         updateStats();
-
+  
         const lastNewWord = newWords[newWords.length - 1];
-
+  
         if (settings.animateLines && displayedWords.length > 1) {
           let targetWord;
-
+  
           if (
             settings.linkMode === "chronological" ||
             settings.linkMode === "flow"
@@ -1742,7 +1773,7 @@ document.addEventListener("DOMContentLoaded", () => {
               targetWord = sorted[0]?.word;
             }
           }
-
+  
           if (targetWord) {
             currentAnimatingConnection = [targetWord, lastNewWord];
             animationProgress = 0;
@@ -2529,33 +2560,39 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Color mode
-  document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      const customPicker = document.getElementById("custom-color-picker");
-      if (e.target.value === "custom") {
-        customPicker.classList.remove("hidden");
-        colorGenerator.setMode("custom");
-        
-        const customColor = document.getElementById("color-picker-input").value;
-        displayedWords.forEach(word => {
-          word.color = customColor;
-        });
-        scheduleRedraw();
-      } else {
-        customPicker.classList.add("hidden");
-        colorGenerator.setMode("auto");
-        
-        displayedWords.forEach(word => {
-          word.color = colorGenerator.getColor();
-        });
-        wordOccurrencesCache.clear();
-        geometryCache.clear();
-        scheduleRedraw();
-        updateWordList(displayedWords);
-        updateStats();
-      }
-    });
+// Color mode
+document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    const customPicker = document.getElementById("custom-color-picker");
+    if (e.target.value === "custom") {
+      customPicker.classList.remove("hidden");
+      colorGenerator.setMode("custom");
+      
+      const customColor = document.getElementById("color-picker-input").value;
+      displayedWords.forEach(word => {
+        word.color = customColor;
+      });
+      
+      colorsShuffled = false; // 🔥 DÉSACTIVER le flag shuffle
+      scheduleRedraw();
+    } else {
+      customPicker.classList.add("hidden");
+      colorGenerator.setMode("auto");
+      
+      // Régénérer TOUTES les couleurs aléatoirement
+      displayedWords.forEach(word => {
+        word.color = colorGenerator.getColor();
+      });
+      
+      colorsShuffled = false; // 🔥 DÉSACTIVER le flag shuffle
+      wordOccurrencesCache.clear();
+      geometryCache.clear();
+      scheduleRedraw();
+      updateWordList(displayedWords);
+      updateStats();
+    }
   });
+});
 
   // Color picker
   const colorPickerInput = document.getElementById("color-picker-input");
@@ -2708,53 +2745,58 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Shuffle buttons
-  document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
-    const existingColors = displayedWords.map(w => w.color);
-    
-    for (let i = existingColors.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
-    }
-    
-    displayedWords.forEach((word, i) => {
-      word.color = existingColors[i];
-    });
-    
-    wordOccurrencesCache.clear();
-    geometryCache.clear();
-    scheduleRedraw();
-    updateWordList(displayedWords);
-    updateStats();
-    
-    const btn = document.getElementById("shuffle-colors-button");
-    btn.style.transform = "rotate(360deg)";
-    btn.style.transition = "transform 0.6s ease";
-    setTimeout(() => { btn.style.transform = ""; }, 600);
+// Shuffle colors
+document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
+  const existingColors = displayedWords.map(w => w.color);
+  
+  for (let i = existingColors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
+  }
+  
+  displayedWords.forEach((word, i) => {
+    word.color = existingColors[i];
   });
+  
+  colorsShuffled = true; // 🔥 ACTIVER LE FLAG
+  
+  wordOccurrencesCache.clear();
+  geometryCache.clear();
+  scheduleRedraw();
+  updateWordList(displayedWords);
+  updateStats();
+  
+  const btn = document.getElementById("shuffle-colors-button");
+  btn.style.transform = "rotate(360deg)";
+  btn.style.transition = "transform 0.6s ease";
+  setTimeout(() => { btn.style.transform = ""; }, 600);
+});
 
-  document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
-    const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
-    
-    for (let i = existingPositions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
-    }
-    
-    displayedWords.forEach((word, i) => {
-      word.x = existingPositions[i].x;
-      word.y = existingPositions[i].y;
-    });
-    
-    wordOccurrencesCache.clear();
-    geometryCache.clear();
-    scheduleRedraw();
-    
-    const btn = document.getElementById("shuffle-positions-button");
-    btn.style.transform = "scale(1.2) rotate(180deg)";
-    btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
-    setTimeout(() => { btn.style.transform = ""; }, 500);
+// Shuffle positions
+document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
+  const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
+  
+  for (let i = existingPositions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
+  }
+  
+  displayedWords.forEach((word, i) => {
+    word.x = existingPositions[i].x;
+    word.y = existingPositions[i].y;
   });
+  
+  positionsShuffled = true; // 🔥 ACTIVER LE FLAG
+  
+  wordOccurrencesCache.clear();
+  geometryCache.clear();
+  scheduleRedraw();
+  
+  const btn = document.getElementById("shuffle-positions-button");
+  btn.style.transform = "scale(1.2) rotate(180deg)";
+  btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+  setTimeout(() => { btn.style.transform = ""; }, 500);
+});
 
   // Reset button
   resetButton.addEventListener("click", (e) => {
