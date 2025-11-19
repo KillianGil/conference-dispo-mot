@@ -379,30 +379,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     const width = container ? container.clientWidth : 800;
     const height = container ? container.clientHeight : 600;
-    const aspectRatio = width / height;
-  
-    // Taille estimée du nouveau point (rayon min + marge)
-    const newPointRadiusPx = 35; 
     
+    // On simule un gros point pour être sûr d'avoir de la place (40px de rayon)
+    const newRadius = 40;
+  
     for (const word of displayedWords) {
-      // Calcul de la distance physique réelle
+      const count = getWordOccurrences()[word.text.toLowerCase()] || 1;
+      const existingRadius = getPointRadius(count);
+  
+      // Distance en pixels
       const dx = (word.x - x) * width;
       const dy = (word.y - y) * height;
-      const distPx = Math.sqrt(dx * dx + dy * dy);
-      
-      // On récupère la taille réelle du mot existant
-      const occurrences = getWordOccurrences()[word.text.toLowerCase()] || 1;
-      const existingRadiusPx = getPointRadius(occurrences);
-      
-      // Distance minimale de sécurité : somme des rayons + une marge de 40px
-      const safeDistancePx = newPointRadiusPx + existingRadiusPx + 40;
+      const dist = Math.sqrt(dx * dx + dy * dy);
   
-      // Si on est trop près physiquement, ou trop près selon la grille
-      if (distPx < safeDistancePx) return false;
-      
-      // Vérification secondaire normalisée (pour éviter les amas globaux)
-      const distNormalized = Math.sqrt(Math.pow(word.x - x, 2) + Math.pow((word.y - y) / aspectRatio, 2));
-      if (distNormalized < minDist) return false;
+      // Distance de sécurité stricte
+      if (dist < (newRadius + existingRadius + 20)) {
+        return false;
+      }
     }
     return true;
   }
@@ -753,27 +746,32 @@ function findValidPosition() {
   }
 
   // ==================== ANIMATION PRINCIPALE ====================
-  function animateWeaving(timestamp = 0) {
-    if (timestamp - lastFrameTime < frameInterval) {
-      animationFrame = requestAnimationFrame(animateWeaving);
-      return;
-    }
-    lastFrameTime = timestamp;
-
-    if (currentAnimatingConnection) {
-      animationProgress += 0.035;
-      if (animationProgress >= 1) {
-        animationProgress = 1;
-        setTimeout(() => {
-          currentAnimatingConnection = null;
-          animationProgress = 0;
-        }, 150);
-      }
-    }
-
-    drawWeave();
+// ==================== ANIMATION PRINCIPALE ====================
+function animateWeaving(timestamp = 0) {
+  if (timestamp - lastFrameTime < frameInterval) {
     animationFrame = requestAnimationFrame(animateWeaving);
+    return;
   }
+  lastFrameTime = timestamp;
+
+  // 🔥 MISE À JOUR DE LA PHYSIQUE À CHAQUE FRAME
+  // C'est ce qui empêche les chevauchements en temps réel
+  detectAndResolveOverlaps();
+
+  if (currentAnimatingConnection) {
+    animationProgress += 0.035;
+    if (animationProgress >= 1) {
+      animationProgress = 1;
+      setTimeout(() => {
+        currentAnimatingConnection = null;
+        animationProgress = 0;
+      }, 150);
+    }
+  }
+
+  drawWeave();
+  animationFrame = requestAnimationFrame(animateWeaving);
+}
 
 // ==================== DESSIN PRINCIPAL ====================
 // ==================== DESSIN PRINCIPAL ====================
@@ -1640,70 +1638,95 @@ function drawWeave(withBackground = false) {
 
   // ==================== DÉTECTION CHEVAUCHEMENTS ====================
 // ==================== DÉTECTION ET RÉSOLUTION DES CHEVAUCHEMENTS (PHYSIQUE) ====================
+// ==================== MOTEUR PHYSIQUE DE RÉPULSION ====================
 function detectAndResolveOverlaps() {
   const container = document.getElementById("canvas-container");
   if (!container) return;
 
-  const width = container.clientWidth || 800;
-  const height = container.clientHeight || 600;
-  const aspectRatio = width / height;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  
+  // Paramètres de répulsion
+  const PADDING = 15; // Espace vide minimum en pixels entre deux points
+  const STIFFNESS = 0.1; // Vitesse de la répulsion (0.1 = doux, 1.0 = instantané)
+
   const wordOccurrences = getWordOccurrences();
   
-  const uniqueWordsMap = new Map();
+  // Créer une liste de nœuds uniques pour la physique
+  const uniqueNodes = [];
+  const map = new Map();
+
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
-    if (!uniqueWordsMap.has(key)) uniqueWordsMap.set(key, word);
+    if (!map.has(key)) {
+      map.set(key, word);
+      uniqueNodes.push(word);
+    }
   });
-  
-  const uniqueNodes = Array.from(uniqueWordsMap.values());
-  const ITERATIONS = 5; // Suffisant pour stabiliser
 
-  for (let k = 0; k < ITERATIONS; k++) {
-    for (let i = 0; i < uniqueNodes.length; i++) {
-      for (let j = i + 1; j < uniqueNodes.length; j++) {
-        const nodeA = uniqueNodes[i];
-        const nodeB = uniqueNodes[j];
+  // Boucle de collision
+  for (let i = 0; i < uniqueNodes.length; i++) {
+    const nodeA = uniqueNodes[i];
+    const countA = wordOccurrences[nodeA.text.toLowerCase()] || 1;
+    const radiusA = getPointRadius(countA); // Rayon visuel réel
 
-        const countA = wordOccurrences[nodeA.text.toLowerCase()] || 1;
-        const countB = wordOccurrences[nodeB.text.toLowerCase()] || 1;
+    for (let j = i + 1; j < uniqueNodes.length; j++) {
+      const nodeB = uniqueNodes[j];
+      const countB = wordOccurrences[nodeB.text.toLowerCase()] || 1;
+      const radiusB = getPointRadius(countB);
+
+      // Vecteur entre les deux points (en pixels)
+      let dx = (nodeB.x - nodeA.x) * width;
+      let dy = (nodeB.y - nodeA.y) * height;
+      
+      // Si superposition exacte, on donne une impulsion aléatoire
+      if (dx === 0 && dy === 0) {
+        dx = Math.random() - 0.5;
+        dy = Math.random() - 0.5;
+      }
+
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
+
+      // Distance minimale requise (rayon A + rayon B + marge)
+      const minDist = radiusA + radiusB + PADDING;
+
+      // Si collision détectée
+      if (dist < minDist) {
+        // Calcul de la force de répulsion
+        const overlap = minDist - dist; // De combien on se chevauche
+        const force = overlap * STIFFNESS; // Force proportionnelle
         
-        // Marge de sécurité entre les cercles (30px)
-        const radiusA = getPointRadius(countA);
-        const radiusB = getPointRadius(countB);
-        const minDistPx = radiusA + radiusB + 30; 
+        // Normalisation du vecteur
+        const nx = dx / dist;
+        const ny = dy / dist;
 
-        const dx = (nodeA.x - nodeB.x) * width;
-        const dy = (nodeA.y - nodeB.y) * height;
-        const distPx = Math.sqrt(dx*dx + dy*dy);
+        // Appliquer le déplacement (réparti sur les deux points)
+        // On divise par width/height pour repasser en coordonnées 0-1
+        const moveX = (nx * force * 0.5) / width;
+        const moveY = (ny * force * 0.5) / height;
 
-        if (distPx < minDistPx && distPx > 0) {
-          const overlap = (minDistPx - distPx) / distPx;
-          const moveX = dx * overlap * 0.5 / width;
-          const moveY = dy * overlap * 0.5 / height;
-
-          nodeA.x += moveX;
-          nodeA.y += moveY;
-          nodeB.x -= moveX;
-          nodeB.y -= moveY;
-        }
+        nodeA.x -= moveX;
+        nodeA.y -= moveY;
+        nodeB.x += moveX;
+        nodeB.y += moveY;
       }
     }
+
+    // Garder les points dans l'écran (Rebond sur les murs)
+    // Marge de 5% sur les bords
+    nodeA.x = Math.max(0.05, Math.min(0.95, nodeA.x));
+    nodeA.y = Math.max(0.08, Math.min(0.92, nodeA.y));
   }
 
-  // Garder dans l'écran
-  uniqueNodes.forEach(node => {
-    node.x = Math.max(0.08, Math.min(0.92, node.x));
-    node.y = Math.max(0.08, Math.min(0.92, node.y));
-  });
-
-  // Appliquer aux doublons
+  // Synchroniser les positions pour les mots identiques
   displayedWords.forEach(word => {
-    const master = uniqueWordsMap.get(word.text.toLowerCase());
-    if (master) { word.x = master.x; word.y = master.y; }
+    const master = map.get(word.text.toLowerCase());
+    if (master && word !== master) {
+      word.x = master.x;
+      word.y = master.y;
+    }
   });
-
-  geometryCache.clear();
-  scheduleRedraw();
 }
   // ==================== FETCH WORDS ====================
   async function fetchWords() {
