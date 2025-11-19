@@ -719,8 +719,7 @@ function findValidPosition() {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-  // ==================== DESSIN PRINCIPAL ====================
- // ==================== DESSIN PRINCIPAL ====================
+// ==================== DESSIN PRINCIPAL ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
 
@@ -810,10 +809,8 @@ function drawWeave(withBackground = false) {
       const perpY = (dx / len) * offset;
 
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 3;
-      ctx.shadowOffsetY = 3;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+      ctx.shadowBlur = 15;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -829,7 +826,7 @@ function drawWeave(withBackground = false) {
       }
 
       ctx.lineWidth = Math.max(4, settings.lineWidth * 2.0);
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.95;
       ctx.stroke();
       ctx.restore();
     });
@@ -849,7 +846,7 @@ function drawWeave(withBackground = false) {
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.strokeStyle = word.color;
         ctx.lineWidth = 1.5;
-        ctx.globalAlpha = opacity * 0.4;
+        ctx.globalAlpha = opacity * 0.5;
         ctx.stroke();
       }
     });
@@ -861,13 +858,18 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
+      ctx.save();
+      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+      ctx.shadowBlur = 12;
+
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = word2.color;
       ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.5);
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.7;
       ctx.stroke();
+      ctx.restore();
     });
     ctx.globalAlpha = 1;
   } else if (settings.linkMode === "spiral") {
@@ -892,7 +894,7 @@ function drawWeave(withBackground = false) {
 
       ctx.save();
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(spiralX, spiralY);
@@ -902,7 +904,7 @@ function drawWeave(withBackground = false) {
       gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.strokeStyle = gradient;
       ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.3);
-      ctx.globalAlpha = 0.75;
+      ctx.globalAlpha = 0.85;
       ctx.stroke();
       ctx.restore();
     });
@@ -921,14 +923,14 @@ function drawWeave(withBackground = false) {
         const y2 = neighbor.y * height;
 
         ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 4;
+        ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
+        ctx.shadowBlur = 10;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
 
-        const opacity = Math.max(0.25, 1 - dist / 0.5);
+        const opacity = Math.max(0.3, 1 - dist / 0.5);
 
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
@@ -939,7 +941,7 @@ function drawWeave(withBackground = false) {
           ctx.strokeStyle = word.color;
         }
 
-        ctx.globalAlpha = opacity * 0.5;
+        ctx.globalAlpha = opacity * 0.7;
         ctx.lineWidth = Math.max(3.5, settings.lineWidth * 1.5);
         ctx.stroke();
         ctx.restore();
@@ -959,7 +961,7 @@ function drawWeave(withBackground = false) {
 
       ctx.save();
       ctx.shadowColor = word2.color;
-      ctx.shadowBlur = 12 * pulse;
+      ctx.shadowBlur = 15 * pulse;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -976,7 +978,7 @@ function drawWeave(withBackground = false) {
       }
 
       ctx.lineWidth = Math.max(4, settings.lineWidth * 1.8 + pulse * 2.5);
-      ctx.globalAlpha = 0.7 + pulse * 0.2;
+      ctx.globalAlpha = 0.8 + pulse * 0.2;
       ctx.stroke();
       ctx.restore();
 
@@ -1068,8 +1070,9 @@ function drawWeave(withBackground = false) {
       const y2 = word2.y * height;
 
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-      ctx.shadowBlur = 6;
+      // 🔥 LUMINOSITÉ AUGMENTÉE
+      ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+      ctx.shadowBlur = 15;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -1081,7 +1084,7 @@ function drawWeave(withBackground = false) {
 
       ctx.strokeStyle = gradient;
       ctx.lineWidth = Math.max(4, settings.lineWidth * 2.0);
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 1.0; // Opacité max
       ctx.stroke();
       ctx.restore();
 
@@ -1124,7 +1127,7 @@ function drawWeave(withBackground = false) {
       }
     }
   } else {
-    // Mode standard
+    // ==================== 🔥 MODE STANDARD - TRAITS LUMINEUX ====================
     connections.forEach(([word1, word2]) => {
       if (
         typeof word1.x !== "number" ||
@@ -1160,13 +1163,14 @@ function drawWeave(withBackground = false) {
       const x2 = word2.x * width;
       const y2 = word2.y * height;
 
+      // 🔥 TRAIT PRINCIPAL ULTRA LUMINEUX
       ctx.save();
-      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 3;
-      ctx.shadowOffsetY = 3;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.6)"; // Glow blanc fort
+      ctx.shadowBlur = 20; // Blur augmenté
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 1.0; // Opacité maximale
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
@@ -1184,12 +1188,20 @@ function drawWeave(withBackground = false) {
       ctx.stroke();
       ctx.restore();
 
-      ctx.globalAlpha = 0.4;
+      // 🔥 HALO EXTÉRIEUR RENFORCÉ
+      ctx.save();
+      ctx.globalAlpha = 0.7; // Opacité augmentée
+      ctx.shadowBlur = 30; // Blur augmenté
+      ctx.shadowColor = word2.color;
+      
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
-      ctx.lineWidth = Math.max(6, settings.lineWidth * 2.5);
+      
+      ctx.lineWidth = Math.max(6, settings.lineWidth * 2.8);
+      ctx.strokeStyle = word2.color;
       ctx.stroke();
+      ctx.restore();
     });
   }
 
@@ -1235,120 +1247,118 @@ function drawWeave(withBackground = false) {
     }
   );
 
-// ==================== DESSIN DES POINTS ====================
-const uniqueWordsMap = new Map();
-sortedForDisplay.forEach((word) => {
-  const key = word.text.toLowerCase();
-  if (!uniqueWordsMap.has(key)) {
-    uniqueWordsMap.set(key, word);
-  }
-});
-
-Array.from(uniqueWordsMap.values()).forEach((word) => {
-  const occurrences = wordOccurrences[word.text.toLowerCase()];
-  const pointSize = getPointRadius(occurrences);
-
-  const isHighlighted = word.highlighted || false;
-  const highlightBonus = isHighlighted ? 6 : 0;
-  const finalPointSize = pointSize + highlightBonus;
-
-  const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
-  const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-  const x = word.x * width + wobbleX;
-  const y = word.y * height + wobbleY;
-
-  if (settings.enableParticles && Math.random() < 0.06) {
-    particles.push(getParticle(x, y, word.color));
-  }
-
-  const pulseFactor = isHighlighted ? 6 : 4;
-  const pulseSize =
-    finalPointSize +
-    10 +
-    Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
-
-  ctx.beginPath();
-  ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
-  ctx.strokeStyle = word.color;
-  ctx.lineWidth = isHighlighted ? 5 : 4;
-  ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
-  ctx.fillStyle = word.color;
-  ctx.globalAlpha = 1;
-  ctx.shadowColor = word.color;
-  ctx.shadowBlur = isHighlighted ? 28 : 20;
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
-  ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
-  ctx.lineWidth = isHighlighted ? 5 : 3;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-  ctx.shadowBlur = 8;
-  ctx.shadowColor = "white";
-  ctx.fill();
-
-  ctx.shadowBlur = 0;
-  ctx.shadowColor = "transparent";
-});
-
-// ==================== DESSIN DES TEXTES ====================
-if (settings.showWords) {
-  ctx.globalAlpha = 1;
-  const isMobile = window.innerWidth < 768;
-  const fontSize = isMobile ? 22 : 28;
-  ctx.font = `bold ${fontSize}px Inter, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
+  // ==================== DESSIN DES POINTS ====================
+  const uniqueWordsMap = new Map();
+  sortedForDisplay.forEach((word) => {
+    const key = word.text.toLowerCase();
+    if (!uniqueWordsMap.has(key)) {
+      uniqueWordsMap.set(key, word);
+    }
+  });
 
   Array.from(uniqueWordsMap.values()).forEach((word) => {
     const occurrences = wordOccurrences[word.text.toLowerCase()];
+    const pointSize = getPointRadius(occurrences);
+
     const isHighlighted = word.highlighted || false;
     const highlightBonus = isHighlighted ? 6 : 0;
-    const pointSize = getPointRadius(occurrences) + highlightBonus;
+    const finalPointSize = pointSize + highlightBonus;
 
     const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
     const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
-    const textPadding = Math.max(22, fontSize * 0.6);
-    const textY = y - pointSize - textPadding;
 
-    // 🔥 Contour noir moins prononcé
-    ctx.shadowColor = "rgba(0, 0, 0, 0.7)"; // De 0.9 à 0.7
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetX = 2; // De 3 à 2
-    ctx.shadowOffsetY = 2; // De 3 à 2
+    if (settings.enableParticles && Math.random() < 0.06) {
+      particles.push(getParticle(x, y, word.color));
+    }
 
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.8)"; // De 0.95 à 0.8
-    ctx.lineWidth = isMobile ? 6 : 7; // De 7/8 à 6/7
-    ctx.strokeText(word.text, x, textY);
+    const pulseFactor = isHighlighted ? 6 : 4;
+    const pulseSize =
+      finalPointSize +
+      10 +
+      Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
 
-    // 🔥 ÉCLAIRCIR LA COULEUR DU TEXTE (+20% de luminosité)
-    const brightColor = word.color.replace(
-      /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,
-      (match, h, s, l) => {
-        const newL = Math.min(85, parseInt(l) + 20); // +20% luminosité
-        return `hsl(${h}, ${s}%, ${newL}%)`;
-      }
-    );
+    ctx.beginPath();
+    ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+    ctx.strokeStyle = word.color;
+    ctx.lineWidth = isHighlighted ? 5 : 4;
+    ctx.globalAlpha = isHighlighted ? 0.8 : 0.5;
+    ctx.stroke();
 
-    ctx.fillStyle = brightColor;
-    ctx.shadowBlur = isHighlighted ? 32 : 26; // Glow plus fort
-    ctx.shadowColor = brightColor;
-    ctx.fillText(word.text, x, textY);
+    ctx.beginPath();
+    ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+    ctx.fillStyle = word.color;
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = word.color;
+    ctx.shadowBlur = isHighlighted ? 28 : 20;
+    ctx.fill();
 
-    ctx.shadowColor = "transparent";
+    ctx.beginPath();
+    ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+    ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
+    ctx.lineWidth = isHighlighted ? 5 : 3;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = "white";
+    ctx.fill();
+
     ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
   });
-}
+
+  // ==================== DESSIN DES TEXTES ====================
+  if (settings.showWords) {
+    ctx.globalAlpha = 1;
+    const isMobile = window.innerWidth < 768;
+    const fontSize = isMobile ? 22 : 28;
+    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+
+    Array.from(uniqueWordsMap.values()).forEach((word) => {
+      const occurrences = wordOccurrences[word.text.toLowerCase()];
+      const isHighlighted = word.highlighted || false;
+      const highlightBonus = isHighlighted ? 6 : 0;
+      const pointSize = getPointRadius(occurrences) + highlightBonus;
+
+      const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
+      const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
+      const x = word.x * width + wobbleX;
+      const y = word.y * height + wobbleY;
+      const textPadding = Math.max(22, fontSize * 0.6);
+      const textY = y - pointSize - textPadding;
+
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+      ctx.lineWidth = isMobile ? 6 : 7;
+      ctx.strokeText(word.text, x, textY);
+
+      const brightColor = word.color.replace(
+        /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,
+        (match, h, s, l) => {
+          const newL = Math.min(85, parseInt(l) + 20);
+          return `hsl(${h}, ${s}%, ${newL}%)`;
+        }
+      );
+
+      ctx.fillStyle = brightColor;
+      ctx.shadowBlur = isHighlighted ? 32 : 26;
+      ctx.shadowColor = brightColor;
+      ctx.fillText(word.text, x, textY);
+
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+    });
+  }
 
   ctx.restore();
 }
@@ -1498,6 +1508,74 @@ if (settings.showWords) {
     document.getElementById("stats-content").innerHTML = html;
   }
 
+  // ==================== DÉTECTION CHEVAUCHEMENTS ====================
+function detectAndResolveOverlaps() {
+  const wordOccurrences = getWordOccurrences();
+  const width = canvas.clientWidth || 800;
+  
+  // Regrouper par mot unique
+  const uniqueWords = new Map();
+  displayedWords.forEach(word => {
+    const key = word.text.toLowerCase();
+    if (!uniqueWords.has(key)) {
+      uniqueWords.set(key, word);
+    }
+  });
+  
+  const uniqueArray = Array.from(uniqueWords.values());
+  let hasOverlaps = false;
+  
+  // Vérifier chaque paire de mots
+  for (let i = 0; i < uniqueArray.length; i++) {
+    for (let j = i + 1; j < uniqueArray.length; j++) {
+      const word1 = uniqueArray[i];
+      const word2 = uniqueArray[j];
+      
+      const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
+      const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
+      
+      const radius1 = getPointRadius(occurrences1) / width;
+      const radius2 = getPointRadius(occurrences2) / width;
+      
+      const dx = word1.x - word2.x;
+      const dy = word1.y - word2.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      const minDist = radius1 + radius2 + 0.08; // Marge de sécurité
+      
+      if (dist < minDist && dist > 0.001) {
+        hasOverlaps = true;
+        
+        // Éloigner les deux points proportionnellement
+        const overlap = minDist - dist;
+        const angle = Math.atan2(dy, dx);
+        
+        word1.x += Math.cos(angle) * overlap / 2;
+        word1.y += Math.sin(angle) * overlap / 2;
+        word2.x -= Math.cos(angle) * overlap / 2;
+        word2.y -= Math.sin(angle) * overlap / 2;
+        
+        // Appliquer à tous les mots identiques
+        displayedWords.forEach(w => {
+          if (w.text.toLowerCase() === word1.text.toLowerCase()) {
+            w.x = word1.x;
+            w.y = word1.y;
+          }
+          if (w.text.toLowerCase() === word2.text.toLowerCase()) {
+            w.x = word2.x;
+            w.y = word2.y;
+          }
+        });
+      }
+    }
+  }
+  
+  if (hasOverlaps) {
+    console.log("⚠️ Chevauchements détectés et corrigés");
+    geometryCache.clear();
+    scheduleRedraw();
+  }
+}
   // ==================== FETCH WORDS ====================
   async function fetchWords() {
     try {
@@ -1560,6 +1638,8 @@ if (settings.showWords) {
       displayedWords = updatedWords;
       wordOccurrencesCache.clear();
       geometryCache.clear();
+
+      detectAndResolveOverlaps();
   
       if (newWords.length > 0) {
         updateWordList(newWords);
