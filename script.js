@@ -57,6 +57,23 @@ const MODE_DESCRIPTIONS = {
   flow: "Animation fluide chronologique avec effet de flux",
 };
 
+// Prévisualisations des modes
+const MODE_PREVIEWS = {
+  chronological: "→ → → (séquence temporelle)",
+  random: "⚡ ↔ ↕ (connexions aléatoires)",
+  proximity: "⊕ ⊙ ⊗ (mots proches)",
+  color: "🌈 (harmonie chromatique)",
+  resonance: "💫 (lettres communes)",
+  constellation: "✨ ⋆ ☆ (effet étoilé)",
+  waves: "〰️ ∼ ≈ (courbes fluides)",
+  ripple: "◎ ◉ ○ (ondulations)",
+  spiral: "🌀 (spirale hypnotique)",
+  web: "🕸️ (réseau dense)",
+  pulse: "⚡ ⚡ ⚡ (ondes lumineuses)",
+  basket: "⊞ ⊟ (vannerie)",
+  flow: "⟿ ⇝ ⟹ (flux temporel)",
+};
+
 // ==================== UTILITAIRES ====================
 function debounce(func, wait) {
   let timeout;
@@ -99,7 +116,9 @@ function incrementUserWordCount() {
 function canUserAddWord() {
   const count = getUserWordCount();
   const canAdd = count < CONFIG.MAX_WORDS_PER_USER;
-  console.log(`Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`);
+  console.log(
+    `Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`
+  );
   return canAdd;
 }
 
@@ -249,9 +268,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const words = await response.json();
 
       const lastReset = localStorage.getItem("lastResetTime");
-      const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
+      const timeSinceReset = lastReset
+        ? Date.now() - parseInt(lastReset)
+        : Infinity;
 
-      if (words.length === 0 || (getUserWordCount() >= 5 && timeSinceReset > 300000)) {
+      if (
+        words.length === 0 ||
+        (getUserWordCount() >= 5 && timeSinceReset > 300000)
+      ) {
         resetUserCounter();
         wordInput.disabled = false;
         wordForm.querySelector("button").disabled = false;
@@ -270,7 +294,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return 0.225;
 
-    const uniqueCount = new Set(displayedWords.map((w) => w.text.toLowerCase())).size;
+    const uniqueCount = new Set(
+      displayedWords.map((w) => w.text.toLowerCase())
+    ).size;
     const isMobile = window.innerWidth < 768;
 
     let baseDistance = isMobile ? 0.18 : 0.225;
@@ -281,7 +307,10 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (uniqueCount > 40) baseDistance = isMobile ? 0.165 : 0.195;
     else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
 
-    const adaptiveDistance = Math.max(isMobile ? 0.105 : 0.135, baseDistance);
+    const adaptiveDistance = Math.max(
+      isMobile ? 0.105 : 0.135,
+      baseDistance
+    );
     return Math.min(0.45, adaptiveDistance);
   }
 
@@ -301,7 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
       if (!positionMap.has(key)) {
-        const occurrences = displayedWords.filter((w) => w.text.toLowerCase() === key).length;
+        const occurrences = displayedWords.filter(
+          (w) => w.text.toLowerCase() === key
+        ).length;
         positionMap.set(key, {
           x: word.x,
           y: word.y,
@@ -329,7 +360,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const dy = pos.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      const avgScreenSize = (container.clientWidth + container.clientHeight) / 2;
+      const avgScreenSize =
+        (container.clientWidth + container.clientHeight) / 2;
       const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
 
       const requiredDist = minDist + pointSizePercent * 0.5;
@@ -362,7 +394,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const radiusStep = minDist * 0.6;
 
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(20, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3)));
+      const numPoints = Math.max(
+        20,
+        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
+      );
       const angleStep = (2 * Math.PI) / numPoints;
 
       for (let i = 0; i < numPoints; i++) {
@@ -461,7 +496,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function findExistingWord(text) {
-    return displayedWords.find((w) => w.text.toLowerCase() === text.toLowerCase());
+    return displayedWords.find(
+      (w) => w.text.toLowerCase() === text.toLowerCase()
+    );
   }
 
   // ==================== CALCULS GÉOMÉTRIQUES ====================
@@ -487,9 +524,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function isVisible(word, scale, offsetX, offsetY, width, height) {
     const x = word.x * width * scale + offsetX;
     const y = word.y * height * scale + offsetY;
-    const margin = 100;
 
-    return x > -margin && x < width + margin && y > -margin && y < height + margin;
+    // Marge généreuse pour éviter les disparitions prématurées
+    const margin = Math.max(200, Math.max(width, height) * 0.3);
+
+    return (
+      x > -margin &&
+      x < width + margin &&
+      y > -margin &&
+      y < height + margin
+    );
   }
 
   // ==================== CACHE DES OCCURRENCES ====================
@@ -556,7 +600,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } else if (mode === "resonance") {
       words.forEach((word) => {
-        const resonant = words.filter((w) => w !== word && hasResonance(word, w));
+        const resonant = words.filter(
+          (w) => w !== word && hasResonance(word, w)
+        );
 
         if (resonant.length === 0) {
           const closest = words
@@ -616,10 +662,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("canvas-container");
     if (!container) return;
 
+    // Forcer un reflow pour obtenir les vraies dimensions
+    const displayValue = container.style.display;
+    container.style.display = "none";
+    void container.offsetHeight; // Force reflow
+    container.style.display = displayValue || "";
+
     const dpr = window.devicePixelRatio || 1;
     const rect = container.getBoundingClientRect();
+
+    // Utiliser les dimensions réelles du conteneur
     const width = rect.width;
     const height = rect.height;
+
+    // Vérification de sécurité
+    if (width === 0 || height === 0) {
+      console.warn("⚠️ Dimensions invalides, nouvelle tentative...");
+      setTimeout(resizeCanvas, 100);
+      return;
+    }
 
     canvas.width = width * dpr;
     canvas.height = height * dpr;
@@ -630,7 +691,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-    console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px)`);
+    console.log(
+      `📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px)`
+    );
 
     scheduleRedraw();
   }
@@ -679,7 +742,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
 
-    if (width === 0 || height === 0) {
+    // Vérification plus robuste
+    const rect = container.getBoundingClientRect();
+    const actualWidth = rect.width;
+    const actualHeight = rect.height;
+
+    if (actualWidth === 0 || actualHeight === 0 || width === 0 || height === 0) {
       console.warn("⚠️ Canvas dimensions invalides");
       return;
     }
@@ -704,12 +772,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // Filtrer les mots visibles pour optimisation
-    const visibleWords = displayedWords.filter((w) =>
-      isVisible(w, scale, offsetX, offsetY, width, height)
-    );
+    // Pas de filtrage agressif - on garde tous les mots
+    // Le GPU gère le clipping automatiquement
+    const visibleWords = displayedWords;
 
-    const connections = calculateConnections(settings.linkMode, displayedWords, width, height);
+    const connections = calculateConnections(
+      settings.linkMode,
+      displayedWords,
+      width,
+      height
+    );
 
     // ==================== MODES SPÉCIAUX ====================
     if (settings.linkMode === "constellation") {
@@ -997,7 +1069,9 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     } else if (settings.linkMode === "flow") {
       const time = Date.now() * 0.0008;
-      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+      const sortedWords = [...displayedWords].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
       for (let i = 1; i < sortedWords.length; i++) {
         const word1 = sortedWords[i - 1];
@@ -1021,7 +1095,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.quadraticCurveTo(midX + controlOffset, midY - controlOffset, x2, y2);
+        ctx.quadraticCurveTo(
+          midX + controlOffset,
+          midY - controlOffset,
+          x2,
+          y2
+        );
 
         const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
         gradient.addColorStop(0, word1.color);
@@ -1029,7 +1108,10 @@ document.addEventListener("DOMContentLoaded", () => {
         gradient.addColorStop(1, word2.color);
 
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = Math.max(2, settings.lineWidth * (1 + flowIntensity * 0.5));
+        ctx.lineWidth = Math.max(
+          2,
+          settings.lineWidth * (1 + flowIntensity * 0.5)
+        );
         ctx.globalAlpha = 0.7 + flowIntensity * 0.2;
         ctx.stroke();
         ctx.restore();
@@ -1148,11 +1230,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort((a, b) => {
-      const countA = wordOccurrences[a.text.toLowerCase()];
-      const countB = wordOccurrences[b.text.toLowerCase()];
-      return countA - countB;
-    });
+    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort(
+      (a, b) => {
+        const countA = wordOccurrences[a.text.toLowerCase()];
+        const countB = wordOccurrences[b.text.toLowerCase()];
+        return countA - countB;
+      }
+    );
 
     // ==================== DESSIN DES POINTS ====================
     sortedForDisplay.forEach((word) => {
@@ -1176,7 +1260,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const pulseSize =
         finalPointSize +
         10 +
-        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
+        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
+          pulseFactor;
 
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
@@ -1195,7 +1280,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
-      ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
+      ctx.strokeStyle = isHighlighted
+        ? "rgba(255, 255, 255, 0.95)"
+        : "rgba(255, 255, 255, 0.7)";
       ctx.lineWidth = isHighlighted ? 5 : 3;
       ctx.stroke();
 
@@ -1279,9 +1366,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const uniqueWords = Object.keys(wordCounts).length;
     let connectionCount = 0;
-    if (settings.linkMode === "chronological" || settings.linkMode === "flow") {
+    if (
+      settings.linkMode === "chronological" ||
+      settings.linkMode === "flow"
+    ) {
       connectionCount = Math.max(0, displayedWords.length - 1);
-    } else if (settings.linkMode === "proximity" || settings.linkMode === "color") {
+    } else if (
+      settings.linkMode === "proximity" ||
+      settings.linkMode === "color"
+    ) {
       connectionCount = displayedWords.length * 2;
     }
 
@@ -1379,17 +1472,28 @@ document.addEventListener("DOMContentLoaded", () => {
         if (settings.animateLines && displayedWords.length > 1) {
           let targetWord;
 
-          if (settings.linkMode === "chronological" || settings.linkMode === "flow") {
-            const allWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
+          if (
+            settings.linkMode === "chronological" ||
+            settings.linkMode === "flow"
+          ) {
+            const allWords = [...displayedWords].sort(
+              (a, b) => a.timestamp - b.timestamp
+            );
             const lastIndex = allWords.findIndex(
-              (w) => w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp
+              (w) =>
+                w.text === lastNewWord.text &&
+                w.timestamp === lastNewWord.timestamp
             );
             if (lastIndex > 0) {
               targetWord = allWords[lastIndex - 1];
             }
           } else if (settings.linkMode === "proximity") {
             const candidates = displayedWords.filter(
-              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
+              (w) =>
+                !(
+                  w.text === lastNewWord.text &&
+                  w.timestamp === lastNewWord.timestamp
+                )
             );
             const sorted = candidates
               .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
@@ -1397,7 +1501,11 @@ document.addEventListener("DOMContentLoaded", () => {
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "color") {
             const candidates = displayedWords.filter(
-              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
+              (w) =>
+                !(
+                  w.text === lastNewWord.text &&
+                  w.timestamp === lastNewWord.timestamp
+                )
             );
             const sorted = candidates
               .map((w) => ({
@@ -1408,20 +1516,33 @@ document.addEventListener("DOMContentLoaded", () => {
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "random") {
             const candidates = displayedWords.filter(
-              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
+              (w) =>
+                !(
+                  w.text === lastNewWord.text &&
+                  w.timestamp === lastNewWord.timestamp
+                )
             );
             if (candidates.length > 0) {
               const hash = (lastNewWord.text + lastNewWord.timestamp)
                 .split("")
-                .reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+                .reduce(
+                  (acc, char) => (acc << 5) - acc + char.charCodeAt(0),
+                  0
+                );
               const targetIndex = Math.abs(hash) % candidates.length;
               targetWord = candidates[targetIndex];
             }
           } else if (settings.linkMode === "resonance") {
             const candidates = displayedWords.filter(
-              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
+              (w) =>
+                !(
+                  w.text === lastNewWord.text &&
+                  w.timestamp === lastNewWord.timestamp
+                )
             );
-            const resonant = candidates.filter((w) => hasResonance(lastNewWord, w));
+            const resonant = candidates.filter((w) =>
+              hasResonance(lastNewWord, w)
+            );
             if (resonant.length > 0) {
               targetWord = resonant[0];
             } else {
@@ -1449,7 +1570,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ==================== UPDATE WORD LIST ====================
   function updateWordList(newWords = []) {
-    const existingItems = Array.from(wordsList.querySelectorAll(".word-item"));
+    const existingItems = Array.from(
+      wordsList.querySelectorAll(".word-item")
+    );
     const currentTexts = displayedWords.map((w) => `${w.text}-${w.timestamp}`);
     existingItems.forEach((item) => {
       if (!currentTexts.includes(item.dataset.key)) {
@@ -1512,8 +1635,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (filter) {
-        filterCount.textContent = `${visibleCount}
-        résultat${visibleCount > 1 ? "s" : ""}`;
+        filterCount.textContent = `${visibleCount} résultat${
+          visibleCount > 1 ? "s" : ""
+        }`;
         filterCount.classList.remove("hidden");
       } else {
         filterCount.classList.add("hidden");
@@ -1542,7 +1666,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
 
     if (!isAdmin) {
-      const password = prompt("🔒 Mot de passe administrateur pour l'enregistrement :");
+      const password = prompt(
+        "🔒 Mot de passe administrateur pour l'enregistrement :"
+      );
       if (password !== CONFIG.RESET_PASSWORD) {
         alert("❌ Accès refusé");
         return;
@@ -1570,13 +1696,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
 
-        const estimatedSize = recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
+        const estimatedSize =
+          recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
 
-        console.log(`📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`);
+        console.log(
+          `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
+        );
 
         if (recordedFrames.length >= 600 || estimatedSize > 200) {
           stopRecording();
-          alert("⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté.");
+          alert(
+            "⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté."
+          );
         }
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
@@ -1600,7 +1731,9 @@ document.addEventListener("DOMContentLoaded", () => {
     recordButton.classList.remove("hidden");
 
     const duration = ((Date.now() - recordingStartTime) / 1000).toFixed(1);
-    console.log(`⏹️ Enregistrement arrêté: ${recordedFrames.length} frames en ${duration}s`);
+    console.log(
+      `⏹️ Enregistrement arrêté: ${recordedFrames.length} frames en ${duration}s`
+    );
 
     if (recordedFrames.length > 0) {
       exportTimelapse();
@@ -1647,7 +1780,8 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("MediaRecorder non supporté");
       }
 
-      document.getElementById("progress-text").textContent = "Initialisation du rendu HD...";
+      document.getElementById("progress-text").textContent =
+        "Initialisation du rendu HD...";
 
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
@@ -1692,7 +1826,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const date = new Date().toISOString().split("T")[0];
-        const time = new Date().toLocaleTimeString("fr-FR").replace(/:/g, "-");
+        const time = new Date()
+          .toLocaleTimeString("fr-FR")
+          .replace(/:/g, "-");
         a.href = url;
         a.download = `tissage-timelapse-${date}-${time}.webm`;
         a.click();
@@ -1743,7 +1879,9 @@ document.addEventListener("DOMContentLoaded", () => {
               await new Promise((r) => setTimeout(r, 17));
             }
 
-            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
+            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(
+              0
+            );
             document.getElementById("progress-text").textContent =
               `Rendu HD ${i + 1}/${recordedFrames.length} (${progress}%)`;
             document.getElementById("progress-bar").style.width = `${progress}%`;
@@ -1754,7 +1892,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      document.getElementById("progress-text").textContent = "Finalisation de la vidéo ULTRA HD...";
+      document.getElementById("progress-text").textContent =
+        "Finalisation de la vidéo ULTRA HD...";
 
       await new Promise((r) => setTimeout(r, 1000));
       mediaRecorder.stop();
@@ -1833,21 +1972,23 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("✅ Dernière image téléchargée");
     });
 
-    document.getElementById("export-key-frames").addEventListener("click", () => {
-      const indices = [
-        0,
-        Math.floor(recordedFrames.length * 0.25),
-        Math.floor(recordedFrames.length * 0.5),
-        Math.floor(recordedFrames.length * 0.75),
-        recordedFrames.length - 1,
-      ];
+    document
+      .getElementById("export-key-frames")
+      .addEventListener("click", () => {
+        const indices = [
+          0,
+          Math.floor(recordedFrames.length * 0.25),
+          Math.floor(recordedFrames.length * 0.5),
+          Math.floor(recordedFrames.length * 0.75),
+          recordedFrames.length - 1,
+        ];
 
-      indices.forEach((idx, i) => {
-        setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
+        indices.forEach((idx, i) => {
+          setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
+        });
+
+        alert("✅ 5 images clés téléchargées");
       });
-
-      alert("✅ 5 images clés téléchargées");
-    });
 
     document.getElementById("close-export").addEventListener("click", () => {
       document.body.removeChild(exportModal);
@@ -1903,8 +2044,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const rect = canvas.getBoundingClientRect();
           const canvasCenterX = centerX - rect.left;
           const canvasCenterY = centerY - rect.top;
-          offsetX = canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
-          offsetY = canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
+          offsetX =
+            canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
+          offsetY =
+            canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
           scale = newScale;
           scheduleRedraw();
         }
@@ -1975,6 +2118,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ==================== MODE PLEIN ÉCRAN ====================
+  function setupFullscreen() {
+    const fullscreenButton = document.getElementById("fullscreen-button");
+
+    if (fullscreenButton) {
+      fullscreenButton.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.error("Erreur plein écran:", err);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      // Mise à jour de l'icône
+      document.addEventListener("fullscreenchange", () => {
+        const icon = fullscreenButton.querySelector("svg path");
+        if (document.fullscreenElement) {
+          icon.setAttribute(
+            "d",
+            "M6 18L18 6M6 6l12 12"
+          );
+          fullscreenButton.title = "Quitter le plein écran";
+        } else {
+          icon.setAttribute(
+            "d",
+            "M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v4m0 0h-4m4 0l-5-5"
+          );
+          fullscreenButton.title = "Plein écran";
+        }
+      });
+    }
+  }
+
   // ==================== EVENT LISTENERS ====================
   wordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -2030,7 +2208,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const position = findValidPosition();
 
       if (!position) {
-        alert("❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment");
+        alert(
+          "❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment"
+        );
         wordInput.disabled = false;
         submitButton.disabled = false;
         submitButton.textContent = "Tisser";
@@ -2139,14 +2319,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Link mode selector
+  // Link mode selector avec prévisualisation
   const linkModeSelect = document.getElementById("link-mode-select");
   const modeDescription = document.getElementById("mode-description");
 
   if (linkModeSelect && modeDescription) {
     linkModeSelect.addEventListener("change", (e) => {
       settings.linkMode = e.target.value;
-      modeDescription.textContent = MODE_DESCRIPTIONS[e.target.value];
+
+      const description = MODE_DESCRIPTIONS[e.target.value];
+      const preview = MODE_PREVIEWS[e.target.value] || "";
+
+      modeDescription.innerHTML = `
+        <div class="font-medium mb-1">${description}</div>
+        ${preview ? `<div class="text-xs text-gray-400 font-mono mt-1">${preview}</div>` : ""}
+      `;
+
       geometryCache.clear();
       scheduleRedraw();
     });
@@ -2210,38 +2398,48 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Other toggles
-  document.getElementById("show-words-toggle").addEventListener("change", (e) => {
-    settings.showWords = e.target.checked;
-    scheduleRedraw();
-  });
+  document
+    .getElementById("show-words-toggle")
+    .addEventListener("change", (e) => {
+      settings.showWords = e.target.checked;
+      scheduleRedraw();
+    });
 
-  document.getElementById("animate-lines-toggle").addEventListener("change", (e) => {
-    settings.animateLines = e.target.checked;
-  });
+  document
+    .getElementById("animate-lines-toggle")
+    .addEventListener("change", (e) => {
+      settings.animateLines = e.target.checked;
+    });
 
-  document.getElementById("resonance-toggle").addEventListener("change", (e) => {
-    settings.enableResonance = e.target.checked;
-    scheduleRedraw();
-  });
+  document
+    .getElementById("resonance-toggle")
+    .addEventListener("change", (e) => {
+      settings.enableResonance = e.target.checked;
+      scheduleRedraw();
+    });
 
-  document.getElementById("show-timestamp-toggle").addEventListener("change", (e) => {
-    settings.showTimestamp = e.target.checked;
-    wordsList.innerHTML = "";
-    updateWordList(displayedWords);
-  });
+  document
+    .getElementById("show-timestamp-toggle")
+    .addEventListener("change", (e) => {
+      settings.showTimestamp = e.target.checked;
+      wordsList.innerHTML = "";
+      updateWordList(displayedWords);
+    });
 
   document.getElementById("gradient-toggle").addEventListener("change", (e) => {
     settings.useGradient = e.target.checked;
     scheduleRedraw();
   });
 
-  document.getElementById("particles-toggle").addEventListener("change", (e) => {
-    settings.enableParticles = e.target.checked;
-    if (!e.target.checked) {
-      particles.forEach((p) => recycleParticle(p));
-      particles = [];
-    }
-  });
+  document
+    .getElementById("particles-toggle")
+    .addEventListener("change", (e) => {
+      settings.enableParticles = e.target.checked;
+      if (!e.target.checked) {
+        particles.forEach((p) => recycleParticle(p));
+        particles = [];
+      }
+    });
 
   document.getElementById("line-width").addEventListener("input", (e) => {
     settings.lineWidth = parseInt(e.target.value);
@@ -2249,10 +2447,12 @@ document.addEventListener("DOMContentLoaded", () => {
     scheduleRedraw();
   });
 
-  // Panel toggle
-  togglePanelButton.addEventListener("click", () =>
-    mainContainer.classList.toggle("panel-hidden")
-  );
+  // Panel toggle avec redimensionnement
+  togglePanelButton.addEventListener("click", () => {
+    mainContainer.classList.toggle("panel-hidden");
+    // Attendre la fin de la transition CSS
+    setTimeout(() => resizeCanvas(), 350);
+  });
 
   // Download button
   downloadButton.addEventListener("click", () => {
@@ -2295,7 +2495,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Reset button
+  // Reset button avec modal sécurisé
   resetButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -2359,7 +2559,7 @@ document.addEventListener("DOMContentLoaded", () => {
         closeModal();
 
         try {
-          const response = await fetch("/api/words", { method: "DELETE" });
+          await fetch("/api/words", { method: "DELETE" });
 
           displayedWords = [];
           wordsList.innerHTML = "";
@@ -2438,7 +2638,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const qr = qrcode(0, "L");
     qr.addData(window.location.href);
     qr.make();
-    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(6, 8);
+    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(
+      6,
+      8
+    );
     qrModal.classList.remove("hidden");
   }
 
@@ -2455,6 +2658,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==================== INITIALISATION ====================
   setupZoomAndPan();
   setupWordFilter();
+  setupFullscreen();
   canvas.style.cursor = "grab";
 
   const debouncedResize = debounce(resizeCanvas, 150);

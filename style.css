@@ -11,6 +11,7 @@ body {
     height: 100%;
     overflow: hidden;
     background: #0a0f1a;
+    will-change: transform;
 }
 
 #weave-canvas {
@@ -41,6 +42,15 @@ body {
     #main-container {
         flex-direction: row;
     }
+}
+
+/* Fix pour le canvas écrasé */
+#main-container.panel-hidden #canvas-container {
+    width: 100% !important;
+}
+
+#canvas-container {
+    transition: width 0.3s ease-in-out;
 }
 
 /* ==================== SCROLLBARS ==================== */
@@ -159,7 +169,7 @@ footer button:active {
 @media (max-width: 767px) {
     #settings-modal > div {
         max-width: calc(100vw - 2rem);
-        max-height: 60vh;
+        max-height: 65vh;
         padding: 1rem;
         margin: 1rem;
     }
@@ -367,6 +377,7 @@ footer button:active {
         font-size: 14px;
     }
 }
+
 /* ==================== COLOR PICKER ==================== */
 #color-picker-input {
     appearance: none;
@@ -428,4 +439,18 @@ footer button:active {
     input[type="checkbox"]:active {
         transform: scale(1.1);
     }
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
