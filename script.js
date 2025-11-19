@@ -1836,6 +1836,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ==================== UPDATE WORD LIST COLORS ====================
+function updateWordListColors() {
+  const wordItems = document.querySelectorAll('.word-item');
+  
+  wordItems.forEach(item => {
+    const key = item.dataset.key;
+    const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
+    
+    if (word) {
+      // Mettre à jour la bordure gauche
+      item.style.borderLeft = `4px solid ${word.color}`;
+      
+      // Mettre à jour le point coloré
+      const colorDot = item.querySelector('span.w-3');
+      if (colorDot) {
+        colorDot.style.backgroundColor = word.color;
+        colorDot.style.boxShadow = `0 0 8px ${word.color}`;
+      }
+    }
+  });
+}
   // ==================== WORD FILTER ====================
   function setupWordFilter() {
     const filterInput = document.getElementById("word-filter");
@@ -2561,6 +2582,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Color mode
 // Color mode
+// Color mode
 document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     const customPicker = document.getElementById("custom-color-picker");
@@ -2573,22 +2595,22 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
         word.color = customColor;
       });
       
-      colorsShuffled = false; // 🔥 DÉSACTIVER le flag shuffle
+      colorsShuffled = false;
       scheduleRedraw();
+      updateWordListColors(); // 🔥 AJOUTER ICI
     } else {
       customPicker.classList.add("hidden");
       colorGenerator.setMode("auto");
       
-      // Régénérer TOUTES les couleurs aléatoirement
       displayedWords.forEach(word => {
         word.color = colorGenerator.getColor();
       });
       
-      colorsShuffled = false; // 🔥 DÉSACTIVER le flag shuffle
+      colorsShuffled = false;
       wordOccurrencesCache.clear();
       geometryCache.clear();
       scheduleRedraw();
-      updateWordList(displayedWords);
+      updateWordListColors(); // 🔥 AJOUTER ICI
       updateStats();
     }
   });
