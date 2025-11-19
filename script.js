@@ -9,35 +9,10 @@ const CONFIG = {
 
 // Liste de mots interdits
 const FORBIDDEN_WORDS = [
-  // Insultes
-  "merde",
-  "con",
-  "connard",
-  "connasse",
-  "salaud",
-  "salope",
-  "pute",
-  "enculé",
-  "batard",
-  "fdp",
-  "ntm",
-  // Grossièretés
-  "sexe",
-  "penis",
-  "vagin",
-  "cul",
-  "bite",
-  "couille",
-  "chatte",
-  // Injures
-  "nazi",
-  "facho",
-  "terroriste",
-  "raciste",
-  // Variantes
-  "pd",
-  "tapette",
-  "salop",
+  "merde", "con", "connard", "connasse", "salaud", "salope", "pute", 
+  "enculé", "batard", "fdp", "ntm", "sexe", "penis", "vagin", "cul", 
+  "bite", "couille", "chatte", "nazi", "facho", "terroriste", "raciste", 
+  "pd", "tapette", "salop",
 ];
 
 // Descriptions des modes
@@ -99,9 +74,7 @@ function incrementUserWordCount() {
 function canUserAddWord() {
   const count = getUserWordCount();
   const canAdd = count < CONFIG.MAX_WORDS_PER_USER;
-  console.log(
-    `Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`
-  );
+  console.log(`Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`);
   return canAdd;
 }
 
@@ -181,7 +154,6 @@ const appearingWords = new Set();
 
 function animateWordAppearance(word) {
   appearingWords.add(word);
-  
   setTimeout(() => {
     appearingWords.delete(word);
   }, 600);
@@ -264,14 +236,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const words = await response.json();
 
       const lastReset = localStorage.getItem("lastResetTime");
-      const timeSinceReset = lastReset
-        ? Date.now() - parseInt(lastReset)
-        : Infinity;
+      const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
 
-      if (
-        words.length === 0 ||
-        (getUserWordCount() >= 5 && timeSinceReset > 300000)
-      ) {
+      if (words.length === 0 || (getUserWordCount() >= 5 && timeSinceReset > 300000)) {
         resetUserCounter();
         wordInput.disabled = false;
         wordForm.querySelector("button").disabled = false;
@@ -285,216 +252,141 @@ document.addEventListener("DOMContentLoaded", () => {
 
   checkAndUnblockUser();
 
-  // ==================== CALCULS DE POSITION ====================
-  function getAdaptiveMinDistance() {
-    const container = document.getElementById("canvas-container");
-    if (!container) return 0.225;
-
-    const uniqueCount = new Set(
-      displayedWords.map((w) => w.text.toLowerCase())
-    ).size;
-    const isMobile = window.innerWidth < 768;
-
-    let baseDistance = isMobile ? 0.18 : 0.225;
-
-    if (uniqueCount > 100) baseDistance = isMobile ? 0.12 : 0.15;
-    else if (uniqueCount > 80) baseDistance = isMobile ? 0.135 : 0.165;
-    else if (uniqueCount > 60) baseDistance = isMobile ? 0.15 : 0.18;
-    else if (uniqueCount > 40) baseDistance = isMobile ? 0.165 : 0.195;
-    else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
-
-    const adaptiveDistance = Math.max(
-      isMobile ? 0.105 : 0.135,
-      baseDistance
-    );
-    return Math.min(0.45, adaptiveDistance);
+  // ==================== SYSTÈME NÉBULEUX INFINI (PIXELS) ====================
+  
+  function measureWordRadius(text) {
+    ctx.font = "bold 28px Inter, sans-serif"; // 🔥 Police plus grande pour projection
+    const metrics = ctx.measureText(text);
+    return (metrics.width / 2) + 35; // Marge augmentée
   }
 
-  function getPointRadius(occurrences) {
-    const isMobile = window.innerWidth < 768;
-    const baseSize = isMobile ? 14 : 16;
-    return baseSize + (occurrences - 1) * 4;
-  }
-
-  function getMaxPointSize(occurrences) {
-    const pointSize = getPointRadius(occurrences);
-    return pointSize + 20;
-  }
-
-  function getUniqueWordPositions() {
-    const positionMap = new Map();
-    displayedWords.forEach((word) => {
-      const key = word.text.toLowerCase();
-      if (!positionMap.has(key)) {
-        const occurrences = displayedWords.filter(
-          (w) => w.text.toLowerCase() === key
-        ).length;
-        positionMap.set(key, {
-          x: word.x,
-          y: word.y,
-          maxSize: getMaxPointSize(occurrences),
-        });
-      }
-    });
-    return Array.from(positionMap.values());
-  }
-
-  function isPositionValid(x, y, minDist) {
-    const container = document.getElementById("canvas-container");
-    if (!container) return true;
-
-    const margin = 0.08;
-    if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
-      return false;
-    }
-
-    const uniquePositions = getUniqueWordPositions();
-    const newMaxSize = getMaxPointSize(1);
-
-    for (const pos of uniquePositions) {
-      const dx = pos.x - x;
-      const dy = pos.y - y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      const avgScreenSize =
-        (container.clientWidth + container.clientHeight) / 2;
-      const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
-
-      const requiredDist = minDist + pointSizePercent * 0.5;
-
-      if (dist < requiredDist) {
-        return false;
+  function checkCollision(x, y, radius) {
+    for (const word of displayedWords) {
+      const otherRadius = word.radius || 40;
+      const dist = Math.hypot(x - word.x, y - word.y);
+      
+      if (dist < radius + otherRadius + 15) { // +15px sécurité
+        return true;
       }
     }
-
-    return true;
+    return false;
   }
 
-  function findValidPosition() {
-    const container = document.getElementById("canvas-container");
-    if (!container) return { x: 0.5, y: 0.5 };
-
-    const minDist = getAdaptiveMinDistance();
-
-    for (let i = 0; i < 150; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist)) {
-        return { x, y };
-      }
+  function findValidPosition(text) {
+    // Premier mot au centre absolu
+    if (displayedWords.length === 0) {
+      return { x: 0, y: 0, radius: measureWordRadius(text) };
     }
 
-    const centerX = 0.5;
-    const centerY = 0.5;
-    const maxRadius = 0.48;
-    const radiusStep = minDist * 0.6;
+    const radiusNeeded = measureWordRadius(text);
+    let searchRadius = 100;
+    
+    while (searchRadius < 3500) {
+      for (let i = 0; i < 30; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * searchRadius; 
+        
+        const candidateX = Math.cos(angle) * r;
+        const candidateY = Math.sin(angle) * r;
 
-    for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(
-        20,
-        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
-      );
-      const angleStep = (2 * Math.PI) / numPoints;
-
-      for (let i = 0; i < numPoints; i++) {
-        const angle = i * angleStep + Math.random() * 0.6;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
-          if (isPositionValid(x, y, minDist)) {
-            return { x, y };
-          }
+        if (!checkCollision(candidateX, candidateY, radiusNeeded)) {
+          return { 
+            x: candidateX, 
+            y: candidateY, 
+            radius: radiusNeeded 
+          };
         }
       }
+      
+      searchRadius += 70;
     }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.1 + Math.random() * 0.8;
-      const y = 0.1 + Math.random() * 0.8;
-      if (isPositionValid(x, y, minDist * 0.75)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.5)) {
-        return { x, y };
-      }
-    }
-
-    for (let i = 0; i < 120; i++) {
-      const x = 0.12 + Math.random() * 0.76;
-      const y = 0.12 + Math.random() * 0.76;
-      if (isPositionValid(x, y, minDist * 0.3)) {
-        return { x, y };
-      }
-    }
-
-    const step = minDist * 0.7;
-    for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
-      for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
-        const jitterX = (Math.random() - 0.5) * step * 0.4;
-        const jitterY = (Math.random() - 0.5) * step * 0.4;
-        const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
-        const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
-
-        if (isPositionValid(x, y, minDist * 0.2)) {
-          return { x, y };
-        }
-      }
-    }
-
-    console.warn("⚠️ Mode sans contrainte activé");
-    for (let i = 0; i < 250; i++) {
-      const x = 0.15 + Math.random() * 0.7;
-      const y = 0.15 + Math.random() * 0.7;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const zones = [
-      { x: 0.2, y: 0.2 },
-      { x: 0.8, y: 0.2 },
-      { x: 0.2, y: 0.8 },
-      { x: 0.8, y: 0.8 },
-      { x: 0.5, y: 0.2 },
-      { x: 0.5, y: 0.8 },
-      { x: 0.2, y: 0.5 },
-      { x: 0.8, y: 0.5 },
-      { x: 0.35, y: 0.35 },
-      { x: 0.65, y: 0.35 },
-      { x: 0.35, y: 0.65 },
-      { x: 0.65, y: 0.65 },
-      { x: 0.5, y: 0.5 },
-    ];
-
-    for (const zone of zones) {
-      const x = zone.x + (Math.random() - 0.5) * 0.15;
-      const y = zone.y + (Math.random() - 0.5) * 0.15;
-
-      if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        return { x, y };
-      }
-    }
-
-    const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
-    const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
-
-    return {
-      x: Math.max(0.2, Math.min(0.8, fallbackX)),
-      y: Math.max(0.2, Math.min(0.8, fallbackY)),
-    };
+    
+    console.warn("⚠️ Placement de secours activé");
+    return { x: 0, y: 0, radius: radiusNeeded };
   }
 
   function findExistingWord(text) {
     return displayedWords.find(
       (w) => w.text.toLowerCase() === text.toLowerCase()
     );
+  }
+
+  // ==================== AUTO-ZOOM INTELLIGENT ====================
+  function calculateBoundingBox() {
+    if (displayedWords.length === 0) return { minX: -200, maxX: 200, minY: -200, maxY: 200 };
+    
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    
+    displayedWords.forEach(word => {
+      minX = Math.min(minX, word.x);
+      maxX = Math.max(maxX, word.x);
+      minY = Math.min(minY, word.y);
+      maxY = Math.max(maxY, word.y);
+    });
+    
+    const marginX = (maxX - minX) * 0.20 || 120;
+    const marginY = (maxY - minY) * 0.20 || 120;
+    
+    return {
+      minX: minX - marginX,
+      maxX: maxX + marginX,
+      minY: minY - marginY,
+      maxY: maxY + marginY,
+    };
+  }
+
+  function autoFitView(animate = true) {
+    const container = document.getElementById("canvas-container");
+    if (!container) return;
+    
+    const bbox = calculateBoundingBox();
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    
+    const bboxWidth = bbox.maxX - bbox.minX;
+    const bboxHeight = bbox.maxY - bbox.minY;
+    
+    const scaleX = (width * 0.80) / bboxWidth;
+    const scaleY = (height * 0.80) / bboxHeight;
+    const targetScale = Math.min(scaleX, scaleY, 1.8);
+    
+    const centerX = (bbox.minX + bbox.maxX) / 2;
+    const centerY = (bbox.minY + bbox.maxY) / 2;
+    
+    if (animate) {
+      const startScale = scale;
+      const startOffsetX = offsetX;
+      const startOffsetY = offsetY;
+      const duration = 400;
+      const startTime = Date.now();
+      
+      function animateStep() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const eased = progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        
+        scale = startScale + (targetScale - startScale) * eased;
+        offsetX = startOffsetX + (-centerX * targetScale - startOffsetX) * eased;
+        offsetY = startOffsetY + (-centerY * targetScale - startOffsetY) * eased;
+        
+        scheduleRedraw();
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateStep);
+        }
+      }
+      
+      animateStep();
+    } else {
+      scale = targetScale;
+      offsetX = -centerX * targetScale;
+      offsetY = -centerY * targetScale;
+      scheduleRedraw();
+    }
   }
 
   // ==================== CALCULS GÉOMÉTRIQUES ====================
@@ -515,20 +407,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const letters2 = new Set(word2.text.toLowerCase().split(""));
     const common = [...letters1].filter((l) => letters2.has(l));
     return common.length >= 2;
-  }
-
-  function isVisible(word, scale, offsetX, offsetY, width, height) {
-    const x = word.x * width * scale + offsetX;
-    const y = word.y * height * scale + offsetY;
-
-    const margin = Math.max(200, Math.max(width, height) * 0.3);
-
-    return (
-      x > -margin &&
-      x < width + margin &&
-      y > -margin &&
-      y < height + margin
-    );
   }
 
   // ==================== CACHE DES OCCURRENCES ====================
@@ -552,7 +430,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function calculateAdvancedStats() {
     if (displayedWords.length === 0) return null;
 
-    // 1. CROISEMENTS DE TRAITS
     function doSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
       const det = (x2 - x1) * (y4 - y3) - (x4 - x3) * (y2 - y1);
       if (det === 0) return false;
@@ -563,7 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
     }
 
-    const connections = calculateConnections(settings.linkMode, displayedWords, 1, 1);
+    const connections = calculateConnections(settings.linkMode, displayedWords);
     let crossings = 0;
     
     for (let i = 0; i < connections.length; i++) {
@@ -580,7 +457,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // 2. INTENSITÉ LUMINEUSE
     function hslToLightness(hslString) {
       const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
       return match ? parseInt(match[3]) : 50;
@@ -592,7 +468,6 @@ document.addEventListener("DOMContentLoaded", () => {
                           avgLightness > 45 ? "Équilibrée ⚖️" : 
                           "Sombre 🌙";
 
-    // 3. PALETTE CHROMATIQUE
     const colorCounts = {};
     displayedWords.forEach(w => {
       const hue = w.color.match(/hsl\((\d+)/)[1];
@@ -610,7 +485,6 @@ document.addEventListener("DOMContentLoaded", () => {
         percentage: ((count / displayedWords.length) * 100).toFixed(1)
       }));
 
-    // 4. DISPERSION SPATIALE
     const centerX = displayedWords.reduce((sum, w) => sum + w.x, 0) / displayedWords.length;
     const centerY = displayedWords.reduce((sum, w) => sum + w.y, 0) / displayedWords.length;
     const avgDistance = displayedWords.reduce((sum, w) => {
@@ -619,11 +493,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return sum + Math.sqrt(dx * dx + dy * dy);
     }, 0) / displayedWords.length;
     
-    const dispersion = avgDistance > 0.3 ? "Étendue 🌍" : 
-                      avgDistance > 0.2 ? "Répartie 🎯" : 
+    const dispersion = avgDistance > 300 ? "Étendue 🌍" : 
+                      avgDistance > 150 ? "Répartie 🎯" : 
                       "Concentrée 🔬";
 
-    // 5. DIVERSITÉ
     const wordOccurrences = getWordOccurrences();
     const uniqueWords = Object.keys(wordOccurrences).length;
     const diversity = ((uniqueWords / displayedWords.length) * 100).toFixed(0);
@@ -634,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
       avgLightness: avgLightness.toFixed(0),
       topColors,
       dispersion,
-      avgDistance: (avgDistance * 100).toFixed(0),
+      avgDistance: avgDistance.toFixed(0),
       diversity
     };
   }
@@ -649,8 +522,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return "Rose";
   }
 
-  // ==================== CALCUL DES CONNEXIONS (AVEC CACHE) ====================
-  function calculateConnections(mode, words, width, height) {
+  // ==================== CALCUL DES CONNEXIONS ====================
+  function calculateConnections(mode, words) {
     const cacheKey = `${mode}-${words.map((w) => w.timestamp).join(",")}`;
 
     if (geometryCache.has(cacheKey)) {
@@ -784,9 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-    console.log(
-      `📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px)`
-    );
+    console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px)`);
 
     scheduleRedraw();
   }
@@ -825,7 +696,7 @@ document.addEventListener("DOMContentLoaded", () => {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-  // ==================== DESSIN PRINCIPAL ====================
+  // ==================== DESSIN PRINCIPAL (PIXELS) ====================
   function drawWeave(withBackground = false) {
     if (!canDraw) return;
 
@@ -835,11 +706,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
 
-    const rect = container.getBoundingClientRect();
-    const actualWidth = rect.width;
-    const actualHeight = rect.height;
-
-    if (actualWidth === 0 || actualHeight === 0 || width === 0 || height === 0) {
+    if (width === 0 || height === 0) {
       console.warn("⚠️ Canvas dimensions invalides");
       return;
     }
@@ -853,7 +720,8 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    ctx.translate(offsetX, offsetY);
+    // 🔥 CENTRAGE CAMÉRA (PIXELS)
+    ctx.translate((width / 2) + offsetX, (height / 2) + offsetY); 
     ctx.scale(scale, scale);
 
     if (displayedWords.length === 0) {
@@ -865,20 +733,14 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.lineJoin = "round";
 
     const visibleWords = displayedWords;
-
-    const connections = calculateConnections(
-      settings.linkMode,
-      displayedWords,
-      width,
-      height
-    );
+    const connections = calculateConnections(settings.linkMode, displayedWords);
 
     // ==================== MODES SPÉCIAUX ====================
     if (settings.linkMode === "constellation") {
       const time = Date.now() * 0.001;
       visibleWords.forEach((word) => {
-        const x = word.x * width;
-        const y = word.y * height;
+        const x = word.x; // 🔥 PIXELS DIRECTS
+        const y = word.y;
         const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
 
         for (let i = 0; i < 3; i++) {
@@ -899,10 +761,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (settings.linkMode === "waves") {
       connections.forEach(([word1, word2]) => {
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
+        const x1 = word1.x;
+        const y1 = word1.y;
+        const x2 = word2.x;
+        const y2 = word2.y;
 
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
@@ -917,8 +779,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
         ctx.shadowBlur = 8;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -942,8 +802,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const time = Date.now() * 0.001;
 
       visibleWords.forEach((word, index) => {
-        const x = word.x * width;
-        const y = word.y * height;
+        const x = word.x;
+        const y = word.y;
 
         for (let ring = 0; ring < 3; ring++) {
           const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
@@ -961,10 +821,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
 
       connections.forEach(([word1, word2]) => {
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
+        const x1 = word1.x;
+        const y1 = word1.y;
+        const x2 = word2.x;
+        const y2 = word2.y;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -977,12 +837,12 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     } else if (settings.linkMode === "spiral") {
       const time = Date.now() * 0.0005;
-      const centerX = width / 2;
-      const centerY = height / 2;
+      const centerX = 0; // Centre caméra
+      const centerY = 0;
 
       visibleWords.forEach((word, index) => {
-        const x = word.x * width;
-        const y = word.y * height;
+        const x = word.x;
+        const y = word.y;
 
         const dx = x - centerX;
         const dy = y - centerY;
@@ -1020,10 +880,10 @@ document.addEventListener("DOMContentLoaded", () => {
           .slice(0, 4);
 
         neighbors.forEach(({ word: neighbor, dist }) => {
-          const x1 = word.x * width;
-          const y1 = word.y * height;
-          const x2 = neighbor.x * width;
-          const y2 = neighbor.y * height;
+          const x1 = word.x;
+          const y1 = word.y;
+          const x2 = neighbor.x;
+          const y2 = neighbor.y;
 
           ctx.save();
           ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
@@ -1033,7 +893,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
 
-          const opacity = Math.max(0.25, 1 - dist / 0.5);
+          const opacity = Math.max(0.25, 1 - dist / 500);
 
           if (settings.useGradient) {
             const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
@@ -1055,10 +915,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const time = Date.now() * 0.001;
 
       connections.forEach(([word1, word2], idx) => {
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
+        const x1 = word1.x;
+        const y1 = word1.y;
+        const x2 = word2.x;
+        const y2 = word2.y;
 
         const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
 
@@ -1099,10 +959,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.globalAlpha = 1;
     } else if (settings.linkMode === "basket") {
       const time = Date.now() * 0.0003;
-      const gridSize = Math.max(40, settings.weavingDensity || 60);
+      const bbox = calculateBoundingBox();
+      const gridSize = 60;
 
-      for (let y = 0; y < height; y += gridSize) {
-        for (let x = 0; x < width; x += gridSize) {
+      for (let y = bbox.minY; y < bbox.maxY; y += gridSize) {
+        for (let x = bbox.minX; x < bbox.maxX; x += gridSize) {
           const cellCenterX = x + gridSize / 2;
           const cellCenterY = y + gridSize / 2;
 
@@ -1110,8 +971,8 @@ document.addEventListener("DOMContentLoaded", () => {
           let minDist = Infinity;
 
           displayedWords.forEach((word) => {
-            const dx = word.x * width - cellCenterX;
-            const dy = word.y * height - cellCenterY;
+            const dx = word.x - cellCenterX;
+            const dy = word.y - cellCenterY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < minDist) {
               minDist = dist;
@@ -1133,7 +994,6 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.globalAlpha = 0.7 + elevation * 0.2;
             ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
             ctx.shadowBlur = 5 * elevation;
-            ctx.shadowOffsetY = 3 * elevation;
 
             for (let i = 0; i < 3; i++) {
               const bandY = y + i * (gridSize / 3);
@@ -1144,7 +1004,6 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.globalAlpha = 0.5 + elevation * 0.2;
             ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
             ctx.shadowBlur = 3 * elevation;
-            ctx.shadowOffsetX = 2 * elevation;
 
             for (let i = 0; i < 3; i++) {
               const bandX = x + i * (gridSize / 3);
@@ -1163,15 +1022,14 @@ document.addEventListener("DOMContentLoaded", () => {
         (a, b) => a.timestamp - b.timestamp
       );
 
-      // Dessiner les traits FIXES
       for (let i = 1; i < sortedWords.length; i++) {
         const word1 = sortedWords[i - 1];
         const word2 = sortedWords[i];
 
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
+        const x1 = word1.x;
+        const y1 = word1.y;
+        const x2 = word2.x;
+        const y2 = word2.y;
 
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
@@ -1191,7 +1049,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.stroke();
         ctx.restore();
 
-        // Particule lumineuse qui voyage sur TOUT le chemin
         const totalSegments = sortedWords.length - 1;
         const globalProgress = (time * 0.3) % totalSegments;
         const currentSegment = Math.floor(globalProgress);
@@ -1201,7 +1058,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const particleX = x1 + (x2 - x1) * segmentProgress;
           const particleY = y1 + (y2 - y1) * segmentProgress;
 
-          // Particule principale
           ctx.save();
           ctx.shadowColor = "white";
           ctx.shadowBlur = 25;
@@ -1210,7 +1066,6 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.fillStyle = "white";
           ctx.fill();
 
-          // Halo coloré
           ctx.beginPath();
           ctx.arc(particleX, particleY, 12, 0, Math.PI * 2);
           ctx.strokeStyle = word2.color;
@@ -1218,7 +1073,6 @@ document.addEventListener("DOMContentLoaded", () => {
           ctx.globalAlpha = 0.6;
           ctx.stroke();
 
-          // Traînée lumineuse
           for (let trail = 1; trail <= 3; trail++) {
             const trailProgress = Math.max(0, segmentProgress - trail * 0.08);
             const trailX = x1 + (x2 - x1) * trailProgress;
@@ -1265,16 +1119,14 @@ document.addEventListener("DOMContentLoaded", () => {
           progress = animationProgress;
         }
 
-        const x1 = word1.x * width;
-        const y1 = word1.y * height;
-        const x2 = word2.x * width;
-        const y2 = word2.y * height;
+        const x1 = word1.x;
+        const y1 = word1.y;
+        const x2 = word2.x;
+        const y2 = word2.y;
 
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
         ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
 
         ctx.globalAlpha = 0.9;
         ctx.beginPath();
@@ -1304,8 +1156,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==================== PARTICULES ====================
-    const wordOccurrences = getWordOccurrences();
-
     if (settings.enableParticles) {
       const deadParticles = [];
       particles = particles.filter((p) => {
@@ -1326,40 +1176,16 @@ document.addEventListener("DOMContentLoaded", () => {
       particles = [];
     }
 
+    // ==================== DESSIN DES POINTS ====================
     ctx.globalAlpha = 1;
     const time = Date.now() * 0.001;
 
-    const uniqueDisplayMap = new Map();
     visibleWords.forEach((word) => {
-      const key = word.text.toLowerCase();
-      if (!uniqueDisplayMap.has(key)) {
-        uniqueDisplayMap.set(key, word);
-      }
-    });
-
-    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort(
-      (a, b) => {
-        const countA = wordOccurrences[a.text.toLowerCase()];
-        const countB = wordOccurrences[b.text.toLowerCase()];
-        return countA - countB;
-      }
-    );
-
-    // ==================== DESSIN DES POINTS (AVEC ANIMATION) ====================
-    sortedForDisplay.forEach((word) => {
-      const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const pointSize = getPointRadius(occurrences);
-
-      const isHighlighted = word.highlighted || false;
-      const highlightBonus = isHighlighted ? 6 : 0;
-      const finalPointSize = pointSize + highlightBonus;
-
       const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
       const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-      const x = word.x * width + wobbleX;
-      const y = word.y * height + wobbleY;
+      const x = word.x + wobbleX;
+      const y = word.y + wobbleY;
 
-      // Animation d'apparition
       const isAppearing = appearingWords.has(word);
       let appearScale = 1;
       let appearOpacity = 1;
@@ -1367,8 +1193,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isAppearing) {
         const elapsed = Date.now() - word.timestamp;
         const progress = Math.min(elapsed / 600, 1);
-        
-        // Effet de "pop" élastique
         appearScale = 0.3 + progress * 0.7 + Math.sin(progress * Math.PI) * 0.3;
         appearOpacity = progress;
       }
@@ -1377,72 +1201,62 @@ document.addEventListener("DOMContentLoaded", () => {
         particles.push(getParticle(x, y, word.color));
       }
 
+      const pointSize = (word.radius || 30) * 0.7;
+
       ctx.save();
       ctx.globalAlpha = appearOpacity;
 
-      const pulseFactor = isHighlighted ? 6 : 4;
-      const pulseSize =
-        (finalPointSize + 10) * appearScale +
-        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
-          pulseFactor;
+      const pulseSize = pointSize * appearScale * 1.3 + 
+                       Math.sin(time * 3 + word.timestamp * 0.001) * 5;
 
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
       ctx.strokeStyle = word.color;
-      ctx.lineWidth = isHighlighted ? 5 : 4;
-      ctx.globalAlpha = (isHighlighted ? 0.8 : 0.5) * appearOpacity;
+      ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.5 * appearOpacity;
       ctx.stroke();
 
       ctx.globalAlpha = appearOpacity;
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
+      ctx.arc(x, y, pointSize * appearScale, 0, Math.PI * 2);
       ctx.fillStyle = word.color;
       ctx.shadowColor = word.color;
-      ctx.shadowBlur = isHighlighted ? 28 : 20;
+      ctx.shadowBlur = 20;
       ctx.fill();
 
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * appearScale, 0, Math.PI * 2);
-      ctx.strokeStyle = isHighlighted
-        ? "rgba(255, 255, 255, 0.95)"
-        : "rgba(255, 255, 255, 0.7)";
-      ctx.lineWidth = isHighlighted ? 5 : 3;
+      ctx.arc(x, y, pointSize * appearScale, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 3;
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(x, y, finalPointSize * 0.35 * appearScale, 0, Math.PI * 2);
+      ctx.arc(x, y, pointSize * 0.4 * appearScale, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = "white";
       ctx.fill();
 
       ctx.shadowBlur = 0;
-      ctx.shadowColor = "transparent";
       ctx.restore();
     });
 
-    // ==================== DESSIN DES TEXTES ====================
+    // ==================== DESSIN DES TEXTES (AGRANDIS) ====================
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 18;
+      const fontSize = isMobile ? 22 : 28; // 🔥 TEXTES PLUS GROS
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
+      ctx.textBaseline = "middle";
 
-      sortedForDisplay.forEach((word) => {
-        const occurrences = wordOccurrences[word.text.toLowerCase()];
-        const isHighlighted = word.highlighted || false;
-        const highlightBonus = isHighlighted ? 6 : 0;
-        const pointSize = getPointRadius(occurrences) + highlightBonus;
-
+      visibleWords.forEach((word) => {
         const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
-        const x = word.x * width + wobbleX;
-        const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 18;
+        const x = word.x + wobbleX;
+        const y = word.y + wobbleY;
+        const textY = y + (word.radius || 30) + 20;
 
-        // Animation d'apparition pour le texte
         const isAppearing = appearingWords.has(word);
         let textOpacity = 1;
         
@@ -1455,17 +1269,14 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.save();
         ctx.globalAlpha = textOpacity;
 
-        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
-
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
-        ctx.lineWidth = 6;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+        ctx.lineWidth = 7;
         ctx.strokeText(word.text, x, textY);
 
         ctx.fillStyle = word.color;
-        ctx.shadowBlur = isHighlighted ? 24 : 18;
+        ctx.shadowBlur = 20;
         ctx.shadowColor = word.color;
         ctx.fillText(word.text, x, textY);
 
@@ -1473,6 +1284,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    ctx.restore();
+
+    // 🔥 DÉGRADÉ RADIAL (effet infini)
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    const gradient = ctx.createRadialGradient(
+      width / 2, height / 2, Math.min(width, height) * 0.25,
+      width / 2, height / 2, Math.max(width, height) * 0.75
+    );
+    gradient.addColorStop(0, 'rgba(10, 15, 26, 0)');
+    gradient.addColorStop(0.65, 'rgba(10, 15, 26, 0.25)');
+    gradient.addColorStop(1, 'rgba(10, 15, 26, 0.75)');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
 
@@ -1537,7 +1364,6 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
 
-        <!-- NOUVELLES STATS AVANCÉES -->
         <div class="bg-gray-700/30 p-3 rounded-lg">
           <h4 class="text-sm font-semibold text-gray-300 mb-2">
           🧵 Complexité du tissage</h4>
@@ -1562,7 +1388,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="bg-gray-700/30 p-3 rounded-lg">
           <h4 class="text-sm font-semibold text-gray-300 mb-2">🎨 Palette chromatique</h4>
           <div class="space-y-2">
-            ${advStats.topColors.map((c, i) => `
+            ${advStats.topColors.map((c) => `
               <div class="flex items-center gap-2">
                 <div class="w-8 h-8 rounded-full border-2 border-gray-600" 
                      style="background: ${c.color}; box-shadow: 0 0 10px ${c.color}"></div>
@@ -1640,14 +1466,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
   
-      // Créer une map des mots existants pour préserver les modifications
       const existingWordsMap = new Map();
       displayedWords.forEach(word => {
         const key = `${word.text}-${word.timestamp}`;
         existingWordsMap.set(key, {
           color: word.color,
           x: word.x,
-          y: word.y
+          y: word.y,
+          radius: word.radius
         });
       });
   
@@ -1656,20 +1482,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const key = `${fw.text}-${fw.timestamp}`;
         const existing = existingWordsMap.get(key);
         
-        // Si le mot existait déjà
         if (existing) {
-          // Préserver les couleurs si mélangées OU si couleur custom active
           if (colorsShuffled || colorGenerator.mode === 'custom') {
             fw.color = existing.color;
           }
           
-          // Préserver les positions si mélangées
           if (positionsShuffled) {
             fw.x = existing.x;
             fw.y = existing.y;
           }
+          
+          fw.radius = existing.radius; // Préserver le rayon
         } else {
-          // Nouveau mot : appliquer la couleur custom si active
           if (colorGenerator.mode === 'custom') {
             fw.color = colorGenerator.customColor;
           }
@@ -1687,6 +1511,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (newWords.length > 0) {
         updateWordList(newWords);
         updateStats();
+        
+        // 🔥 AUTO-FIT APRÈS 5 MOTS
+        if (displayedWords.length > 5) {
+          autoFitView(true);
+        }
   
         const lastNewWord = newWords[newWords.length - 1];
   
@@ -1836,27 +1665,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ==================== UPDATE WORD LIST COLORS ====================
-function updateWordListColors() {
-  const wordItems = document.querySelectorAll('.word-item');
-  
-  wordItems.forEach(item => {
-    const key = item.dataset.key;
-    const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
+  function updateWordListColors() {
+    const wordItems = document.querySelectorAll('.word-item');
     
-    if (word) {
-      // Mettre à jour la bordure gauche
-      item.style.borderLeft = `4px solid ${word.color}`;
+    wordItems.forEach(item => {
+      const key = item.dataset.key;
+      const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
       
-      // Mettre à jour le point coloré
-      const colorDot = item.querySelector('span.w-3');
-      if (colorDot) {
-        colorDot.style.backgroundColor = word.color;
-        colorDot.style.boxShadow = `0 0 8px ${word.color}`;
+      if (word) {
+        item.style.borderLeft = `4px solid ${word.color}`;
+        
+        const colorDot = item.querySelector('span.w-3');
+        if (colorDot) {
+          colorDot.style.backgroundColor = word.color;
+          colorDot.style.boxShadow = `0 0 8px ${word.color}`;
+        }
       }
-    }
-  });
-}
+    });
+  }
+
   // ==================== WORD FILTER ====================
   function setupWordFilter() {
     const filterInput = document.getElementById("word-filter");
@@ -2146,95 +1973,8 @@ function updateWordListColors() {
         document.body.removeChild(progressModal);
       }
 
-      const retry = confirm(
-        "❌ Erreur lors de la création de la vidéo.\n\n" +
-          "Voulez-vous télécharger les images clés à la place ?"
-      );
-
-      if (retry) {
-        await exportFramesAsImages();
-      } else {
-        alert("💾 Les frames restent en mémoire.");
-      }
+      alert("❌ Erreur lors de la création de la vidéo.");
     }
-  }
-
-  async function exportFramesAsImages() {
-    const exportModal = document.createElement("div");
-    exportModal.className =
-      "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4";
-    exportModal.innerHTML = `
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-xl text-center max-w-md">
-        <h3 class="text-xl font-bold text-white mb-4">📸 Export d'images</h3>
-        <p class="text-gray-300 text-sm mb-4">
-          Choisissez les images à télécharger :
-        </p>
-        <div class="space-y-3">
-          <button id="export-first" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Première image
-          </button>
-          <button id="export-middle" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Image du milieu
-          </button>
-          <button id="export-last" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📥 Dernière image
-          </button>
-          <button id="export-key-frames" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition">
-            📦 5 images clés
-          </button>
-        </div>
-        <button id="close-export" class="mt-4 text-gray-400 hover:text-white text-sm">
-          Fermer
-        </button>
-        <p class="text-xs text-gray-500 mt-3">${recordedFrames.length} frames disponibles</p>
-      </div>
-    `;
-    document.body.appendChild(exportModal);
-
-    const downloadImage = (index, name) => {
-      const link = document.createElement("a");
-      link.href = recordedFrames[index];
-      link.download = `tissage-${name}.png`;
-      link.click();
-    };
-
-    document.getElementById("export-first").addEventListener("click", () => {
-      downloadImage(0, "01-debut");
-      alert("✅ Première image téléchargée");
-    });
-
-    document.getElementById("export-middle").addEventListener("click", () => {
-      const mid = Math.floor(recordedFrames.length / 2);
-      downloadImage(mid, "02-milieu");
-      alert("✅ Image du milieu téléchargée");
-    });
-
-    document.getElementById("export-last").addEventListener("click", () => {
-      downloadImage(recordedFrames.length - 1, "03-fin");
-      alert("✅ Dernière image téléchargée");
-    });
-
-    document
-      .getElementById("export-key-frames")
-      .addEventListener("click", () => {
-        const indices = [
-          0,
-          Math.floor(recordedFrames.length * 0.25),
-          Math.floor(recordedFrames.length * 0.5),
-          Math.floor(recordedFrames.length * 0.75),
-          recordedFrames.length - 1,
-        ];
-
-        indices.forEach((idx, i) => {
-          setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
-        });
-
-        alert("✅ 5 images clés téléchargées");
-      });
-
-    document.getElementById("close-export").addEventListener("click", () => {
-      document.body.removeChild(exportModal);
-    });
   }
 
   // ==================== ZOOM ET PAN ====================
@@ -2242,7 +1982,7 @@ function updateWordListColors() {
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newScale = Math.min(Math.max(0.5, scale * delta), 5);
+      const newScale = Math.min(Math.max(0.3, scale * delta), 5);
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -2280,7 +2020,7 @@ function updateWordListColors() {
         );
         if (lastTouchDistance > 0) {
           const delta = dist / lastTouchDistance;
-          const newScale = Math.min(Math.max(0.5, scale * delta), 5);
+          const newScale = Math.min(Math.max(0.3, scale * delta), 5);
           const centerX = (touch1.clientX + touch2.clientX) / 2;
           const centerY = (touch1.clientY + touch2.clientY) / 2;
           const rect = canvas.getBoundingClientRect();
@@ -2343,20 +2083,14 @@ function updateWordListColors() {
         const currentTime = new Date().getTime();
         const tapLength = currentTime - lastTap;
         if (tapLength < 300 && tapLength > 0) {
-          scale = 1;
-          offsetX = 0;
-          offsetY = 0;
-          scheduleRedraw();
+          autoFitView(true); // 🔥 Double-tap = Auto-fit
         }
         lastTap = currentTime;
       }
     });
 
     canvas.addEventListener("dblclick", () => {
-      scale = 1;
-      offsetX = 0;
-      offsetY = 0;
-      scheduleRedraw();
+      autoFitView(true); // 🔥 Double-click = Auto-fit
     });
   }
 
@@ -2378,14 +2112,12 @@ function updateWordListColors() {
       document.addEventListener("fullscreenchange", () => {
         const icon = fullscreenButton.querySelector("svg");
         if (document.fullscreenElement) {
-          // Mode plein écran actif - Icône "Quitter"
           icon.innerHTML = `
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
           `;
           fullscreenButton.title = "Quitter le plein écran (Échap)";
         } else {
-          // Mode normal - Icône "Plein écran"
           icon.innerHTML = `
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -2444,10 +2176,11 @@ function updateWordListColors() {
         x: existingWord.x,
         y: existingWord.y,
         color: existingWord.color,
+        radius: existingWord.radius
       };
     } else {
       const newColor = colorGenerator.getColor();
-      const position = findValidPosition();
+      const position = findValidPosition(text); // 🔥 SYSTÈME PIXELS
 
       if (!position) {
         alert(
@@ -2464,6 +2197,7 @@ function updateWordListColors() {
         text,
         x: position.x,
         y: position.y,
+        radius: position.radius,
         color: newColor,
       };
     }
@@ -2581,40 +2315,38 @@ function updateWordListColors() {
   }
 
   // Color mode
-// Color mode
-// Color mode
-document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
-    const customPicker = document.getElementById("custom-color-picker");
-    if (e.target.value === "custom") {
-      customPicker.classList.remove("hidden");
-      colorGenerator.setMode("custom");
-      
-      const customColor = document.getElementById("color-picker-input").value;
-      displayedWords.forEach(word => {
-        word.color = customColor;
-      });
-      
-      colorsShuffled = false;
-      scheduleRedraw();
-      updateWordListColors(); // 🔥 AJOUTER ICI
-    } else {
-      customPicker.classList.add("hidden");
-      colorGenerator.setMode("auto");
-      
-      displayedWords.forEach(word => {
-        word.color = colorGenerator.getColor();
-      });
-      
-      colorsShuffled = false;
-      wordOccurrencesCache.clear();
-      geometryCache.clear();
-      scheduleRedraw();
-      updateWordListColors(); // 🔥 AJOUTER ICI
-      updateStats();
-    }
+  document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const customPicker = document.getElementById("custom-color-picker");
+      if (e.target.value === "custom") {
+        customPicker.classList.remove("hidden");
+        colorGenerator.setMode("custom");
+        
+        const customColor = document.getElementById("color-picker-input").value;
+        displayedWords.forEach(word => {
+          word.color = customColor;
+        });
+        
+        colorsShuffled = false;
+        scheduleRedraw();
+        updateWordListColors();
+      } else {
+        customPicker.classList.add("hidden");
+        colorGenerator.setMode("auto");
+        
+        displayedWords.forEach(word => {
+          word.color = colorGenerator.getColor();
+        });
+        
+        colorsShuffled = false;
+        wordOccurrencesCache.clear();
+        geometryCache.clear();
+        scheduleRedraw();
+        updateWordListColors();
+        updateStats();
+      }
+    });
   });
-});
 
   // Color picker
   const colorPickerInput = document.getElementById("color-picker-input");
@@ -2630,6 +2362,7 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
           word.color = color;
         });
         scheduleRedraw();
+        updateWordListColors();
       }
     };
 
@@ -2767,58 +2500,58 @@ document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
     });
   }
 
-// Shuffle colors
-document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
-  const existingColors = displayedWords.map(w => w.color);
-  
-  for (let i = existingColors.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
-  }
-  
-  displayedWords.forEach((word, i) => {
-    word.color = existingColors[i];
+  // Shuffle colors
+  document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
+    const existingColors = displayedWords.map(w => w.color);
+    
+    for (let i = existingColors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [existingColors[i], existingColors[j]] = [existingColors[j], existingColors[i]];
+    }
+    
+    displayedWords.forEach((word, i) => {
+      word.color = existingColors[i];
+    });
+    
+    colorsShuffled = true;
+    
+    wordOccurrencesCache.clear();
+    geometryCache.clear();
+    scheduleRedraw();
+    updateWordListColors();
+    updateStats();
+    
+    const btn = document.getElementById("shuffle-colors-button");
+    btn.style.transform = "rotate(360deg)";
+    btn.style.transition = "transform 0.6s ease";
+    setTimeout(() => { btn.style.transform = ""; }, 600);
   });
-  
-  colorsShuffled = true; // 🔥 ACTIVER LE FLAG
-  
-  wordOccurrencesCache.clear();
-  geometryCache.clear();
-  scheduleRedraw();
-  updateWordList(displayedWords);
-  updateStats();
-  
-  const btn = document.getElementById("shuffle-colors-button");
-  btn.style.transform = "rotate(360deg)";
-  btn.style.transition = "transform 0.6s ease";
-  setTimeout(() => { btn.style.transform = ""; }, 600);
-});
 
-// Shuffle positions
-document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
-  const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
-  
-  for (let i = existingPositions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
-  }
-  
-  displayedWords.forEach((word, i) => {
-    word.x = existingPositions[i].x;
-    word.y = existingPositions[i].y;
+  // Shuffle positions
+  document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
+    const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
+    
+    for (let i = existingPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
+    }
+    
+    displayedWords.forEach((word, i) => {
+      word.x = existingPositions[i].x;
+      word.y = existingPositions[i].y;
+    });
+    
+    positionsShuffled = true;
+    
+    wordOccurrencesCache.clear();
+    geometryCache.clear();
+    scheduleRedraw();
+    
+    const btn = document.getElementById("shuffle-positions-button");
+    btn.style.transform = "scale(1.2) rotate(180deg)";
+    btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+    setTimeout(() => { btn.style.transform = ""; }, 500);
   });
-  
-  positionsShuffled = true; // 🔥 ACTIVER LE FLAG
-  
-  wordOccurrencesCache.clear();
-  geometryCache.clear();
-  scheduleRedraw();
-  
-  const btn = document.getElementById("shuffle-positions-button");
-  btn.style.transform = "scale(1.2) rotate(180deg)";
-  btn.style.transition = "transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
-  setTimeout(() => { btn.style.transform = ""; }, 500);
-});
 
   // Reset button
   resetButton.addEventListener("click", (e) => {
@@ -2963,10 +2696,7 @@ document.getElementById("shuffle-positions-button")?.addEventListener("click", (
     const qr = qrcode(0, "L");
     qr.addData(window.location.href);
     qr.make();
-    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(
-      6,
-      8
-    );
+    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(6, 8);
     qrModal.classList.remove("hidden");
   }
 
