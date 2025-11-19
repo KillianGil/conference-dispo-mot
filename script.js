@@ -356,20 +356,17 @@ function findValidPosition() {
   const minDist = getAdaptiveMinDistance();
   const center = 0.5;
   
-  // On commence à chercher près du centre
-  // S'il y a déjà 50 mots, on commence à chercher un peu plus loin directement
-  let searchRadius = 0.2 + (displayedWords.length * 0.02);
+  // 🔥 CHANGEMENT : On commence TOUJOURS la recherche près du centre
+  // Même s'il y a 100 mots, on vérifie d'abord si une place s'est libérée au milieu.
+  let searchRadius = 0.1; 
 
-  // Tant qu'on ne trouve pas, on élargit la zone de recherche
-  // On limite à 100 tours pour pas faire planter le navigateur
-  for (let expansion = 0; expansion < 100; expansion++) {
+  // On cherche en cercles concentriques vers l'extérieur
+  for (let expansion = 0; expansion < 200; expansion++) {
       
-      // On tente 50 positions au hasard dans le rayon actuel
-      for(let i = 0; i < 50; i++) {
-          // Angle totalement aléatoire (0 à 360°)
+      // On bombarde la zone de 40 essais
+      for(let i = 0; i < 40; i++) {
           const angle = Math.random() * Math.PI * 2;
-          
-          // Distance aléatoire (racine carrée pour bien répartir)
+          // On cherche DANS le rayon (pas juste sur le bord) pour combler les trous
           const r = Math.sqrt(Math.random()) * searchRadius; 
           
           const x = center + r * Math.cos(angle);
@@ -380,13 +377,13 @@ function findValidPosition() {
           }
       }
       
-      // Si on a rien trouvé dans cette zone, on élargit le rayon de 10%
-      searchRadius += 0.1;
+      // Si c'est plein ici, on élargit un tout petit peu
+      searchRadius += 0.05;
   }
 
-  // Sécurité : si vraiment tout est bouché, on se met loin au hasard
+  // Secours
   const angle = Math.random() * Math.PI * 2;
-  const r = searchRadius + 0.5;
+  const r = searchRadius + 0.2;
   return {
       x: center + r * Math.cos(angle),
       y: center + r * Math.sin(angle)
@@ -1327,13 +1324,11 @@ function findValidPosition() {
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       
-      // 🔥 TAILLE AMPHI ÉQUILIBRÉE
-      // Minimum 16px (sur téléphone)
-      // Maximum 42px (quand on dézoome) -> Assez gros pour lire, pas trop pour cacher
-      // La formule "28 / scale" permet de garder une taille constante quand la caméra recule
-      const fontSize = Math.max(16, Math.min(42, 28 / scale)); 
+      // Taille : Entre 18px et 48px selon le zoom
+      const fontSize = Math.max(18, Math.min(48, 32 / scale)); 
       
-      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+      // 🔥 800 = EXTRA BOLD (Très gras pour la lisibilité)
+      ctx.font = `800 ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
@@ -1348,22 +1343,21 @@ function findValidPosition() {
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
         
-        // Texte juste en dessous du point
-        // Le décalage s'adapte aussi pour pas que le texte colle au point quand on dézoome
-        const textOffset = pointSize + (20 / scale); 
+        // 🔥 DÉCALAGE DU TEXTE
+        // On ajoute beaucoup plus d'espace (40 / scale) pour décoller du point
+        const textOffset = pointSize + (40 / scale); 
         const textY = y + textOffset;
 
         ctx.save();
         
-        // CONTOUR NOIR (Outline)
-        // 4px c'est suffisant pour détacher le texte des lignes
+        // 🔥 CONTOUR NOIR PUR
         ctx.lineJoin = "round";
         ctx.miterLimit = 2;
-        ctx.lineWidth = 4; 
-        ctx.strokeStyle = "#0a0f1a"; 
+        ctx.lineWidth = 6; // Contour plus épais
+        ctx.strokeStyle = "#000000"; // Noir pur, pas le gris du fond
         ctx.strokeText(word.text, x, textY);
 
-        // TEXTE
+        // TEXTE COULEUR
         ctx.fillStyle = word.color;
         ctx.shadowBlur = 0;
         ctx.fillText(word.text, x, textY);
@@ -1371,7 +1365,7 @@ function findValidPosition() {
         ctx.restore();
       });
     }
-    
+
     ctx.restore();
   }
 
