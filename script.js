@@ -1,4 +1,63 @@
-// Fonction utilitaire debounce
+// ==================== CONFIGURATION ====================
+const CONFIG = {
+  MAX_WORDS_PER_USER: 5000,
+  RESET_PASSWORD: "tissage2025",
+  TARGET_FPS: 60,
+  MAX_POOL_SIZE: 100,
+  FETCH_INTERVAL: 2000,
+};
+
+// Liste de mots interdits
+const FORBIDDEN_WORDS = [
+  // Insultes
+  "merde",
+  "con",
+  "connard",
+  "connasse",
+  "salaud",
+  "salope",
+  "pute",
+  "enculé",
+  "batard",
+  "fdp",
+  "ntm",
+  // Grossièretés
+  "sexe",
+  "penis",
+  "vagin",
+  "cul",
+  "bite",
+  "couille",
+  "chatte",
+  // Injures
+  "nazi",
+  "facho",
+  "terroriste",
+  "raciste",
+  // Variantes
+  "pd",
+  "tapette",
+  "salop",
+];
+
+// Descriptions des modes
+const MODE_DESCRIPTIONS = {
+  chronological: "Les mots se connectent dans l'ordre d'ajout",
+  random: "Chaque mot se connecte à un autre aléatoirement",
+  proximity: "Les mots proches se connectent entre eux",
+  color: "Les couleurs similaires se relient",
+  resonance: "Les mots partageant 2+ lettres se connectent",
+  constellation: "Effet étoilé scintillant",
+  waves: "Connexions en courbes fluides",
+  ripple: "Vagues concentriques depuis chaque mot",
+  spiral: "Connexions en spirale hypnotique",
+  web: "Réseau interconnecté dense",
+  pulse: "Ondes de choc lumineuses",
+  basket: "Motif de vannerie croisé",
+  flow: "Animation fluide chronologique avec effet de flux",
+};
+
+// ==================== UTILITAIRES ====================
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -17,9 +76,108 @@ function resetUserCounter() {
   console.log("🔄 Compteur utilisateur réinitialisé");
 }
 
+function getUserWordCount() {
+  try {
+    const count = localStorage.getItem("userWordCount");
+    return count ? parseInt(count, 10) : 0;
+  } catch (e) {
+    console.error("Erreur localStorage:", e);
+    return 0;
+  }
+}
+
+function incrementUserWordCount() {
+  try {
+    const count = getUserWordCount();
+    localStorage.setItem("userWordCount", (count + 1).toString());
+    console.log("Compteur incrémenté:", count + 1);
+  } catch (e) {
+    console.error("Erreur localStorage:", e);
+  }
+}
+
+function canUserAddWord() {
+  const count = getUserWordCount();
+  const canAdd = count < CONFIG.MAX_WORDS_PER_USER;
+  console.log(`Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`);
+  return canAdd;
+}
+
+function isForbidden(text) {
+  const normalized = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return FORBIDDEN_WORDS.some(
+    (word) =>
+      normalized.includes(word) ||
+      normalized
+        .replace(/[@0o1il]/g, (c) => ({ "@": "a", 0: "o", 1: "i", l: "i" }[c] || c))
+        .includes(word)
+  );
+}
+
+// ==================== CLASSE PARTICLE ====================
+class Particle {
+  constructor(x, y, color) {
+    this.reset(x, y, color);
+  }
+
+  reset(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 3;
+    this.vy = (Math.random() - 0.5) * 3;
+    this.life = 1;
+    this.color = color;
+    this.size = Math.random() * 4 + 3;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life -= 0.015;
+    this.vy += 0.15;
+  }
+
+  draw(ctx) {
+    ctx.globalAlpha = this.life;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+  }
+}
+
+// ==================== GÉNÉRATEUR DE COULEURS ====================
+const colorGenerator = {
+  mode: "auto",
+  customColor: "#6366f1",
+
+  getColor: function () {
+    if (this.mode === "custom") {
+      return this.customColor;
+    }
+    const hue = Math.random() * 360;
+    const saturation = 65 + Math.random() * 30;
+    const lightness = 45 + Math.random() * 25;
+    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
+  },
+
+  setCustomColor: function (color) {
+    this.customColor = color;
+  },
+
+  setMode: function (mode) {
+    this.mode = mode;
+  },
+};
+
+// ==================== INITIALISATION DOM ====================
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("weave-canvas");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
   const wordsList = document.getElementById("words-list");
   const wordForm = document.getElementById("word-form");
   const wordInput = document.getElementById("word-input");
@@ -28,6 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadButton = document.getElementById("download-button");
   const resetButton = document.getElementById("reset-button");
 
+  // ==================== VARIABLES GLOBALES ====================
   let displayedWords = [];
   let animationFrame = null;
   let currentAnimatingConnection = null;
@@ -42,24 +201,19 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastTouchDistance = 0;
   let isPinching = false;
 
-  // Variables pour l'enregistrement time-lapse
   let recordedFrames = [];
   let isRecording = false;
   let recordingInterval = null;
   let recordingStartTime = 0;
 
-  // Variables pour l'optimisation du framerate
   let lastFrameTime = 0;
-  const targetFPS = 60;
-  const frameInterval = 1000 / targetFPS;
+  const frameInterval = 1000 / CONFIG.TARGET_FPS;
   let canDraw = true;
+  let pendingDraws = false;
 
-  // Cache pour les calculs répétitifs
   const wordOccurrencesCache = new Map();
-
-  // Pool d'objets pour les particules
+  const geometryCache = new Map();
   const particlePool = [];
-  const maxPoolSize = 100;
 
   let settings = {
     linkMode: "chronological",
@@ -72,27 +226,32 @@ document.addEventListener("DOMContentLoaded", () => {
     enableParticles: true,
   };
 
-  // Configuration globale
-  const CONFIG = {
-    MAX_WORDS_PER_USER: 5000,
-    RESET_PASSWORD: "tissage2025",
-  };
+  // ==================== GESTION DU POOL DE PARTICULES ====================
+  function getParticle(x, y, color) {
+    if (particlePool.length > 0) {
+      const p = particlePool.pop();
+      p.reset(x, y, color);
+      return p;
+    }
+    return new Particle(x, y, color);
+  }
 
-  // Vérifier si le compteur est bloqué alors qu'il n'y a pas de mots
+  function recycleParticle(particle) {
+    if (particlePool.length < CONFIG.MAX_POOL_SIZE) {
+      particlePool.push(particle);
+    }
+  }
+
+  // ==================== VÉRIFICATION ET DÉBLOCAGE ====================
   async function checkAndUnblockUser() {
     try {
       const response = await fetch("/api/words");
       const words = await response.json();
 
       const lastReset = localStorage.getItem("lastResetTime");
-      const timeSinceReset = lastReset
-        ? Date.now() - parseInt(lastReset)
-        : Infinity;
+      const timeSinceReset = lastReset ? Date.now() - parseInt(lastReset) : Infinity;
 
-      if (
-        words.length === 0 ||
-        (getUserWordCount() >= 5 && timeSinceReset > 300000)
-      ) {
+      if (words.length === 0 || (getUserWordCount() >= 5 && timeSinceReset > 300000)) {
         resetUserCounter();
         wordInput.disabled = false;
         wordForm.querySelector("button").disabled = false;
@@ -106,59 +265,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   checkAndUnblockUser();
 
-  // Système de comptage par utilisateur
-  function getUserWordCount() {
-    try {
-      const count = localStorage.getItem("userWordCount");
-      return count ? parseInt(count, 10) : 0;
-    } catch (e) {
-      console.error("Erreur localStorage:", e);
-      return 0;
-    }
-  }
-
-  function incrementUserWordCount() {
-    try {
-      const count = getUserWordCount();
-      localStorage.setItem("userWordCount", (count + 1).toString());
-      console.log("Compteur incrémenté:", count + 1);
-    } catch (e) {
-      console.error("Erreur localStorage:", e);
-    }
-  }
-
-  function canUserAddWord() {
-    const count = getUserWordCount();
-    const canAdd = count < CONFIG.MAX_WORDS_PER_USER;
-    console.log(
-      `Peut ajouter ? ${canAdd} (${count}/${CONFIG.MAX_WORDS_PER_USER})`
-    );
-    return canAdd;
-  }
-
+  // ==================== CALCULS DE POSITION ====================
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
-    if (!container) return 0.225; // 15% de l'écran par défaut -> +50%
-  
-    const uniqueCount = new Set(
-      displayedWords.map((w) => w.text.toLowerCase())
-    ).size;
-  
+    if (!container) return 0.225;
+
+    const uniqueCount = new Set(displayedWords.map((w) => w.text.toLowerCase())).size;
     const isMobile = window.innerWidth < 768;
-  
-    // Distance en POURCENTAGE de la largeur du canvas
-    let baseDistance = isMobile ? 0.18 : 0.225; // +50% pour plus d'espace
-  
+
+    let baseDistance = isMobile ? 0.18 : 0.225;
+
     if (uniqueCount > 100) baseDistance = isMobile ? 0.12 : 0.15;
     else if (uniqueCount > 80) baseDistance = isMobile ? 0.135 : 0.165;
     else if (uniqueCount > 60) baseDistance = isMobile ? 0.15 : 0.18;
     else if (uniqueCount > 40) baseDistance = isMobile ? 0.165 : 0.195;
     else if (uniqueCount > 20) baseDistance = isMobile ? 0.18 : 0.21;
-  
+
     const adaptiveDistance = Math.max(isMobile ? 0.105 : 0.135, baseDistance);
-    return Math.min(0.45, adaptiveDistance); // clamp pour éviter des valeurs trop grandes
+    return Math.min(0.45, adaptiveDistance);
   }
-  // Taille des points réduite
+
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
     const baseSize = isMobile ? 14 : 16;
@@ -175,9 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
     displayedWords.forEach((word) => {
       const key = word.text.toLowerCase();
       if (!positionMap.has(key)) {
-        const occurrences = displayedWords.filter(
-          (w) => w.text.toLowerCase() === key
-        ).length;
+        const occurrences = displayedWords.filter((w) => w.text.toLowerCase() === key).length;
         positionMap.set(key, {
           x: word.x,
           y: word.y,
@@ -191,129 +315,93 @@ document.addEventListener("DOMContentLoaded", () => {
   function isPositionValid(x, y, minDist) {
     const container = document.getElementById("canvas-container");
     if (!container) return true;
-  
-    // Marges augmentées
+
     const margin = 0.08;
     if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
       return false;
     }
-  
+
     const uniquePositions = getUniqueWordPositions();
     const newMaxSize = getMaxPointSize(1);
-  
+
     for (const pos of uniquePositions) {
       const dx = pos.x - x;
       const dy = pos.y - y;
-      const dist = Math.sqrt(dx * dx + dy * dy); // Distance en pourcentage
-      
-      // Conversion de la taille des points en pourcentage de l'écran
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
       const avgScreenSize = (container.clientWidth + container.clientHeight) / 2;
       const pointSizePercent = (pos.maxSize + newMaxSize) / avgScreenSize;
-      
+
       const requiredDist = minDist + pointSizePercent * 0.5;
-  
+
       if (dist < requiredDist) {
         return false;
       }
     }
-  
+
     return true;
   }
 
   function findValidPosition() {
     const container = document.getElementById("canvas-container");
     if (!container) return { x: 0.5, y: 0.5 };
-  
-    const minDist = getAdaptiveMinDistance(); // Maintenant en pourcentage
-  
-    // PHASE 1: Essais aléatoires sur TOUTE la surface avec marges réduites
+
+    const minDist = getAdaptiveMinDistance();
+
     for (let i = 0; i < 150; i++) {
       const x = 0.1 + Math.random() * 0.8;
       const y = 0.1 + Math.random() * 0.8;
       if (isPositionValid(x, y, minDist)) {
-        console.log(
-          `✓ Position trouvée (aléatoire): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 2: Spirale élargie couvrant tout l'écran
+
     const centerX = 0.5;
     const centerY = 0.5;
-    const maxRadius = 0.48; // Presque tout l'écran
+    const maxRadius = 0.48;
     const radiusStep = minDist * 0.6;
-  
+
     for (let radius = radiusStep; radius < maxRadius; radius += radiusStep) {
-      const numPoints = Math.max(
-        20,
-        Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3))
-      );
+      const numPoints = Math.max(20, Math.floor((2 * Math.PI * radius) / (radiusStep * 0.3)));
       const angleStep = (2 * Math.PI) / numPoints;
-  
+
       for (let i = 0; i < numPoints; i++) {
         const angle = i * angleStep + Math.random() * 0.6;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
-  
+
         if (x >= 0.08 && x <= 0.92 && y >= 0.08 && y <= 0.92) {
           if (isPositionValid(x, y, minDist)) {
-            console.log(
-              `✓ Position trouvée (spirale): ${(x * 100).toFixed(0)}%, ${(
-                y * 100
-              ).toFixed(0)}%`
-            );
             return { x, y };
           }
         }
       }
     }
-  
-    // PHASE 3: Distance réduite à 75%
+
     for (let i = 0; i < 120; i++) {
       const x = 0.1 + Math.random() * 0.8;
       const y = 0.1 + Math.random() * 0.8;
       if (isPositionValid(x, y, minDist * 0.75)) {
-        console.log(
-          `✓ Position trouvée (distance 75%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 4: Distance réduite à 50%
+
     for (let i = 0; i < 120; i++) {
       const x = 0.12 + Math.random() * 0.76;
       const y = 0.12 + Math.random() * 0.76;
       if (isPositionValid(x, y, minDist * 0.5)) {
-        console.log(
-          `✓ Position trouvée (distance 50%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 5: Distance réduite à 30%
+
     for (let i = 0; i < 120; i++) {
       const x = 0.12 + Math.random() * 0.76;
       const y = 0.12 + Math.random() * 0.76;
       if (isPositionValid(x, y, minDist * 0.3)) {
-        console.log(
-          `✓ Position trouvée (distance 30%): ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 6: Grille systématique très espacée
+
     const step = minDist * 0.7;
     for (let gridY = 0.15; gridY <= 0.85; gridY += step) {
       for (let gridX = 0.15; gridX <= 0.85; gridX += step) {
@@ -321,37 +409,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const jitterY = (Math.random() - 0.5) * step * 0.4;
         const x = Math.max(0.12, Math.min(0.88, gridX + jitterX));
         const y = Math.max(0.12, Math.min(0.88, gridY + jitterY));
-  
+
         if (isPositionValid(x, y, minDist * 0.2)) {
-          console.log(
-            `✓ Position trouvée (grille espacée): ${(x * 100).toFixed(0)}%, ${(
-              y * 100
-            ).toFixed(0)}%`
-          );
           return { x, y };
         }
       }
     }
-  
-    // PHASE 7: Recherche exhaustive sans contrainte de distance
+
     console.warn("⚠️ Mode sans contrainte activé");
     for (let i = 0; i < 250; i++) {
       const x = 0.15 + Math.random() * 0.7;
       const y = 0.15 + Math.random() * 0.7;
-  
+
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        console.warn(
-          `🆘 Position sans contrainte: ${(x * 100).toFixed(0)}%, ${(
-            y * 100
-          ).toFixed(0)}%`
-        );
         return { x, y };
       }
     }
-  
-    // PHASE 8: Position garantie dans zones prédéfinies
-    console.error("🚨 Position garantie finale");
-  
+
     const zones = [
       { x: 0.2, y: 0.2 },
       { x: 0.8, y: 0.2 },
@@ -367,26 +441,19 @@ document.addEventListener("DOMContentLoaded", () => {
       { x: 0.65, y: 0.65 },
       { x: 0.5, y: 0.5 },
     ];
-  
+
     for (const zone of zones) {
       const x = zone.x + (Math.random() - 0.5) * 0.15;
       const y = zone.y + (Math.random() - 0.5) * 0.15;
-  
+
       if (x >= 0.15 && x <= 0.85 && y >= 0.15 && y <= 0.85) {
-        console.error(
-          `🔴 Position forcée: ${(x * 100).toFixed(0)}%, ${(y * 100).toFixed(
-            0
-          )}%`
-        );
         return { x, y };
       }
     }
-  
-    // Position absolue finale
+
     const fallbackX = 0.5 + (Math.random() - 0.5) * 0.4;
     const fallbackY = 0.5 + (Math.random() - 0.5) * 0.4;
-  
-    console.error("❌ FALLBACK ABSOLU ACTIVÉ");
+
     return {
       x: Math.max(0.2, Math.min(0.8, fallbackX)),
       y: Math.max(0.2, Math.min(0.8, fallbackY)),
@@ -394,110 +461,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function findExistingWord(text) {
-    return displayedWords.find(
-      (w) => w.text.toLowerCase() === text.toLowerCase()
-    );
+    return displayedWords.find((w) => w.text.toLowerCase() === text.toLowerCase());
   }
 
- // Générateur de couleurs
-const colorGenerator = {
-  mode: "auto", // 'auto' ou 'custom'
-  customColor: "#6366f1",
-
-  getColor: function () {
-    if (this.mode === "custom") {
-      return this.customColor;
-    }
-    // Mode aléatoire
-    const hue = Math.random() * 360;
-    const saturation = 65 + Math.random() * 30;
-    const lightness = 45 + Math.random() * 25;
-    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(
-      lightness
-    )}%)`;
-  },
-
-  setCustomColor: function (color) {
-    this.customColor = color;
-  },
-
-  setMode: function (mode) {
-    this.mode = mode;
-  },
-};
-
-  class Particle {
-    constructor(x, y, color) {
-      this.reset(x, y, color);
-    }
-
-    reset(x, y, color) {
-      this.x = x;
-      this.y = y;
-      this.vx = (Math.random() - 0.5) * 3;
-      this.vy = (Math.random() - 0.5) * 3;
-      this.life = 1;
-      this.color = color;
-      this.size = Math.random() * 4 + 3;
-    }
-
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      this.life -= 0.015;
-      this.vy += 0.15;
-    }
-
-    draw(ctx) {
-      ctx.globalAlpha = this.life;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-    }
-  }
-
-  function getParticle(x, y, color) {
-    if (particlePool.length > 0) {
-      const p = particlePool.pop();
-      p.reset(x, y, color);
-      return p;
-    }
-    return new Particle(x, y, color);
-  }
-
-  function recycleParticle(particle) {
-    if (particlePool.length < maxPoolSize) {
-      particlePool.push(particle);
-    }
-  }
-
-  function resizeCanvas() {
-    const container = document.getElementById("canvas-container");
-    if (!container) return;
-
-    const dpr = window.devicePixelRatio || 1;
-
-    const rect = container.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-
-    console.log(
-      `📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px buffer)`
-    );
-
-    requestAnimationFrame(() => drawWeave());
-  }
-
+  // ==================== CALCULS GÉOMÉTRIQUES ====================
   function distance(word1, word2) {
     const dx = word1.x - word2.x;
     const dy = word1.y - word2.y;
@@ -517,6 +484,169 @@ const colorGenerator = {
     return common.length >= 2;
   }
 
+  function isVisible(word, scale, offsetX, offsetY, width, height) {
+    const x = word.x * width * scale + offsetX;
+    const y = word.y * height * scale + offsetY;
+    const margin = 100;
+
+    return x > -margin && x < width + margin && y > -margin && y < height + margin;
+  }
+
+  // ==================== CACHE DES OCCURRENCES ====================
+  function getWordOccurrences() {
+    const cacheKey = displayedWords.map((w) => w.text).join(",");
+    if (wordOccurrencesCache.has(cacheKey)) {
+      return wordOccurrencesCache.get(cacheKey);
+    }
+
+    const counts = {};
+    displayedWords.forEach((word) => {
+      const key = word.text.toLowerCase();
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    wordOccurrencesCache.set(cacheKey, counts);
+    return counts;
+  }
+
+  // ==================== CALCUL DES CONNEXIONS (AVEC CACHE) ====================
+  function calculateConnections(mode, words, width, height) {
+    const cacheKey = `${mode}-${words.map((w) => w.timestamp).join(",")}`;
+
+    if (geometryCache.has(cacheKey)) {
+      return geometryCache.get(cacheKey);
+    }
+
+    let connections = [];
+
+    if (mode === "chronological" || mode === "flow") {
+      const sortedWords = [...words].sort((a, b) => a.timestamp - b.timestamp);
+      for (let i = 1; i < sortedWords.length; i++) {
+        connections.push([sortedWords[i - 1], sortedWords[i]]);
+      }
+    } else if (mode === "random") {
+      words.forEach((word, index) => {
+        if (index === 0) return;
+        const hash = (word.text + word.timestamp)
+          .split("")
+          .reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+        const targetIndex = Math.abs(hash) % index;
+        connections.push([words[targetIndex], word]);
+      });
+    } else if (mode === "proximity") {
+      words.forEach((word) => {
+        const distances = words
+          .filter((w) => w !== word)
+          .map((w) => ({ word: w, dist: distance(word, w) }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 2);
+        distances.forEach((d) => connections.push([word, d.word]));
+      });
+    } else if (mode === "color") {
+      words.forEach((word) => {
+        const similar = words
+          .filter((w) => w !== word)
+          .map((w) => ({
+            word: w,
+            sim: colorSimilarity(word.color, w.color),
+          }))
+          .sort((a, b) => a.sim - b.sim)
+          .slice(0, 2);
+        similar.forEach((s) => connections.push([word, s.word]));
+      });
+    } else if (mode === "resonance") {
+      words.forEach((word) => {
+        const resonant = words.filter((w) => w !== word && hasResonance(word, w));
+
+        if (resonant.length === 0) {
+          const closest = words
+            .filter((w) => w !== word)
+            .map((w) => ({ word: w, dist: distance(word, w) }))
+            .sort((a, b) => a.dist - b.dist)[0];
+          if (closest) {
+            connections.push([word, closest.word]);
+          }
+        } else {
+          resonant.forEach((r) => connections.push([word, r]));
+        }
+      });
+    } else if (mode === "web") {
+      words.forEach((word) => {
+        const neighbors = words
+          .filter((w) => w !== word)
+          .map((w) => ({ word: w, dist: distance(word, w) }))
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 4);
+
+        neighbors.forEach(({ word: neighbor }) => {
+          connections.push([word, neighbor]);
+        });
+      });
+    } else {
+      const sortedWords = [...words].sort((a, b) => a.timestamp - b.timestamp);
+      for (let i = 1; i < sortedWords.length; i++) {
+        connections.push([sortedWords[i - 1], sortedWords[i]]);
+      }
+    }
+
+    const connectedWords = new Set();
+    connections.forEach(([w1, w2]) => {
+      connectedWords.add(w1);
+      connectedWords.add(w2);
+    });
+
+    words.forEach((word) => {
+      if (!connectedWords.has(word) && words.length > 1) {
+        const closest = words
+          .filter((w) => w !== word)
+          .map((w) => ({ word: w, dist: distance(word, w) }))
+          .sort((a, b) => a.dist - b.dist)[0];
+        if (closest) {
+          connections.push([word, closest.word]);
+        }
+      }
+    });
+
+    geometryCache.set(cacheKey, connections);
+    return connections;
+  }
+
+  // ==================== REDIMENSIONNEMENT CANVAS ====================
+  function resizeCanvas() {
+    const container = document.getElementById("canvas-container");
+    if (!container) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+
+    console.log(`📐 Canvas: ${width}x${height}px (DPR: ${dpr}x = ${canvas.width}x${canvas.height}px)`);
+
+    scheduleRedraw();
+  }
+
+  // ==================== PLANIFICATION OPTIMISÉE DES REDRAWS ====================
+  function scheduleRedraw() {
+    if (!pendingDraws) {
+      pendingDraws = true;
+      requestAnimationFrame(() => {
+        drawWeave();
+        pendingDraws = false;
+      });
+    }
+  }
+
+  // ==================== ANIMATION PRINCIPALE ====================
   function animateWeaving(timestamp = 0) {
     if (timestamp - lastFrameTime < frameInterval) {
       animationFrame = requestAnimationFrame(animateWeaving);
@@ -539,144 +669,7 @@ const colorGenerator = {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-  function setupZoomAndPan() {
-    canvas.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newScale = Math.min(Math.max(0.5, scale * delta), 5);
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
-      offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
-      scale = newScale;
-      drawWeave();
-    });
-
-    canvas.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        isPinching = true;
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        lastTouchDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-      } else if (e.touches.length === 1 && !isPinching) {
-        isDragging = true;
-        startX = e.touches[0].clientX - offsetX;
-        startY = e.touches[0].clientY - offsetY;
-      }
-    });
-
-    canvas.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 2 && isPinching) {
-        e.preventDefault();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const dist = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-        if (lastTouchDistance > 0) {
-          const delta = dist / lastTouchDistance;
-          const newScale = Math.min(Math.max(0.5, scale * delta), 5);
-          const centerX = (touch1.clientX + touch2.clientX) / 2;
-          const centerY = (touch1.clientY + touch2.clientY) / 2;
-          const rect = canvas.getBoundingClientRect();
-          const canvasCenterX = centerX - rect.left;
-          const canvasCenterY = centerY - rect.top;
-          offsetX =
-            canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
-          offsetY =
-            canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
-          scale = newScale;
-          drawWeave();
-        }
-        lastTouchDistance = dist;
-      } else if (isDragging && e.touches.length === 1 && !isPinching) {
-        e.preventDefault();
-        offsetX = e.touches[0].clientX - startX;
-        offsetY = e.touches[0].clientY - startY;
-        drawWeave();
-      }
-    });
-
-    canvas.addEventListener("touchend", (e) => {
-      if (e.touches.length < 2) {
-        isPinching = false;
-        lastTouchDistance = 0;
-      }
-      if (e.touches.length === 0) {
-        isDragging = false;
-      }
-    });
-
-    canvas.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      startX = e.clientX - offsetX;
-      startY = e.clientY - offsetY;
-      canvas.style.cursor = "grabbing";
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        drawWeave();
-      }
-    });
-
-    canvas.addEventListener("mouseup", () => {
-      isDragging = false;
-      canvas.style.cursor = "grab";
-    });
-
-    canvas.addEventListener("mouseleave", () => {
-      isDragging = false;
-      canvas.style.cursor = "grab";
-    });
-
-    let lastTap = 0;
-    canvas.addEventListener("touchend", (e) => {
-      if (e.touches.length === 0 && !isPinching) {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTap;
-        if (tapLength < 300 && tapLength > 0) {
-          scale = 1;
-          offsetX = 0;
-          offsetY = 0;
-          drawWeave();
-        }
-        lastTap = currentTime;
-      }
-    });
-
-    canvas.addEventListener("dblclick", () => {
-      scale = 1;
-      offsetX = 0;
-      offsetY = 0;
-      drawWeave();
-    });
-  }
-
-  function getWordOccurrences() {
-    const cacheKey = displayedWords.map((w) => w.text).join(",");
-    if (wordOccurrencesCache.has(cacheKey)) {
-      return wordOccurrencesCache.get(cacheKey);
-    }
-
-    const counts = {};
-    displayedWords.forEach((word) => {
-      const key = word.text.toLowerCase();
-      counts[key] = (counts[key] || 0) + 1;
-    });
-
-    wordOccurrencesCache.set(cacheKey, counts);
-    return counts;
-  }
-
+  // ==================== DESSIN PRINCIPAL ====================
   function drawWeave(withBackground = false) {
     if (!canDraw) return;
 
@@ -692,7 +685,6 @@ const colorGenerator = {
     }
 
     ctx.save();
-
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -709,96 +701,23 @@ const colorGenerator = {
       return;
     }
 
-    // Configuration des traits PLUS VISIBLES
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    let connections = [];
+    // Filtrer les mots visibles pour optimisation
+    const visibleWords = displayedWords.filter((w) =>
+      isVisible(w, scale, offsetX, offsetY, width, height)
+    );
 
-    if (settings.linkMode === "chronological") {
-      const sortedWords = [...displayedWords].sort(
-        (a, b) => a.timestamp - b.timestamp
-      );
-      for (let i = 1; i < sortedWords.length; i++) {
-        connections.push([sortedWords[i - 1], sortedWords[i]]);
-      }
-    } else if (settings.linkMode === "random") {
-      displayedWords.forEach((word, index) => {
-        if (index === 0) return;
-        const hash = (word.text + word.timestamp)
-          .split("")
-          .reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
-        const targetIndex = Math.abs(hash) % index;
-        connections.push([displayedWords[targetIndex], word]);
-      });
-    } else if (settings.linkMode === "proximity") {
-      displayedWords.forEach((word) => {
-        const distances = displayedWords
-          .filter((w) => w !== word)
-          .map((w) => ({ word: w, dist: distance(word, w) }))
-          .sort((a, b) => a.dist - b.dist)
-          .slice(0, 2);
-        distances.forEach((d) => connections.push([word, d.word]));
-      });
-    } else if (settings.linkMode === "color") {
-      displayedWords.forEach((word) => {
-        const similar = displayedWords
-          .filter((w) => w !== word)
-          .map((w) => ({
-            word: w,
-            sim: colorSimilarity(word.color, w.color),
-          }))
-          .sort((a, b) => a.sim - b.sim)
-          .slice(0, 2);
-        similar.forEach((s) => connections.push([word, s.word]));
-      });
-    } else if (settings.linkMode === "resonance") {
-      displayedWords.forEach((word) => {
-        const resonant = displayedWords.filter(
-          (w) => w !== word && hasResonance(word, w)
-        );
+    const connections = calculateConnections(settings.linkMode, displayedWords, width, height);
 
-        if (resonant.length === 0) {
-          const closest = displayedWords
-            .filter((w) => w !== word)
-            .map((w) => ({ word: w, dist: distance(word, w) }))
-            .sort((a, b) => a.dist - b.dist)[0];
-          if (closest) {
-            connections.push([word, closest.word]);
-          }
-        } else {
-          resonant.forEach((r) => connections.push([word, r]));
-        }
-      });
-    }
-
-    const connectedWords = new Set();
-    connections.forEach(([w1, w2]) => {
-      connectedWords.add(w1);
-      connectedWords.add(w2);
-    });
-
-    displayedWords.forEach((word) => {
-      if (!connectedWords.has(word) && displayedWords.length > 1) {
-        const closest = displayedWords
-          .filter((w) => w !== word)
-          .map((w) => ({ word: w, dist: distance(word, w) }))
-          .sort((a, b) => a.dist - b.dist)[0];
-        if (closest) {
-          connections.push([word, closest.word]);
-        }
-      }
-    });
-
-    // Effet Constellation
+    // ==================== MODES SPÉCIAUX ====================
     if (settings.linkMode === "constellation") {
       const time = Date.now() * 0.001;
-      displayedWords.forEach((word) => {
+      visibleWords.forEach((word) => {
         const x = word.x * width;
         const y = word.y * height;
-        const twinkle = Math.abs(
-          Math.sin(time * 2 + word.timestamp * 0.001)
-        );
+        const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
 
         for (let i = 0; i < 3; i++) {
           const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
@@ -816,7 +735,6 @@ const colorGenerator = {
       ctx.globalAlpha = 1;
     }
 
-    // Effet Waves
     if (settings.linkMode === "waves") {
       connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width;
@@ -858,13 +776,10 @@ const colorGenerator = {
         ctx.stroke();
         ctx.restore();
       });
-    }
-
-    // Effet Ripple
-    else if (settings.linkMode === "ripple") {
+    } else if (settings.linkMode === "ripple") {
       const time = Date.now() * 0.001;
 
-      displayedWords.forEach((word, index) => {
+      visibleWords.forEach((word, index) => {
         const x = word.x * width;
         const y = word.y * height;
 
@@ -898,27 +813,22 @@ const colorGenerator = {
         ctx.stroke();
       });
       ctx.globalAlpha = 1;
-    }
-
-    // Effet Spiral
-    else if (settings.linkMode === "spiral") {
+    } else if (settings.linkMode === "spiral") {
       const time = Date.now() * 0.0005;
       const centerX = width / 2;
       const centerY = height / 2;
 
-      displayedWords.forEach((word, index) => {
+      visibleWords.forEach((word, index) => {
         const x = word.x * width;
         const y = word.y * height;
 
         const dx = x - centerX;
         const dy = y - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
 
-        const spiralAngle =
-          angle + (distance / 100) * Math.sin(time + index * 0.1);
-        const spiralRadius =
-          distance * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
+        const spiralAngle = angle + (dist / 100) * Math.sin(time + index * 0.1);
+        const spiralRadius = dist * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
 
         const spiralX = centerX + Math.cos(spiralAngle) * spiralRadius;
         const spiralY = centerY + Math.sin(spiralAngle) * spiralRadius;
@@ -939,10 +849,7 @@ const colorGenerator = {
         ctx.stroke();
         ctx.restore();
       });
-    }
-
-    // Effet Web
-    else if (settings.linkMode === "web") {
+    } else if (settings.linkMode === "web") {
       displayedWords.forEach((word) => {
         const neighbors = displayedWords
           .filter((w) => w !== word)
@@ -982,10 +889,7 @@ const colorGenerator = {
         });
       });
       ctx.globalAlpha = 1;
-    }
-
-    // Effet Pulse
-    else if (settings.linkMode === "pulse") {
+    } else if (settings.linkMode === "pulse") {
       const time = Date.now() * 0.001;
 
       connections.forEach(([word1, word2], idx) => {
@@ -1031,10 +935,7 @@ const colorGenerator = {
         ctx.fill();
       });
       ctx.globalAlpha = 1;
-    }
-
-    // Effet Basket
-    else if (settings.linkMode === "basket") {
+    } else if (settings.linkMode === "basket") {
       const time = Date.now() * 0.0003;
       const gridSize = Math.max(40, settings.weavingDensity || 60);
 
@@ -1094,10 +995,57 @@ const colorGenerator = {
       }
 
       ctx.globalAlpha = 1;
-    }
+    } else if (settings.linkMode === "flow") {
+      const time = Date.now() * 0.0008;
+      const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
 
-    // Dessin standard des connexions - TRAITS PLUS ÉPAIS ET VISIBLES
-    else {
+      for (let i = 1; i < sortedWords.length; i++) {
+        const word1 = sortedWords[i - 1];
+        const word2 = sortedWords[i];
+
+        const x1 = word1.x * width;
+        const y1 = word1.y * height;
+        const x2 = word2.x * width;
+        const y2 = word2.y * height;
+
+        const flowProgress = (time + i * 0.1) % 2;
+        const flowIntensity = Math.sin(flowProgress * Math.PI);
+
+        ctx.save();
+        ctx.shadowColor = word2.color;
+        ctx.shadowBlur = 15 * flowIntensity;
+
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const controlOffset = 30 * Math.sin(time * 2 + i);
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(midX + controlOffset, midY - controlOffset, x2, y2);
+
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, word1.color);
+        gradient.addColorStop(flowProgress / 2, "white");
+        gradient.addColorStop(1, word2.color);
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * (1 + flowIntensity * 0.5));
+        ctx.globalAlpha = 0.7 + flowIntensity * 0.2;
+        ctx.stroke();
+        ctx.restore();
+
+        const particleX = x1 + (x2 - x1) * (flowProgress / 2);
+        const particleY = y1 + (y2 - y1) * (flowProgress / 2);
+
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = word2.color;
+        ctx.fill();
+      }
+    } else {
+      // Mode standard
       connections.forEach(([word1, word2]) => {
         if (
           typeof word1.x !== "number" ||
@@ -1133,20 +1081,16 @@ const colorGenerator = {
         const x2 = word2.x * width;
         const y2 = word2.y * height;
 
-        // Trait principal - PLUS ÉPAIS
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
         ctx.shadowBlur = 10;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
 
-        ctx.globalAlpha = 0.9; // Plus opaque
+        ctx.globalAlpha = 0.9;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.lineTo(
-          x1 + (x2 - x1) * progress,
-          y1 + (y2 - y1) * progress
-        );
+        ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
 
         if (settings.useGradient) {
           const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
@@ -1157,23 +1101,20 @@ const colorGenerator = {
           ctx.strokeStyle = word2.color;
         }
 
-        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2); // Plus épais
+        ctx.lineWidth = Math.max(2.5, settings.lineWidth * 1.2);
         ctx.stroke();
         ctx.restore();
 
-        // Trait secondaire lumineux - PLUS VISIBLE
-        ctx.globalAlpha = 0.4; // Plus opaque
+        ctx.globalAlpha = 0.4;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.lineTo(
-          x1 + (x2 - x1) * progress,
-          y1 + (y2 - y1) * progress
-        );
-        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5); // Plus épais
+        ctx.lineTo(x1 + (x2 - x1) * progress, y1 + (y2 - y1) * progress);
+        ctx.lineWidth = Math.max(4, settings.lineWidth * 1.5);
         ctx.stroke();
       });
     }
 
+    // ==================== PARTICULES ====================
     const wordOccurrences = getWordOccurrences();
 
     if (settings.enableParticles) {
@@ -1200,22 +1141,20 @@ const colorGenerator = {
     const time = Date.now() * 0.001;
 
     const uniqueDisplayMap = new Map();
-    displayedWords.forEach((word) => {
+    visibleWords.forEach((word) => {
       const key = word.text.toLowerCase();
       if (!uniqueDisplayMap.has(key)) {
         uniqueDisplayMap.set(key, word);
       }
     });
 
-    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort(
-      (a, b) => {
-        const countA = wordOccurrences[a.text.toLowerCase()];
-        const countB = wordOccurrences[b.text.toLowerCase()];
-        return countA - countB;
-      }
-    );
+    const sortedForDisplay = Array.from(uniqueDisplayMap.values()).sort((a, b) => {
+      const countA = wordOccurrences[a.text.toLowerCase()];
+      const countB = wordOccurrences[b.text.toLowerCase()];
+      return countA - countB;
+    });
 
-    // Dessiner les points des mots - PLUS PETITS
+    // ==================== DESSIN DES POINTS ====================
     sortedForDisplay.forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
       const pointSize = getPointRadius(occurrences);
@@ -1237,8 +1176,7 @@ const colorGenerator = {
       const pulseSize =
         finalPointSize +
         10 +
-        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) *
-          pulseFactor;
+        Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
 
       ctx.beginPath();
       ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
@@ -1257,9 +1195,7 @@ const colorGenerator = {
 
       ctx.beginPath();
       ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
-      ctx.strokeStyle = isHighlighted
-        ? "rgba(255, 255, 255, 0.95)"
-        : "rgba(255, 255, 255, 0.7)";
+      ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
       ctx.lineWidth = isHighlighted ? 5 : 3;
       ctx.stroke();
 
@@ -1274,11 +1210,11 @@ const colorGenerator = {
       ctx.shadowColor = "transparent";
     });
 
-    // Dessiner les textes des mots - PLUS PETITS
+    // ==================== DESSIN DES TEXTES ====================
     if (settings.showWords) {
       ctx.globalAlpha = 1;
       const isMobile = window.innerWidth < 768;
-      const fontSize = isMobile ? 16 : 18; // Réduit
+      const fontSize = isMobile ? 16 : 18;
       ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -1293,7 +1229,7 @@ const colorGenerator = {
         const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
         const x = word.x * width + wobbleX;
         const y = word.y * height + wobbleY;
-        const textY = y - pointSize - 18; // Plus d'espace
+        const textY = y - pointSize - 18;
 
         ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
         ctx.shadowBlur = 12;
@@ -1317,6 +1253,7 @@ const colorGenerator = {
     ctx.restore();
   }
 
+  // ==================== STATISTIQUES ====================
   function updateStats() {
     const statsPanel = document.getElementById("stats-panel");
     if (statsPanel.classList.contains("hidden")) {
@@ -1330,7 +1267,6 @@ const colorGenerator = {
     }
 
     const wordCounts = getWordOccurrences();
-
     const sorted = Object.entries(wordCounts).sort(([, a], [, b]) => b - a);
     const totalWords = displayedWords.length;
     const timestamps = displayedWords.map((w) => w.timestamp).filter(Boolean);
@@ -1343,12 +1279,9 @@ const colorGenerator = {
 
     const uniqueWords = Object.keys(wordCounts).length;
     let connectionCount = 0;
-    if (settings.linkMode === "chronological") {
+    if (settings.linkMode === "chronological" || settings.linkMode === "flow") {
       connectionCount = Math.max(0, displayedWords.length - 1);
-    } else if (
-      settings.linkMode === "proximity" ||
-      settings.linkMode === "color"
-    ) {
+    } else if (settings.linkMode === "proximity" || settings.linkMode === "color") {
       connectionCount = displayedWords.length * 2;
     }
 
@@ -1404,6 +1337,7 @@ const colorGenerator = {
     document.getElementById("stats-content").innerHTML = html;
   }
 
+  // ==================== FETCH WORDS ====================
   async function fetchWords() {
     try {
       const controller = new AbortController();
@@ -1434,6 +1368,7 @@ const colorGenerator = {
 
       displayedWords = fetchedWords;
       wordOccurrencesCache.clear();
+      geometryCache.clear();
 
       if (newWords.length > 0) {
         updateWordList(newWords);
@@ -1444,25 +1379,17 @@ const colorGenerator = {
         if (settings.animateLines && displayedWords.length > 1) {
           let targetWord;
 
-          if (settings.linkMode === "chronological") {
-            const allWords = [...displayedWords].sort(
-              (a, b) => a.timestamp - b.timestamp
-            );
+          if (settings.linkMode === "chronological" || settings.linkMode === "flow") {
+            const allWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
             const lastIndex = allWords.findIndex(
-              (w) =>
-                w.text === lastNewWord.text &&
-                w.timestamp === lastNewWord.timestamp
+              (w) => w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp
             );
             if (lastIndex > 0) {
               targetWord = allWords[lastIndex - 1];
             }
           } else if (settings.linkMode === "proximity") {
             const candidates = displayedWords.filter(
-              (w) =>
-                !(
-                  w.text === lastNewWord.text &&
-                  w.timestamp === lastNewWord.timestamp
-                )
+              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
             );
             const sorted = candidates
               .map((w) => ({ word: w, dist: distance(lastNewWord, w) }))
@@ -1470,11 +1397,7 @@ const colorGenerator = {
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "color") {
             const candidates = displayedWords.filter(
-              (w) =>
-                !(
-                  w.text === lastNewWord.text &&
-                  w.timestamp === lastNewWord.timestamp
-                )
+              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
             );
             const sorted = candidates
               .map((w) => ({
@@ -1485,11 +1408,7 @@ const colorGenerator = {
             targetWord = sorted[0]?.word;
           } else if (settings.linkMode === "random") {
             const candidates = displayedWords.filter(
-              (w) =>
-                !(
-                  w.text === lastNewWord.text &&
-                  w.timestamp === lastNewWord.timestamp
-                )
+              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
             );
             if (candidates.length > 0) {
               const hash = (lastNewWord.text + lastNewWord.timestamp)
@@ -1500,15 +1419,9 @@ const colorGenerator = {
             }
           } else if (settings.linkMode === "resonance") {
             const candidates = displayedWords.filter(
-              (w) =>
-                !(
-                  w.text === lastNewWord.text &&
-                  w.timestamp === lastNewWord.timestamp
-                )
+              (w) => !(w.text === lastNewWord.text && w.timestamp === lastNewWord.timestamp)
             );
-            const resonant = candidates.filter((w) =>
-              hasResonance(lastNewWord, w)
-            );
+            const resonant = candidates.filter((w) => hasResonance(lastNewWord, w));
             if (resonant.length > 0) {
               targetWord = resonant[0];
             } else {
@@ -1534,6 +1447,7 @@ const colorGenerator = {
     }
   }
 
+  // ==================== UPDATE WORD LIST ====================
   function updateWordList(newWords = []) {
     const existingItems = Array.from(wordsList.querySelectorAll(".word-item"));
     const currentTexts = displayedWords.map((w) => `${w.text}-${w.timestamp}`);
@@ -1542,6 +1456,7 @@ const colorGenerator = {
         item.remove();
       }
     });
+
     newWords.forEach((word) => {
       if (!word.text || !word.color) return;
       const li = document.createElement("li");
@@ -1577,6 +1492,7 @@ const colorGenerator = {
     });
   }
 
+  // ==================== WORD FILTER ====================
   function setupWordFilter() {
     const filterInput = document.getElementById("word-filter");
     const filterCount = document.getElementById("filter-count");
@@ -1596,20 +1512,18 @@ const colorGenerator = {
       });
 
       if (filter) {
-        filterCount.textContent = `${visibleCount} résultat${
-          visibleCount > 1 ? "s" : ""
-        }`;
+        filterCount.textContent = `${visibleCount}
+        résultat${visibleCount > 1 ? "s" : ""}`;
         filterCount.classList.remove("hidden");
       } else {
         filterCount.classList.add("hidden");
       }
 
       displayedWords.forEach((word) => {
-        word.highlighted =
-          filter && word.text.toLowerCase().includes(filter);
+        word.highlighted = filter && word.text.toLowerCase().includes(filter);
       });
 
-      drawWeave();
+      scheduleRedraw();
     });
 
     filterInput.addEventListener("keydown", (e) => {
@@ -1621,15 +1535,14 @@ const colorGenerator = {
     });
   }
 
+  // ==================== ENREGISTREMENT TIME-LAPSE ====================
   function startRecording() {
     if (isRecording) return;
 
     const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
 
     if (!isAdmin) {
-      const password = prompt(
-        "🔒 Mot de passe administrateur pour l'enregistrement :"
-      );
+      const password = prompt("🔒 Mot de passe administrateur pour l'enregistrement :");
       if (password !== CONFIG.RESET_PASSWORD) {
         alert("❌ Accès refusé");
         return;
@@ -1657,18 +1570,13 @@ const colorGenerator = {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
 
-        const estimatedSize =
-          recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
+        const estimatedSize = recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
 
-        console.log(
-          `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
-        );
+        console.log(`📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`);
 
         if (recordedFrames.length >= 600 || estimatedSize > 200) {
           stopRecording();
-          alert(
-            "⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté."
-          );
+          alert("⏱️ Limite atteinte (1 minute / 200 MB). Enregistrement arrêté.");
         }
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
@@ -1692,9 +1600,7 @@ const colorGenerator = {
     recordButton.classList.remove("hidden");
 
     const duration = ((Date.now() - recordingStartTime) / 1000).toFixed(1);
-    console.log(
-      `⏹️ Enregistrement arrêté: ${recordedFrames.length} frames en ${duration}s`
-    );
+    console.log(`⏹️ Enregistrement arrêté: ${recordedFrames.length} frames en ${duration}s`);
 
     if (recordedFrames.length > 0) {
       exportTimelapse();
@@ -1741,8 +1647,7 @@ const colorGenerator = {
         throw new Error("MediaRecorder non supporté");
       }
 
-      document.getElementById("progress-text").textContent =
-        "Initialisation du rendu HD...";
+      document.getElementById("progress-text").textContent = "Initialisation du rendu HD...";
 
       const videoCanvas = document.createElement("canvas");
       const container = document.getElementById("canvas-container");
@@ -1787,9 +1692,7 @@ const colorGenerator = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const date = new Date().toISOString().split("T")[0];
-        const time = new Date()
-          .toLocaleTimeString("fr-FR")
-          .replace(/:/g, "-");
+        const time = new Date().toLocaleTimeString("fr-FR").replace(/:/g, "-");
         a.href = url;
         a.download = `tissage-timelapse-${date}-${time}.webm`;
         a.click();
@@ -1835,21 +1738,12 @@ const colorGenerator = {
               videoCtx.fillStyle = "#111827";
               videoCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
 
-              videoCtx.drawImage(
-                img,
-                0,
-                0,
-                videoCanvas.width,
-                videoCanvas.height
-              );
+              videoCtx.drawImage(img, 0, 0, videoCanvas.width, videoCanvas.height);
 
               await new Promise((r) => setTimeout(r, 17));
             }
 
-            const progress = (
-              ((i + 1) / recordedFrames.length) *
-              100
-            ).toFixed(0);
+            const progress = (((i + 1) / recordedFrames.length) * 100).toFixed(0);
             document.getElementById("progress-text").textContent =
               `Rendu HD ${i + 1}/${recordedFrames.length} (${progress}%)`;
             document.getElementById("progress-bar").style.width = `${progress}%`;
@@ -1860,8 +1754,7 @@ const colorGenerator = {
         });
       }
 
-      document.getElementById("progress-text").textContent =
-        "Finalisation de la vidéo ULTRA HD...";
+      document.getElementById("progress-text").textContent = "Finalisation de la vidéo ULTRA HD...";
 
       await new Promise((r) => setTimeout(r, 1000));
       mediaRecorder.stop();
@@ -1878,18 +1771,14 @@ const colorGenerator = {
       );
 
       if (retry) {
-        await exportFramesAsImages(null);
+        await exportFramesAsImages();
       } else {
         alert("💾 Les frames restent en mémoire.");
       }
     }
   }
 
-  async function exportFramesAsImages(progressModal) {
-    if (progressModal && document.body.contains(progressModal)) {
-      document.body.removeChild(progressModal);
-    }
-
+  async function exportFramesAsImages() {
     const exportModal = document.createElement("div");
     exportModal.className =
       "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4";
@@ -1944,35 +1833,169 @@ const colorGenerator = {
       alert("✅ Dernière image téléchargée");
     });
 
-    document
-      .getElementById("export-key-frames")
-      .addEventListener("click", () => {
-        const indices = [
-          0,
-          Math.floor(recordedFrames.length * 0.25),
-          Math.floor(recordedFrames.length * 0.5),
-          Math.floor(recordedFrames.length * 0.75),
-          recordedFrames.length - 1,
-        ];
+    document.getElementById("export-key-frames").addEventListener("click", () => {
+      const indices = [
+        0,
+        Math.floor(recordedFrames.length * 0.25),
+        Math.floor(recordedFrames.length * 0.5),
+        Math.floor(recordedFrames.length * 0.75),
+        recordedFrames.length - 1,
+      ];
 
-        indices.forEach((idx, i) => {
-          setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
-        });
-
-        alert("✅ 5 images clés téléchargées");
+      indices.forEach((idx, i) => {
+        setTimeout(() => downloadImage(idx, `frame-${i + 1}`), i * 100);
       });
+
+      alert("✅ 5 images clés téléchargées");
+    });
 
     document.getElementById("close-export").addEventListener("click", () => {
       document.body.removeChild(exportModal);
     });
   }
 
+  // ==================== ZOOM ET PAN ====================
+  function setupZoomAndPan() {
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newScale = Math.min(Math.max(0.5, scale * delta), 5);
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+      offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+      scale = newScale;
+      scheduleRedraw();
+    });
+
+    canvas.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        isPinching = true;
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        lastTouchDistance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+      } else if (e.touches.length === 1 && !isPinching) {
+        isDragging = true;
+        startX = e.touches[0].clientX - offsetX;
+        startY = e.touches[0].clientY - offsetY;
+      }
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 2 && isPinching) {
+        e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const dist = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        if (lastTouchDistance > 0) {
+          const delta = dist / lastTouchDistance;
+          const newScale = Math.min(Math.max(0.5, scale * delta), 5);
+          const centerX = (touch1.clientX + touch2.clientX) / 2;
+          const centerY = (touch1.clientY + touch2.clientY) / 2;
+          const rect = canvas.getBoundingClientRect();
+          const canvasCenterX = centerX - rect.left;
+          const canvasCenterY = centerY - rect.top;
+          offsetX = canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
+          offsetY = canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
+          scale = newScale;
+          scheduleRedraw();
+        }
+        lastTouchDistance = dist;
+      } else if (isDragging && e.touches.length === 1 && !isPinching) {
+        e.preventDefault();
+        offsetX = e.touches[0].clientX - startX;
+        offsetY = e.touches[0].clientY - startY;
+        scheduleRedraw();
+      }
+    });
+
+    canvas.addEventListener("touchend", (e) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
+        lastTouchDistance = 0;
+      }
+      if (e.touches.length === 0) {
+        isDragging = false;
+      }
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      startX = e.clientX - offsetX;
+      startY = e.clientY - offsetY;
+      canvas.style.cursor = "grabbing";
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        offsetX = e.clientX - startX;
+        offsetY = e.clientY - startY;
+        scheduleRedraw();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      isDragging = false;
+      canvas.style.cursor = "grab";
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      isDragging = false;
+      canvas.style.cursor = "grab";
+    });
+
+    let lastTap = 0;
+    canvas.addEventListener("touchend", (e) => {
+      if (e.touches.length === 0 && !isPinching) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          scale = 1;
+          offsetX = 0;
+          offsetY = 0;
+          scheduleRedraw();
+        }
+        lastTap = currentTime;
+      }
+    });
+
+    canvas.addEventListener("dblclick", () => {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      scheduleRedraw();
+    });
+  }
+
+  // ==================== EVENT LISTENERS ====================
   wordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = wordInput.value.trim();
     if (!text) return;
 
     console.log("Tentative d'ajout de mot:", text);
+
+    // Vérification mots interdits
+    if (isForbidden(text)) {
+      wordInput.value = "";
+      wordInput.placeholder = "⚠️ Mot inapproprié";
+      wordInput.classList.add("border-2", "border-red-500");
+
+      setTimeout(() => {
+        wordInput.placeholder = "Partagez un mot...";
+        wordInput.classList.remove("border-2", "border-red-500");
+      }, 2500);
+
+      return;
+    }
 
     if (!canUserAddWord()) {
       const count = getUserWordCount();
@@ -2004,13 +2027,10 @@ const colorGenerator = {
       };
     } else {
       const newColor = colorGenerator.getColor();
-
       const position = findValidPosition();
 
       if (!position) {
-        alert(
-          "❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment"
-        );
+        alert("❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment");
         wordInput.disabled = false;
         submitButton.disabled = false;
         submitButton.textContent = "Tisser";
@@ -2052,9 +2072,9 @@ const colorGenerator = {
       console.log("Mots restants:", remaining);
 
       if (remaining > 0) {
-        wordInput.placeholder = `${remaining} mot${
+        wordInput.placeholder = `${remaining} mot${remaining > 1 ? "s" : ""} restant${
           remaining > 1 ? "s" : ""
-        } restant${remaining > 1 ? "s" : ""}...`;
+        }...`;
       } else {
         wordInput.placeholder = "Limite atteinte (5 mots max)";
       }
@@ -2084,19 +2104,23 @@ const colorGenerator = {
     }
   });
 
+  // Stats button
   const statsButton = document.getElementById("stats-button");
   const statsPanel = document.getElementById("stats-panel");
   const closeStatsButton = document.getElementById("close-stats-button");
+
   statsButton.addEventListener("click", () => {
     statsPanel.classList.toggle("hidden");
     if (!statsPanel.classList.contains("hidden")) {
       updateStats();
     }
   });
+
   closeStatsButton.addEventListener("click", () => {
     statsPanel.classList.add("hidden");
   });
 
+  // Settings modal
   const settingsButton = document.getElementById("settings-button");
   const settingsModal = document.getElementById("settings-modal");
   const closeSettingsButton = document.getElementById("close-settings-button");
@@ -2115,130 +2139,122 @@ const colorGenerator = {
     }
   });
 
-  document.querySelectorAll('input[name="link-mode"]').forEach((radio) => {
-    radio.addEventListener("change", (e) => {
+  // Link mode selector
+  const linkModeSelect = document.getElementById("link-mode-select");
+  const modeDescription = document.getElementById("mode-description");
+
+  if (linkModeSelect && modeDescription) {
+    linkModeSelect.addEventListener("change", (e) => {
       settings.linkMode = e.target.value;
-      drawWeave();
+      modeDescription.textContent = MODE_DESCRIPTIONS[e.target.value];
+      geometryCache.clear();
+      scheduleRedraw();
+    });
+  }
+
+  // Color mode
+  document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const customPicker = document.getElementById("custom-color-picker");
+      if (e.target.value === "custom") {
+        customPicker.classList.remove("hidden");
+        colorGenerator.setMode("custom");
+      } else {
+        customPicker.classList.add("hidden");
+        colorGenerator.setMode("auto");
+      }
     });
   });
 
- // Gestion du mode de couleur (aléatoire / personnalisé)
-document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
-    const customPicker = document.getElementById("custom-color-picker");
-    if (e.target.value === "custom") {
-      customPicker.classList.remove("hidden");
-      colorGenerator.setMode("custom");
-    } else {
-      customPicker.classList.add("hidden");
-      colorGenerator.setMode("auto");
-    }
-  });
-});
+  // Color picker
+  const colorPickerInput = document.getElementById("color-picker-input");
+  const colorHexInput = document.getElementById("color-hex-input");
+  const colorPreview = document.getElementById("color-preview");
 
-// Sélecteur de couleur visuel
-const colorPickerInput = document.getElementById("color-picker-input");
-const colorHexInput = document.getElementById("color-hex-input");
-const colorPreview = document.getElementById("color-preview");
-
-if (colorPickerInput && colorHexInput && colorPreview) {
-  // Synchroniser le sélecteur visuel avec le champ texte
-  colorPickerInput.addEventListener("input", (e) => {
-    const color = e.target.value;
-    colorHexInput.value = color;
-    colorPreview.style.background = color;
-    colorGenerator.setCustomColor(color);
-  });
-
-  // Synchroniser le champ texte avec le sélecteur visuel
-  colorHexInput.addEventListener("input", (e) => {
-    let color = e.target.value.trim();
-
-    // Ajouter # si manquant
-    if (color && !color.startsWith("#")) {
-      color = "#" + color;
-      e.target.value = color;
-    }
-
-    // Valider le format hexadécimal
-    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-    if (hexRegex.test(color)) {
-      colorPickerInput.value = color;
+  if (colorPickerInput && colorHexInput && colorPreview) {
+    colorPickerInput.addEventListener("input", (e) => {
+      const color = e.target.value;
+      colorHexInput.value = color;
       colorPreview.style.background = color;
       colorGenerator.setCustomColor(color);
-      e.target.classList.remove("border-red-500");
-    } else if (color.length === 7) {
-      // Format invalide
-      e.target.classList.add("border-red-500");
-    }
+    });
+
+    colorHexInput.addEventListener("input", (e) => {
+      let color = e.target.value.trim();
+
+      if (color && !color.startsWith("#")) {
+        color = "#" + color;
+        e.target.value = color;
+      }
+
+      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+      if (hexRegex.test(color)) {
+        colorPickerInput.value = color;
+        colorPreview.style.background = color;
+        colorGenerator.setCustomColor(color);
+        e.target.classList.remove("border-red-500");
+      } else if (color.length === 7) {
+        e.target.classList.add("border-red-500");
+      }
+    });
+
+    colorHexInput.addEventListener("blur", (e) => {
+      let color = e.target.value.trim();
+      const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+
+      if (!hexRegex.test(color)) {
+        e.target.value = colorGenerator.customColor;
+        e.target.classList.remove("border-red-500");
+      }
+    });
+  }
+
+  // Other toggles
+  document.getElementById("show-words-toggle").addEventListener("change", (e) => {
+    settings.showWords = e.target.checked;
+    scheduleRedraw();
   });
 
-  // Validation au blur
-  colorHexInput.addEventListener("blur", (e) => {
-    let color = e.target.value.trim();
-    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-
-    if (!hexRegex.test(color)) {
-      // Restaurer la dernière couleur valide
-      e.target.value = colorGenerator.customColor;
-      e.target.classList.remove("border-red-500");
-    }
+  document.getElementById("animate-lines-toggle").addEventListener("change", (e) => {
+    settings.animateLines = e.target.checked;
   });
-}
 
-  document
-    .getElementById("show-words-toggle")
-    .addEventListener("change", (e) => {
-      settings.showWords = e.target.checked;
-      drawWeave();
-    });
+  document.getElementById("resonance-toggle").addEventListener("change", (e) => {
+    settings.enableResonance = e.target.checked;
+    scheduleRedraw();
+  });
 
-  document
-    .getElementById("animate-lines-toggle")
-    .addEventListener("change", (e) => {
-      settings.animateLines = e.target.checked;
-    });
-
-  document
-    .getElementById("resonance-toggle")
-    .addEventListener("change", (e) => {
-      settings.enableResonance = e.target.checked;
-      drawWeave();
-    });
-
-  document
-    .getElementById("show-timestamp-toggle")
-    .addEventListener("change", (e) => {
-      settings.showTimestamp = e.target.checked;
-      wordsList.innerHTML = "";
-      updateWordList(displayedWords);
-    });
+  document.getElementById("show-timestamp-toggle").addEventListener("change", (e) => {
+    settings.showTimestamp = e.target.checked;
+    wordsList.innerHTML = "";
+    updateWordList(displayedWords);
+  });
 
   document.getElementById("gradient-toggle").addEventListener("change", (e) => {
     settings.useGradient = e.target.checked;
-    drawWeave();
+    scheduleRedraw();
   });
 
-  document
-    .getElementById("particles-toggle")
-    .addEventListener("change", (e) => {
-      settings.enableParticles = e.target.checked;
-      if (!e.target.checked) {
-        particles.forEach((p) => recycleParticle(p));
-        particles = [];
-      }
-    });
+  document.getElementById("particles-toggle").addEventListener("change", (e) => {
+    settings.enableParticles = e.target.checked;
+    if (!e.target.checked) {
+      particles.forEach((p) => recycleParticle(p));
+      particles = [];
+    }
+  });
 
   document.getElementById("line-width").addEventListener("input", (e) => {
     settings.lineWidth = parseInt(e.target.value);
     document.getElementById("line-width-value").textContent = e.target.value;
-    drawWeave();
+    scheduleRedraw();
   });
 
+  // Panel toggle
   togglePanelButton.addEventListener("click", () =>
     mainContainer.classList.toggle("panel-hidden")
   );
 
+  // Download button
   downloadButton.addEventListener("click", () => {
     const oldScale = scale;
     const oldOffsetX = offsetX;
@@ -2259,6 +2275,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     drawWeave(false);
   });
 
+  // Recording buttons
   const recordButton = document.getElementById("record-button");
   const stopRecordButton = document.getElementById("stop-record-button");
 
@@ -2278,11 +2295,10 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     });
   }
 
+  // Reset button
   resetButton.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    console.log("Reset button clicked");
 
     const passwordModal = document.createElement("div");
     passwordModal.id = "password-reset-modal";
@@ -2311,7 +2327,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     `;
 
     document.body.appendChild(passwordModal);
-    console.log("Modal ajouté au DOM");
 
     const passwordInput = document.getElementById("reset-password-input");
     const confirmBtn = document.getElementById("confirm-reset");
@@ -2322,7 +2337,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     const closeModal = () => {
       if (document.body.contains(passwordModal)) {
         document.body.removeChild(passwordModal);
-        console.log("Modal fermé");
       }
     };
 
@@ -2340,18 +2354,12 @@ if (colorPickerInput && colorHexInput && colorPreview) {
 
     const attemptReset = async () => {
       const enteredPassword = passwordInput.value.trim();
-      console.log(
-        "Tentative reset avec mot de passe:",
-        enteredPassword ? "***" : "(vide)"
-      );
 
       if (enteredPassword === CONFIG.RESET_PASSWORD) {
-        console.log("✓ Mot de passe correct");
         closeModal();
 
         try {
           const response = await fetch("/api/words", { method: "DELETE" });
-          console.log("Réponse DELETE:", response.status);
 
           displayedWords = [];
           wordsList.innerHTML = "";
@@ -2363,6 +2371,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
           offsetX = 0;
           offsetY = 0;
           wordOccurrencesCache.clear();
+          geometryCache.clear();
 
           resetUserCounter();
           localStorage.setItem("lastResetTime", Date.now().toString());
@@ -2374,7 +2383,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
           submitButton.disabled = false;
           submitButton.textContent = "Tisser";
 
-          drawWeave();
+          scheduleRedraw();
           updateStats();
 
           const confirmDiv = document.createElement("div");
@@ -2396,7 +2405,6 @@ if (colorPickerInput && colorHexInput && colorPreview) {
           alert("❌ La réinitialisation a échoué");
         }
       } else {
-        console.log("✗ Mot de passe incorrect");
         passwordInput.value = "";
         passwordInput.placeholder = "❌ Mot de passe incorrect";
         passwordInput.classList.add("border-2", "border-red-500");
@@ -2421,6 +2429,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     });
   });
 
+  // QR Code modal
   const qrButton = document.getElementById("qr-code-button");
   const qrModal = document.getElementById("qr-modal");
   const closeModalButton = document.getElementById("close-modal-button");
@@ -2429,10 +2438,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     const qr = qrcode(0, "L");
     qr.addData(window.location.href);
     qr.make();
-    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(
-      6,
-      8
-    );
+    document.getElementById("qrcode-display").innerHTML = qr.createImgTag(6, 8);
     qrModal.classList.remove("hidden");
   }
 
@@ -2446,6 +2452,7 @@ if (colorPickerInput && colorHexInput && colorPreview) {
     if (e.target === qrModal) hideQrCode();
   });
 
+  // ==================== INITIALISATION ====================
   setupZoomAndPan();
   setupWordFilter();
   canvas.style.cursor = "grab";
@@ -2454,25 +2461,20 @@ if (colorPickerInput && colorHexInput && colorPreview) {
   window.addEventListener("resize", debouncedResize);
 
   resizeCanvas();
-  setInterval(fetchWords, 2000);
+  setInterval(fetchWords, CONFIG.FETCH_INTERVAL);
   fetchWords();
   animateWeaving();
 
   const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-  console.log(
-    "Compteur initial:",
-    getUserWordCount(),
-    "/ Restants:",
-    remaining
-  );
+  console.log("Compteur initial:", getUserWordCount(), "/ Restants:", remaining);
 
   if (remaining === 0) {
     wordInput.placeholder = "Limite atteinte (5 mots max)";
     wordInput.disabled = true;
     wordForm.querySelector("button").disabled = true;
   } else if (remaining < CONFIG.MAX_WORDS_PER_USER) {
-    wordInput.placeholder = `${remaining} mot${
+    wordInput.placeholder = `${remaining} mot${remaining > 1 ? "s" : ""} restant${
       remaining > 1 ? "s" : ""
-    } restant${remaining > 1 ? "s" : ""}...`;
+    }...`;
   }
 });

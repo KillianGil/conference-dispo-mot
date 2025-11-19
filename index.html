@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="h-full flex flex-col text-gray-200 overflow-hidden">
@@ -106,132 +105,62 @@
           </button>
           <h3 class="text-xl md:text-2xl font-bold text-white mb-6">Paramètres du Tissage</h3>
           
+          <!-- Liste déroulante pour les modes -->
           <div class="mb-6">
               <label class="block text-gray-300 font-semibold mb-3">🔗 Mode de liaison</label>
-              <div class="space-y-2">
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="chronological" checked class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Chronologique</div>
-                          <div class="text-xs text-gray-400">Les mots se connectent dans l'ordre d'ajout</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="random" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Aléatoire</div>
-                          <div class="text-xs text-gray-400">Chaque mot se connecte à un autre aléatoirement</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="proximity" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Proximité spatiale</div>
-                          <div class="text-xs text-gray-400">Les mots proches se connectent entre eux</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="color" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Harmonie chromatique</div>
-                          <div class="text-xs text-gray-400">Les couleurs similaires se relient</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="resonance" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Résonance textuelle</div>
-                          <div class="text-xs text-gray-400">Les mots partageant 2+ lettres se connectent</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="constellation" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Constellation</div>
-                          <div class="text-xs text-gray-400">Effet étoilé scintillant</div>
-                      </div>
-                  </label>
-                  <label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                      <input type="radio" name="link-mode" value="waves" class="mr-3 mt-1 accent-indigo-500">
-                      <div>
-                          <div>Vagues ondulées</div>
-                          <div class="text-xs text-gray-400">Connexions en courbes fluides</div>
-                      </div>
-                  </label>
-                  
-                  <!-- Dans settings-modal, après le mode "waves" existant -->
-<label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-    <input type="radio" name="link-mode" value="ripple" class="mr-3 mt-1 accent-indigo-500">
-    <div>
-        <div>Ondulations</div>
-        <div class="text-xs text-gray-400">Vagues concentriques depuis chaque mot</div>
-    </div>
-</label>
-<label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-    <input type="radio" name="link-mode" value="spiral" class="mr-3 mt-1 accent-indigo-500">
-    <div>
-        <div>Spirale</div>
-        <div class="text-xs text-gray-400">Connexions en spirale hypnotique</div>
-    </div>
-</label>
-<label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-    <input type="radio" name="link-mode" value="web" class="mr-3 mt-1 accent-indigo-500">
-    <div>
-        <div>Toile d'araignée</div>
-        <div class="text-xs text-gray-400">Réseau interconnecté dense</div>
-    </div>
-</label>
-<label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-    <input type="radio" name="link-mode" value="pulse" class="mr-3 mt-1 accent-indigo-500">
-    <div>
-        <div>Pulsations</div>
-        <div class="text-xs text-gray-400">Ondes de choc lumineuses</div>
-    </div>
-</label>
-<label class="flex items-start text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-    <input type="radio" name="link-mode" value="basket" class="mr-3 mt-1 accent-indigo-500">
-    <div>
-        <div>Tressage panier</div>
-        <div class="text-xs text-gray-400">Motif de vannerie croisé</div>
-    </div>
-</label>
-
+              <select id="link-mode-select" class="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-gray-600 cursor-pointer">
+                  <option value="chronological">Chronologique</option>
+                  <option value="random">Aléatoire</option>
+                  <option value="proximity">Proximité spatiale</option>
+                  <option value="color">Harmonie chromatique</option>
+                  <option value="resonance">Résonance textuelle</option>
+                  <option value="constellation">Constellation</option>
+                  <option value="waves">Vagues ondulées</option>
+                  <option value="ripple">Ondulations</option>
+                  <option value="spiral">Spirale</option>
+                  <option value="web">Toile d'araignée</option>
+                  <option value="pulse">Pulsations</option>
+                  <option value="basket">Tressage panier</option>
+                  <option value="flow">Flux temporel</option>
+              </select>
+              <div id="mode-description" class="mt-3 p-3 bg-gray-700/30 rounded-lg text-sm text-gray-300">
+                  Les mots se connectent dans l'ordre d'ajout
               </div>
           </div>
 
           <!-- Sélecteur de couleur -->
-<div class="mb-6">
-    <label class="block text-gray-300 font-semibold mb-3">🎨 Couleur des fils</label>
-    <div class="space-y-3">
-        <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-            <input type="radio" name="color-mode" value="auto" checked class="mr-3 accent-indigo-500">
-            <span>Aléatoire (par défaut)</span>
-        </label>
-        <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-            <input type="radio" name="color-mode" value="custom" class="mr-3 accent-indigo-500">
-            <span>Couleur personnalisée</span>
-        </label>
-    </div>
-    
-    <!-- Sélecteur de couleur personnalisé -->
-    <div id="custom-color-picker" class="mt-4 hidden">
-        <div class="flex gap-3 items-center">
-            <input type="color" id="color-picker-input" value="#6366f1" 
-                class="w-16 h-16 rounded-lg cursor-pointer border-2 border-gray-600 bg-gray-700">
-            <div class="flex-1">
-                <input type="text" id="color-hex-input" value="#6366f1" 
-                    placeholder="#000000"
-                    maxlength="7"
-                    class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-gray-600 font-mono text-sm">
-                <p class="text-xs text-gray-400 mt-1">Format: #RRGGBB</p>
-            </div>
-        </div>
-        <div class="mt-3 p-3 bg-gray-700/50 rounded-lg">
-            <p class="text-xs text-gray-400 mb-2">🎨 Aperçu de la couleur:</p>
-            <div id="color-preview" class="w-full h-12 rounded-lg border-2 border-gray-600" style="background: #6366f1;"></div>
-        </div>
-    </div>
-</div>
+          <div class="mb-6">
+              <label class="block text-gray-300 font-semibold mb-3">🎨 Couleur des fils</label>
+              <div class="space-y-3">
+                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="color-mode" value="auto" checked class="mr-3 accent-indigo-500">
+                      <span>Aléatoire (par défaut)</span>
+                  </label>
+                  <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
+                      <input type="radio" name="color-mode" value="custom" class="mr-3 accent-indigo-500">
+                      <span>Couleur personnalisée</span>
+                  </label>
+              </div>
+              
+              <!-- Sélecteur de couleur personnalisé -->
+              <div id="custom-color-picker" class="mt-4 hidden">
+                  <div class="flex gap-3 items-center">
+                      <input type="color" id="color-picker-input" value="#6366f1" 
+                          class="w-16 h-16 rounded-lg cursor-pointer border-2 border-gray-600 bg-gray-700">
+                      <div class="flex-1">
+                          <input type="text" id="color-hex-input" value="#6366f1" 
+                              placeholder="#000000"
+                              maxlength="7"
+                              class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-gray-600 font-mono text-sm">
+                          <p class="text-xs text-gray-400 mt-1">Format: #RRGGBB</p>
+                      </div>
+                  </div>
+                  <div class="mt-3 p-3 bg-gray-700/50 rounded-lg">
+                      <p class="text-xs text-gray-400 mb-2">🎨 Aperçu de la couleur:</p>
+                      <div id="color-preview" class="w-full h-12 rounded-lg border-2 border-gray-600" style="background: #6366f1;"></div>
+                  </div>
+              </div>
+          </div>
 
           <!-- Options d'affichage -->
           <div class="mb-6 space-y-3">
@@ -295,7 +224,7 @@
           <p class="text-gray-400 text-sm">Chargement...</p>
       </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
     <script src="script.js" defer></script>
 </body>
 </html>
