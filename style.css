@@ -99,9 +99,11 @@ body {
 
 /* ==================== TOGGLE PANEL BUTTON ==================== */
 #toggle-panel-button {
-    top: 10px;
+    top: -15px; /* 🔥 Bouton au-dessus du canvas */
     left: 50%;
     transform: translateX(-50%);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    z-index: 20; /* 🔥 Au-dessus de tout */
 }
 
 #toggle-panel-button svg {
@@ -258,11 +260,13 @@ footer button:active {
 }
 
 /* ==================== TABLET & DESKTOP (768px+) ==================== */
+/* ==================== TABLET & DESKTOP (768px+) ==================== */
 @media (min-width: 768px) {
     #toggle-panel-button {
         top: 50%;
-        left: -20px;
+        left: -5px; /* 🔥 Plus visible sur le côté */
         transform: translateY(-50%);
+        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
     }
     
     #main-container.panel-hidden #words-panel {
@@ -273,6 +277,10 @@ footer button:active {
         transform: translateX(-100%);
         border-right-width: 0;
         border-bottom-width: inherit;
+    }
+    
+    #main-container.panel-hidden #toggle-panel-button {
+        left: 10px; /* 🔥 Quand fermé, visible à gauche */
     }
     
     #main-container.panel-hidden #toggle-panel-button svg {
