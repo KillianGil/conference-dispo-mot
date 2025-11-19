@@ -1326,6 +1326,7 @@ Array.from(uniqueWordsMap.values()).forEach((word) => {
 });
 
     // ==================== DESSIN DES TEXTES ====================
+// ==================== DESSIN DES TEXTES ====================
 if (settings.showWords) {
   ctx.globalAlpha = 1;
   
@@ -1358,16 +1359,28 @@ if (settings.showWords) {
 
     ctx.save();
     
-    // 🔥 CONTOUR NOIR ÉPAIS (8px pour meilleure visibilité)
+    // 🔥 CONTOUR NOIR TRÈS ÉPAIS (10px pour lisibilité maximale)
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 10;
     ctx.strokeStyle = "#000000";
     ctx.strokeText(word.text, x, textY);
 
-    // 🔥 TEXTE BLANC PUR (#FFFFFF)
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowBlur = 0;
+    // 🔥 TEXTE COLORÉ avec légère luminosité augmentée
+    // On éclaircit la couleur HSL pour qu'elle ressorte mieux sur le contour noir
+    const lightColor = word.color.replace(
+      /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,
+      (match, h, s, l) => {
+        const newL = Math.min(75, parseInt(l) + 15); // +15% de luminosité, max 75%
+        return `hsl(${h}, ${s}%, ${newL}%)`;
+      }
+    );
+    
+    ctx.fillStyle = lightColor;
+    
+    // Léger glow pour faire ressortir la couleur
+    ctx.shadowColor = word.color;
+    ctx.shadowBlur = 4;
     ctx.fillText(word.text, x, textY);
 
     ctx.restore();
