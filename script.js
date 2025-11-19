@@ -333,18 +333,17 @@ document.addEventListener("DOMContentLoaded", () => {
     ).size;
     const isMobile = window.innerWidth < 768;
 
-    // 🔥 DISTANCE RÉDUITE (Rapprochement des points)
-    let baseDistance = isMobile ? 0.22 : 0.26; // Était 0.25 : 0.3
+    let baseDistance = isMobile ? 0.25 : 0.3;
 
-    if (uniqueCount > 50) baseDistance = isMobile ? 0.15 : 0.18;
-    else if (uniqueCount > 30) baseDistance = isMobile ? 0.18 : 0.22;
-    else if (uniqueCount > 15) baseDistance = isMobile ? 0.20 : 0.25;
+    if (uniqueCount > 50) baseDistance = isMobile ? 0.18 : 0.22;
+    else if (uniqueCount > 30) baseDistance = isMobile ? 0.20 : 0.25;
+    else if (uniqueCount > 15) baseDistance = isMobile ? 0.22 : 0.28;
 
     const adaptiveDistance = Math.max(
-      isMobile ? 0.09 : 0.12, // Minimum absolu réduit
+      isMobile ? 0.105 : 0.135,
       baseDistance
     );
-    return Math.min(0.40, adaptiveDistance);
+    return Math.min(0.45, adaptiveDistance);
   }
   function getPointRadius(occurrences) {
     const isMobile = window.innerWidth < 768;
@@ -376,29 +375,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function isPositionValid(x, y, minDist) {
-    const container = document.getElementById("canvas-container");
-    const width = container ? container.clientWidth : 800;
-    const height = container ? container.clientHeight : 600;
+    // Plus aucune limite de bordure (plus de x < 0.1...)
     
-    // On simule un gros point pour être sûr d'avoir de la place (40px de rayon)
-    const newRadius = 40;
-  
+    // On vérifie uniquement la distance avec les voisins
     for (const word of displayedWords) {
-      const count = getWordOccurrences()[word.text.toLowerCase()] || 1;
-      const existingRadius = getPointRadius(count);
-  
-      // Distance en pixels
-      const dx = (word.x - x) * width;
-      const dy = (word.y - y) * height;
+      const dx = word.x - x;
+      const dy = word.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-  
-      // Distance de sécurité stricte
-      if (dist < (newRadius + existingRadius + 20)) {
-        return false;
-      }
+      
+      // Si on est trop près d'un autre mot, c'est non
+      if (dist < minDist) return false;
     }
     return true;
-  }
+}
 
 function findValidPosition() {
   const minDist = getAdaptiveMinDistance();
@@ -746,32 +735,27 @@ function findValidPosition() {
   }
 
   // ==================== ANIMATION PRINCIPALE ====================
-// ==================== ANIMATION PRINCIPALE ====================
-function animateWeaving(timestamp = 0) {
-  if (timestamp - lastFrameTime < frameInterval) {
-    animationFrame = requestAnimationFrame(animateWeaving);
-    return;
-  }
-  lastFrameTime = timestamp;
-
-  // 🔥 MISE À JOUR DE LA PHYSIQUE À CHAQUE FRAME
-  // C'est ce qui empêche les chevauchements en temps réel
-  detectAndResolveOverlaps();
-
-  if (currentAnimatingConnection) {
-    animationProgress += 0.035;
-    if (animationProgress >= 1) {
-      animationProgress = 1;
-      setTimeout(() => {
-        currentAnimatingConnection = null;
-        animationProgress = 0;
-      }, 150);
+  function animateWeaving(timestamp = 0) {
+    if (timestamp - lastFrameTime < frameInterval) {
+      animationFrame = requestAnimationFrame(animateWeaving);
+      return;
     }
-  }
+    lastFrameTime = timestamp;
 
-  drawWeave();
-  animationFrame = requestAnimationFrame(animateWeaving);
-}
+    if (currentAnimatingConnection) {
+      animationProgress += 0.035;
+      if (animationProgress >= 1) {
+        animationProgress = 1;
+        setTimeout(() => {
+          currentAnimatingConnection = null;
+          animationProgress = 0;
+        }, 150);
+      }
+    }
+
+    drawWeave();
+    animationFrame = requestAnimationFrame(animateWeaving);
+  }
 
 // ==================== DESSIN PRINCIPAL ====================
 // ==================== DESSIN PRINCIPAL ====================
@@ -1637,96 +1621,72 @@ function drawWeave(withBackground = false) {
   }
 
   // ==================== DÉTECTION CHEVAUCHEMENTS ====================
-// ==================== DÉTECTION ET RÉSOLUTION DES CHEVAUCHEMENTS (PHYSIQUE) ====================
-// ==================== MOTEUR PHYSIQUE DE RÉPULSION ====================
 function detectAndResolveOverlaps() {
-  const container = document.getElementById("canvas-container");
-  if (!container) return;
-
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-  
-  // Paramètres de répulsion
-  const PADDING = 15; // Espace vide minimum en pixels entre deux points
-  const STIFFNESS = 0.1; // Vitesse de la répulsion (0.1 = doux, 1.0 = instantané)
-
   const wordOccurrences = getWordOccurrences();
+  const width = canvas.clientWidth || 800;
   
-  // Créer une liste de nœuds uniques pour la physique
-  const uniqueNodes = [];
-  const map = new Map();
-
+  // Regrouper par mot unique
+  const uniqueWords = new Map();
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
-    if (!map.has(key)) {
-      map.set(key, word);
-      uniqueNodes.push(word);
+    if (!uniqueWords.has(key)) {
+      uniqueWords.set(key, word);
     }
   });
-
-  // Boucle de collision
-  for (let i = 0; i < uniqueNodes.length; i++) {
-    const nodeA = uniqueNodes[i];
-    const countA = wordOccurrences[nodeA.text.toLowerCase()] || 1;
-    const radiusA = getPointRadius(countA); // Rayon visuel réel
-
-    for (let j = i + 1; j < uniqueNodes.length; j++) {
-      const nodeB = uniqueNodes[j];
-      const countB = wordOccurrences[nodeB.text.toLowerCase()] || 1;
-      const radiusB = getPointRadius(countB);
-
-      // Vecteur entre les deux points (en pixels)
-      let dx = (nodeB.x - nodeA.x) * width;
-      let dy = (nodeB.y - nodeA.y) * height;
+  
+  const uniqueArray = Array.from(uniqueWords.values());
+  let hasOverlaps = false;
+  
+  // Vérifier chaque paire de mots
+  for (let i = 0; i < uniqueArray.length; i++) {
+    for (let j = i + 1; j < uniqueArray.length; j++) {
+      const word1 = uniqueArray[i];
+      const word2 = uniqueArray[j];
       
-      // Si superposition exacte, on donne une impulsion aléatoire
-      if (dx === 0 && dy === 0) {
-        dx = Math.random() - 0.5;
-        dy = Math.random() - 0.5;
-      }
-
-      const distSq = dx * dx + dy * dy;
-      const dist = Math.sqrt(distSq);
-
-      // Distance minimale requise (rayon A + rayon B + marge)
-      const minDist = radiusA + radiusB + PADDING;
-
-      // Si collision détectée
-      if (dist < minDist) {
-        // Calcul de la force de répulsion
-        const overlap = minDist - dist; // De combien on se chevauche
-        const force = overlap * STIFFNESS; // Force proportionnelle
+      const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
+      const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
+      
+      const radius1 = getPointRadius(occurrences1) / width;
+      const radius2 = getPointRadius(occurrences2) / width;
+      
+      const dx = word1.x - word2.x;
+      const dy = word1.y - word2.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      const minDist = radius1 + radius2 + 0.08; // Marge de sécurité
+      
+      if (dist < minDist && dist > 0.001) {
+        hasOverlaps = true;
         
-        // Normalisation du vecteur
-        const nx = dx / dist;
-        const ny = dy / dist;
-
-        // Appliquer le déplacement (réparti sur les deux points)
-        // On divise par width/height pour repasser en coordonnées 0-1
-        const moveX = (nx * force * 0.5) / width;
-        const moveY = (ny * force * 0.5) / height;
-
-        nodeA.x -= moveX;
-        nodeA.y -= moveY;
-        nodeB.x += moveX;
-        nodeB.y += moveY;
+        // Éloigner les deux points proportionnellement
+        const overlap = minDist - dist;
+        const angle = Math.atan2(dy, dx);
+        
+        word1.x += Math.cos(angle) * overlap / 2;
+        word1.y += Math.sin(angle) * overlap / 2;
+        word2.x -= Math.cos(angle) * overlap / 2;
+        word2.y -= Math.sin(angle) * overlap / 2;
+        
+        // Appliquer à tous les mots identiques
+        displayedWords.forEach(w => {
+          if (w.text.toLowerCase() === word1.text.toLowerCase()) {
+            w.x = word1.x;
+            w.y = word1.y;
+          }
+          if (w.text.toLowerCase() === word2.text.toLowerCase()) {
+            w.x = word2.x;
+            w.y = word2.y;
+          }
+        });
       }
     }
-
-    // Garder les points dans l'écran (Rebond sur les murs)
-    // Marge de 5% sur les bords
-    nodeA.x = Math.max(0.05, Math.min(0.95, nodeA.x));
-    nodeA.y = Math.max(0.08, Math.min(0.92, nodeA.y));
   }
-
-  // Synchroniser les positions pour les mots identiques
-  displayedWords.forEach(word => {
-    const master = map.get(word.text.toLowerCase());
-    if (master && word !== master) {
-      word.x = master.x;
-      word.y = master.y;
-    }
-  });
+  
+  if (hasOverlaps) {
+    console.log("⚠️ Chevauchements détectés et corrigés");
+    geometryCache.clear();
+    scheduleRedraw();
+  }
 }
   // ==================== FETCH WORDS ====================
   async function fetchWords() {
