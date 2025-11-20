@@ -1,4 +1,4 @@
-/* ==================== 1. BASE & RESET ==================== */
+/* ==================== 1. BASE ==================== */
 body { 
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
@@ -8,37 +8,40 @@ body {
     width: 100vw; height: 100vh;
 }
 
-/* ==================== 2. CANVAS (RETOUR AUX SOURCES) ==================== */
-/* Position fixe simple pour garantir le plein écran sans bloquer le zoom JS */
+/* ==================== 2. CANVAS (FIXE & FONCTIONNEL) ==================== */
+/* Le canvas est sorti du flux pour être en fond d'écran total */
 #canvas-container {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
+    width: 100vw !important; 
+    height: 100vh !important;
+    z-index: 0; /* Au fond */
     background: #0a0f1a;
-    touch-action: none; /* Indispensable pour le zoom tactile fluide */
+    /* CRUCIAL : On force la capture des événements souris pour le zoom JS */
+    pointer-events: auto !important; 
+    touch-action: none;
 }
 
 #weave-canvas {
     display: block;
     width: 100%; height: 100%;
     outline: none;
-    /* Le curseur est géré par le JS, on ne force rien ici pour éviter les conflits */
 }
 
-/* ==================== 3. UI OVERLAY (INTERFACE) ==================== */
-/* Calque invisible qui contient l'interface */
+/* ==================== 3. INTERFACE (CALQUE FANTÔME) ==================== */
+/* Ce conteneur se superpose mais laisse passer les clics */
 #main-container {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: 10;
-    pointer-events: none; /* LA CLÉ : La souris traverse le vide pour aller au canvas */
+    pointer-events: none; /* La souris traverse ce div */
+    display: block; /* On casse le flexbox qui posait problème */
 }
 
-/* On réactive la souris UNIQUEMENT sur les boutons/panneaux */
+/* On réactive la souris UNIQUEMENT sur les éléments interactifs */
 .header-minimal, footer, #words-panel, #stats-panel, 
-#toggle-panel-button, #settings-modal, #qr-modal {
+#toggle-panel-button, #settings-modal, #qr-modal, .modal-content {
     pointer-events: auto;
 }
 
@@ -46,19 +49,16 @@ body {
 .header-minimal {
     position: absolute;
     top: 1.5rem; left: 50%; transform: translateX(-50%);
-    z-index: 60;
-    width: auto; min-width: 300px; max-width: 90%;
+    z-index: 50;
+    min-width: 300px;
     
-    background: rgba(20, 28, 45, 0.85);
-    backdrop-filter: blur(12px);
+    background: rgba(20, 28, 45, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.2); 
     border-radius: 50px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     
     padding: 0.75rem 2rem; text-align: center;
-    /* Optimisation fluidité */
-    will-change: transform;
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.3s ease;
 }
 .header-minimal:hover { transform: translateX(-50%) translateY(2px); }
 
@@ -70,17 +70,16 @@ body {
 .subtitle-minimal { font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
 .line-decoration { display: none; }
 
-/* ==================== 5. LISTE DES MOTS (GAUCHE) ==================== */
+/* ==================== 5. LISTE DES MOTS ==================== */
 #words-panel {
     position: absolute;
     left: 2rem;
-    top: 8rem;      /* Espace sous le header */
-    bottom: 8rem;   /* Espace au-dessus du footer */
+    top: 8rem;      
+    bottom: 8rem;   
     width: 300px;
     z-index: 20;
     
-    background: rgba(20, 28, 45, 0.8);
-    backdrop-filter: blur(16px);
+    background: rgba(20, 28, 45, 0.85); /* Un peu plus opaque pour lisibilité */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
@@ -88,9 +87,9 @@ body {
     padding: 1.5rem;
     display: flex; flex-direction: column;
     
-    /* OPTIMISATION FLUIDITÉ GPU */
-    will-change: transform, opacity;
-    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease;
+    /* Optimisation performance */
+    transform: translateX(0);
+    transition: transform 0.4s ease-in-out, opacity 0.4s ease;
 }
 
 #words-panel h2 {
@@ -106,79 +105,78 @@ body {
 
 .word-item { 
     margin-bottom: 0.5rem; padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px; border-left-width: 4px !important;
     color: white;
-    transition: transform 0.2s ease, background 0.2s;
+    /* Retour à la ligne forcé */
+    word-wrap: break-word; 
+    white-space: normal;
 }
 .word-item:hover {
     background: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
+    transform: translateX(2px);
 }
 
-/* Input Recherche */
+/* Barre Recherche */
 #word-filter {
     background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px; color: white; padding: 0.7rem 1rem; width: 100%; 
     box-sizing: border-box; margin-bottom: 1rem; outline: none;
 }
-#word-filter:focus { border-color: #6366f1; background: rgba(0, 0, 0, 0.6); }
+#word-filter:focus { border-color: #6366f1; }
 
-/* État caché */
+/* État Caché */
 #main-container.panel-hidden #words-panel {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (ONGLET VISIBLE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (Positionné AU DESSUS) ==================== */
 #toggle-panel-button {
     position: absolute;
-    /* Z-INDEX SUPÉRIEUR POUR ÊTRE AU-DESSUS */
-    z-index: 70; 
+    z-index: 60; /* Au-dessus du panel */
     
-    /* Positionné exactement à droite du panneau */
+    /* Positionnement "Au dessus" de la liste, légèrement décalé */
     top: 8rem; 
-    left: 320px; /* 300px (largeur panneau) + 2rem (marge gauche) */
+    left: 340px; /* 300px (largeur panel) + 40px de marge */
     
-    width: 40px; height: 40px;
-    border-radius: 0 12px 12px 0; /* Arrondi seulement à droite */
+    width: 44px; height: 44px;
+    border-radius: 50%; /* Cercle parfait */
     
     background: #6366f1;
-    border: 1px solid rgba(255,255,255,0.1); border-left: none;
+    border: 2px solid rgba(255,255,255,0.2);
     color: white;
-    box-shadow: 4px 2px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    
-    will-change: transform, left;
-    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
-#toggle-panel-button:hover { padding-left: 5px; background: #818cf8; }
 
-/* Quand panneau caché */
+#toggle-panel-button:hover { 
+    transform: scale(1.1); 
+    background: #818cf8; 
+}
+
+/* Quand la liste est cachée */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 0; /* Revient se coller au bord gauche */
-    border-radius: 0 12px 12px 0;
-    background: rgba(30, 40, 60, 0.9);
+    left: 2rem; /* Revient à gauche */
+    background: rgba(255, 255, 255, 0.1);
 }
 #main-container.panel-hidden #toggle-panel-button:hover { background: #6366f1; }
 #main-container.panel-hidden #toggle-panel-button svg { transform: rotate(180deg); }
 
-/* ==================== 7. STATS (DROITE) ==================== */
+/* ==================== 7. STATS ==================== */
 #stats-panel {
     position: absolute;
     right: 2rem;
-    top: 8rem; bottom: 8rem; /* Symétrique à la liste */
+    top: 8rem; bottom: 8rem;
     width: 280px;
     z-index: 20;
-    
-    background: rgba(20, 28, 45, 0.8);
-    backdrop-filter: blur(16px);
+    background: rgba(20, 28, 45, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    
     padding: 1.5rem;
     overflow-y: auto;
     color: white;
@@ -190,9 +188,9 @@ footer {
     bottom: 1.5rem; left: 50%; transform: translateX(-50%);
     z-index: 50; width: auto; max-width: 95%;
     
-    background: rgba(20, 28, 45, 0.85); backdrop-filter: blur(12px);
+    background: rgba(20, 28, 45, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
     
     padding: 0.75rem;
     display: flex; gap: 0.75rem; align-items: center;
@@ -200,44 +198,43 @@ footer {
 
 footer button { transition: transform 0.2s ease; }
 footer > div button {
-    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px; padding: 0.75rem;
 }
 footer > div button:hover {
-    background: rgba(99, 102, 241, 0.4); transform: translateY(-3px);
+    background: rgba(99, 102, 241, 0.5); transform: translateY(-2px);
 }
 
 #word-form button[type="submit"] {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border-radius: 12px; padding: 0 1.5rem; font-weight: 600;
-    border: 1px solid rgba(255,255,255,0.2);
 }
-#word-form button[type="submit"]:hover { transform: scale(1.05); }
+#word-form button[type="submit"]:hover { transform: scale(1.02); }
 
 #word-form { display: flex; gap: 0.5rem; }
 #word-input {
-    background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.6); 
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px; color: white; padding: 0.75rem 1rem; width: 250px;
     outline: none;
 }
-#word-input:focus { border-color: #6366f1; background: rgba(0, 0, 0, 0.8); }
+#word-input:focus { border-color: #6366f1; }
 
-/* ==================== 9. MODALES (PARAMÈTRES & QR) ==================== */
+/* ==================== 9. MODALES ==================== */
 #settings-modal, #qr-modal {
     background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
     z-index: 100;
     display: flex !important; align-items: center; justify-content: center;
 }
 #settings-modal.hidden, #qr-modal.hidden, #stats-panel.hidden { display: none !important; }
 
 #settings-modal > div, #qr-modal > div {
-    background: #1a1f2e !important; /* Fond solide pour éviter bugs graphiques */
+    background: #1a1f2e !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px !important;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
     color: white;
-    
     width: 90%; max-width: 450px;
     max-height: 80vh; overflow-y: auto; 
     position: relative; margin: 0;
@@ -249,12 +246,12 @@ footer > div button:hover {
     cursor: pointer; z-index: 10;
 }
 
-/* ==================== 10. MOBILE ==================== */
+/* ==================== 10. MOBILE (NETTOYAGE) ==================== */
 @media (max-width: 767px) {
     .header-minimal { top: 0.5rem; width: 90%; padding: 0.5rem 1rem; }
     .subtitle-minimal { display: none; }
 
-    /* ON CACHE LA LISTE SUR MOBILE */
+    /* SUPPRESSION TOTALE DE LA LISTE SUR MOBILE */
     #words-panel, #toggle-panel-button { display: none !important; }
 
     /* Stats centrées */
@@ -267,7 +264,7 @@ footer > div button:hover {
     footer > div { width: 100%; justify-content: space-between; display: flex; margin-top: 0.5rem; }
 }
 
-/* ==================== 11. SCROLLBAR ==================== */
+/* ==================== 11. SCROLLBAR & MISC ==================== */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
