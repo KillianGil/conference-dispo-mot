@@ -1,6 +1,6 @@
 // ==================== CONFIGURATION ====================
 const CONFIG = {
-  MAX_WORDS_PER_USER: 2,
+  MAX_WORDS_PER_USER: 5000,
   RESET_PASSWORD: "tissage2025",
   TARGET_FPS: 60,
   MAX_POOL_SIZE: 100,
@@ -2629,7 +2629,7 @@ function setupFullscreen() {
           remaining > 1 ? "s" : ""
         }...`;
       } else {
-        wordInput.placeholder = "Limite atteinte (5 mots max)";
+        wordInput.placeholder = "Limite atteinte (2 mots max)";
       }
 
       setTimeout(() => {
