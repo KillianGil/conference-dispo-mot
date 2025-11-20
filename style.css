@@ -104,7 +104,11 @@ body {
 
 .title-word:first-child {
     animation-delay: 0.1s;
-    font-weight: 300;
+    font-weight: 700;
+    background: white;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .title-word:last-child {
