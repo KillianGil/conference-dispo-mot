@@ -1000,20 +1000,21 @@ function drawWeave(withBackground = false) {
 
   // ==================== AUTRES MODES (INCHANGÉS) ====================
   else if (settings.linkMode === "constellation") {
-    // A. DESSIN DES TRAITS (AJOUTÉ)
+    // A. Traits (Visible)
     connections.forEach(([word1, word2]) => {
         const x1 = word1.x * width; const y1 = word1.y * height;
         const x2 = word2.x * width; const y2 = word2.y * height;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; // Traits fins blancs discrets
-        ctx.lineWidth = 1; // Très fin pour effet constellation
+        // Couleur blanche explicite et opacité augmentée
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; 
+        ctx.lineWidth = 1; 
         ctx.globalAlpha = settings.linesOpacity;
         ctx.stroke();
     });
 
-    // B. DESSIN DES ÉTOILES
+    // B. Étoiles (Scintillement)
     visibleWords.forEach((word) => {
       const x = word.x * width; const y = word.y * height;
       const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
@@ -1024,10 +1025,12 @@ function drawWeave(withBackground = false) {
         ctx.beginPath();
         ctx.arc(x + Math.cos(angle)*radius, y + Math.sin(angle)*radius, 2, 0, Math.PI*2);
         ctx.fillStyle = word.color;
-        ctx.globalAlpha = twinkle * 0.6 * settings.linesOpacity;
+        // On assure une visibilité minimale même quand ça scintille (0.2 minimum)
+        ctx.globalAlpha = Math.max(0.2, twinkle * 0.6) * settings.linesOpacity;
         ctx.fill();
       }
     });
+
 } else if (settings.linkMode === "ripple") {
     visibleWords.forEach((word, index) => {
       const x = word.x * width;
@@ -2303,128 +2306,113 @@ function updateWordListColors(forceColor = null) {
     });
   }
 
-  // ==================== ZOOM ET PAN ====================
-  function setupZoomAndPan() {
-    canvas.addEventListener("wheel", (e) => {
+// ==================== ZOOM ET PAN (DÉBLOQUÉ) ====================
+function setupZoomAndPan() {
+  // Gestion Molette Souris
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    
+    // 🔥 CORRECTION : Limite min passée de 0.5 à 0.1 pour permettre un gros dézoom
+    scale = Math.min(Math.max(0.1, scale * delta), 10);
+    
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Calcul pour zoomer vers la souris
+    offsetX = mouseX - (mouseX - offsetX) * (scale / (scale/delta)); 
+    offsetY = mouseY - (mouseY - offsetY) * (scale / (scale/delta));
+    
+    scheduleRedraw();
+  }, { passive: false }); // Important pour éviter les warnings
+
+  // Gestion Tactile (Mobile/Tablette)
+  canvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
       e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newScale = Math.min(Math.max(0.5, scale * delta), 5);
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
-      offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
-      scale = newScale;
-      scheduleRedraw();
-    });
-
-    canvas.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        isPinching = true;
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        lastTouchDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-      } else if (e.touches.length === 1 && !isPinching) {
-        isDragging = true;
-        startX = e.touches[0].clientX - offsetX;
-        startY = e.touches[0].clientY - offsetY;
-      }
-    });
-
-    canvas.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 2 && isPinching) {
-        e.preventDefault();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const dist = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-        if (lastTouchDistance > 0) {
-          const delta = dist / lastTouchDistance;
-          const newScale = Math.min(Math.max(0.5, scale * delta), 5);
-          const centerX = (touch1.clientX + touch2.clientX) / 2;
-          const centerY = (touch1.clientY + touch2.clientY) / 2;
-          const rect = canvas.getBoundingClientRect();
-          const canvasCenterX = centerX - rect.left;
-          const canvasCenterY = centerY - rect.top;
-          offsetX =
-            canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
-          offsetY =
-            canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
-          scale = newScale;
-          scheduleRedraw();
-        }
-        lastTouchDistance = dist;
-      } else if (isDragging && e.touches.length === 1 && !isPinching) {
-        e.preventDefault();
-        offsetX = e.touches[0].clientX - startX;
-        offsetY = e.touches[0].clientY - startY;
-        scheduleRedraw();
-      }
-    });
-
-    canvas.addEventListener("touchend", (e) => {
-      if (e.touches.length < 2) {
-        isPinching = false;
-        lastTouchDistance = 0;
-      }
-      if (e.touches.length === 0) {
-        isDragging = false;
-      }
-    });
-
-    canvas.addEventListener("mousedown", (e) => {
+      isPinching = true;
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      lastTouchDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+    } else if (e.touches.length === 1 && !isPinching) {
       isDragging = true;
-      startX = e.clientX - offsetX;
-      startY = e.clientY - offsetY;
-      canvas.style.cursor = "grabbing";
-    });
+      startX = e.touches[0].clientX - offsetX;
+      startY = e.touches[0].clientY - offsetY;
+    }
+  }, { passive: false });
 
-    canvas.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
+  canvas.addEventListener("touchmove", (e) => {
+    if (isPinching && e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      
+      if (lastTouchDistance > 0) {
+        const delta = dist / lastTouchDistance;
+        // 🔥 CORRECTION TACTILE AUSSI : 0.1
+        const newScale = Math.min(Math.max(0.1, scale * delta), 10);
+        
+        const centerX = (touch1.clientX + touch2.clientX) / 2;
+        const centerY = (touch1.clientY + touch2.clientY) / 2;
+        const rect = canvas.getBoundingClientRect();
+        const canvasCenterX = centerX - rect.left;
+        const canvasCenterY = centerY - rect.top;
+        
+        offsetX = canvasCenterX - (canvasCenterX - offsetX) * (newScale / scale);
+        offsetY = canvasCenterY - (canvasCenterY - offsetY) * (newScale / scale);
+        scale = newScale;
         scheduleRedraw();
       }
-    });
-
-    canvas.addEventListener("mouseup", () => {
-      isDragging = false;
-      canvas.style.cursor = "grab";
-    });
-
-    canvas.addEventListener("mouseleave", () => {
-      isDragging = false;
-      canvas.style.cursor = "grab";
-    });
-
-    let lastTap = 0;
-    canvas.addEventListener("touchend", (e) => {
-      if (e.touches.length === 0 && !isPinching) {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTap;
-        if (tapLength < 300 && tapLength > 0) {
-          scale = 1;
-          offsetX = 0;
-          offsetY = 0;
-          scheduleRedraw();
-        }
-        lastTap = currentTime;
-      }
-    });
-
-    canvas.addEventListener("dblclick", () => {
-      scale = 1;
-      offsetX = 0;
-      offsetY = 0;
+      lastTouchDistance = dist;
+    } else if (isDragging && e.touches.length === 1) {
+      e.preventDefault();
+      offsetX = e.touches[0].clientX - startX;
+      offsetY = e.touches[0].clientY - startY;
       scheduleRedraw();
-    });
-  }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2) { isPinching = false; lastTouchDistance = 0; }
+    if (e.touches.length === 0) isDragging = false;
+  });
+
+  // Gestion Souris (Click & Drag)
+  canvas.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    startX = e.clientX - offsetX;
+    startY = e.clientY - offsetY;
+    canvas.style.cursor = "grabbing";
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      offsetX = e.clientX - startX;
+      offsetY = e.clientY - startY;
+      scheduleRedraw();
+    }
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    isDragging = false;
+    canvas.style.cursor = "grab";
+  });
+  
+  canvas.addEventListener("mouseleave", () => {
+    isDragging = false;
+    canvas.style.cursor = "grab";
+  });
+
+  // Double clic pour reset
+  canvas.addEventListener("dblclick", () => {
+    scale = 1;
+    offsetX = 0;
+    offsetY = 0;
+    scheduleRedraw();
+  });
+}
 
 // ==================== MODE PLEIN ÉCRAN ====================
 // ==================== MODE PLEIN ÉCRAN (CORRIGÉ POUR CACHER LE BOUTON) ====================
