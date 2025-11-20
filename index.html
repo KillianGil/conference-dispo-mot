@@ -195,18 +195,6 @@
                   <span>Animation de tissage</span>
               </label>
               <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="resonance-toggle" class="mr-3 accent-indigo-500">
-                  <span>Effet de résonance</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="show-timestamp-toggle" checked class="mr-3 accent-indigo-500">
-                  <span>Horodatage des mots</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="gradient-toggle" class="mr-3 accent-indigo-500">
-                  <span>Dégradé de couleurs</span>
-              </label>
-              <label class="flex items-center text-sm md:text-base text-gray-200 cursor-pointer hover:text-white">
                 <input type="checkbox" id="particles-toggle" checked class="mr-3 accent-indigo-500">
                 <span>Effet de particules</span>
             </label>
@@ -219,6 +207,24 @@
               </label>
               <input type="range" id="line-width" min="1" max="8" value="2.5" step="0.5" class="w-full accent-indigo-500">
           </div>
+
+          <!-- Opacité des traits -->
+<div class="mb-4">
+    <label class="block text-gray-300 font-semibold mb-2 text-sm md:text-base">
+        Opacité des traits: <span id="lines-opacity-value" class="text-indigo-400">85%</span>
+    </label>
+    <input type="range" id="lines-opacity" min="10" max="100" value="85" step="5" class="w-full accent-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">💡 Réduire pour plus de clarté quand il y a beaucoup de connexions</p>
+</div>
+
+<!-- Taille globale (points + texte) -->
+<div class="mb-4">
+    <label class="block text-gray-300 font-semibold mb-2 text-sm md:text-base">
+        Taille globale: <span id="global-scale-value" class="text-indigo-400">100%</span>
+    </label>
+    <input type="range" id="global-scale" min="50" max="200" value="100" step="10" class="w-full accent-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">🔍 Agrandir les points et le texte (utile en vue dézoomée)</p>
+</div>
 
           <div class="mt-6 p-3 bg-gray-700/50 rounded-lg text-xs text-gray-400">
               💡 Les paramètres modifient l'œuvre en temps réel
