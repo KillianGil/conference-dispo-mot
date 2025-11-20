@@ -4,65 +4,63 @@ body {
     -webkit-tap-highlight-color: transparent;
     margin: 0; padding: 0;
     background-color: #0a0f1a;
-    overflow: hidden; /* Pas de scroll global */
+    overflow: hidden;
     width: 100vw; height: 100vh;
 }
 
-/* ==================== 2. LE CANVAS (NON DÉFORMÉ) ==================== */
-/* On utilise fixed pour garantir qu'il prend tout l'écran sans être écrasé par les div */
+/* ==================== 2. CANVAS (RETOUR AUX SOURCES) ==================== */
+/* Position fixe simple pour garantir le plein écran sans bloquer le zoom JS */
 #canvas-container {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     width: 100%; height: 100%;
-    z-index: 0; /* Tout au fond */
+    z-index: 0;
     background: #0a0f1a;
-    /* Important : laisse passer les clics uniquement si le JS ne gère pas le drag */
-    /* Ici on met auto pour pouvoir bouger le tissage */
-    pointer-events: auto; 
+    touch-action: none; /* Indispensable pour le zoom tactile fluide */
 }
 
 #weave-canvas {
     display: block;
     width: 100%; height: 100%;
-    /* Empêche le flou sur certains écrans */
-    object-fit: cover; 
-    cursor: grab;
+    outline: none;
+    /* Le curseur est géré par le JS, on ne force rien ici pour éviter les conflits */
 }
-#weave-canvas:active { cursor: grabbing; }
 
-/* ==================== 3. INTERFACE (CALQUE DU DESSUS) ==================== */
-/* Conteneur invisible qui gère l'UI par-dessus le canvas */
+/* ==================== 3. UI OVERLAY (INTERFACE) ==================== */
+/* Calque invisible qui contient l'interface */
 #main-container {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     z-index: 10;
-    pointer-events: none; /* Laisse passer la souris vers le canvas */
+    pointer-events: none; /* LA CLÉ : La souris traverse le vide pour aller au canvas */
 }
 
-/* On réactive la souris sur les éléments visibles */
+/* On réactive la souris UNIQUEMENT sur les boutons/panneaux */
 .header-minimal, footer, #words-panel, #stats-panel, 
 #toggle-panel-button, #settings-modal, #qr-modal {
     pointer-events: auto;
 }
 
-/* ==================== 4. HEADER (GLASS) ==================== */
+/* ==================== 4. HEADER ==================== */
 .header-minimal {
     position: absolute;
     top: 1.5rem; left: 50%; transform: translateX(-50%);
     z-index: 60;
     width: auto; min-width: 300px; max-width: 90%;
     
-    background: rgba(20, 28, 45, 0.9);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.25); 
+    background: rgba(20, 28, 45, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2); 
     border-radius: 50px;
-    box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     
     padding: 0.75rem 2rem; text-align: center;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Optimisation fluidité */
+    will-change: transform;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
-.header-minimal:hover { transform: translateX(-50%) scale(1.02); }
+.header-minimal:hover { transform: translateX(-50%) translateY(2px); }
 
 .title-minimal {
     font-size: 1.2rem; font-weight: 700; color: white; margin: 0;
@@ -72,28 +70,27 @@ body {
 .subtitle-minimal { font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
 .line-decoration { display: none; }
 
-/* ==================== 5. LISTE DES MOTS (FLUIDE & ESPACÉE) ==================== */
+/* ==================== 5. LISTE DES MOTS (GAUCHE) ==================== */
 #words-panel {
     position: absolute;
     left: 2rem;
-    /* Plus d'espace en haut et en bas pour ne pas toucher header/footer */
-    top: 8rem; 
-    bottom: 9rem; 
-    
+    top: 8rem;      /* Espace sous le header */
+    bottom: 8rem;   /* Espace au-dessus du footer */
     width: 300px;
     z-index: 20;
     
     background: rgba(20, 28, 45, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     
     padding: 1.5rem;
     display: flex; flex-direction: column;
     
-    /* Animation TRÈS fluide (iOS style) */
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+    /* OPTIMISATION FLUIDITÉ GPU */
+    will-change: transform, opacity;
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease;
 }
 
 #words-panel h2 {
@@ -103,97 +100,88 @@ body {
 #words-list {
     flex-grow: 1;
     overflow-y: auto;
-    /* Suppression scroll latéral */
     overflow-x: hidden;
     padding-right: 5px;
 }
 
-/* Items */
 .word-item { 
     margin-bottom: 0.5rem; padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px; border-left-width: 4px !important;
-    
-    /* Force le retour à la ligne */
-    white-space: normal; word-break: break-word; hyphens: auto;
-    
-    transition: transform 0.3s ease;
+    color: white;
+    transition: transform 0.2s ease, background 0.2s;
 }
 .word-item:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateX(4px);
 }
 
 /* Input Recherche */
 #word-filter {
     background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px; color: white; padding: 0.7rem 1rem; width: 100%; 
-    box-sizing: border-box; margin-bottom: 1rem;
+    border-radius: 10px; color: white; padding: 0.7rem 1rem; width: 100%; 
+    box-sizing: border-box; margin-bottom: 1rem; outline: none;
 }
-#word-filter:focus { border-color: #6366f1; outline: none; }
+#word-filter:focus { border-color: #6366f1; background: rgba(0, 0, 0, 0.6); }
 
-/* État Caché (Slide out) */
+/* État caché */
 #main-container.panel-hidden #words-panel {
-    transform: translateX(-150%); opacity: 0; pointer-events: none;
+    transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON RETRACT (ONGLET) ==================== */
+/* ==================== 6. BOUTON TOGGLE (ONGLET VISIBLE) ==================== */
 #toggle-panel-button {
     position: absolute;
-    z-index: 21;
+    /* Z-INDEX SUPÉRIEUR POUR ÊTRE AU-DESSUS */
+    z-index: 70; 
     
-    /* Positionné comme un onglet sur le panneau */
-    top: 8rem; /* Même hauteur que le haut du panneau */
-    left: 320px; /* Largeur panneau (300) + Marge (20) */
+    /* Positionné exactement à droite du panneau */
+    top: 8rem; 
+    left: 320px; /* 300px (largeur panneau) + 2rem (marge gauche) */
     
     width: 40px; height: 40px;
-    border-radius: 0 12px 12px 0; /* Forme d'onglet */
+    border-radius: 0 12px 12px 0; /* Arrondi seulement à droite */
     
     background: #6366f1;
-    border: 1px solid rgba(255,255,255,0.2); border-left: none;
+    border: 1px solid rgba(255,255,255,0.1); border-left: none;
     color: white;
-    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+    box-shadow: 4px 2px 10px rgba(0,0,0,0.3);
     
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
-    /* Suit le panneau avec la même fluidité */
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, left;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
 }
-#toggle-panel-button:hover { padding-left: 10px; background: #818cf8; }
+#toggle-panel-button:hover { padding-left: 5px; background: #818cf8; }
 
-/* Quand le panneau est caché, le bouton reste visible à gauche */
+/* Quand panneau caché */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 0; 
+    left: 0; /* Revient se coller au bord gauche */
     border-radius: 0 12px 12px 0;
-    background: rgba(30, 40, 60, 0.8);
+    background: rgba(30, 40, 60, 0.9);
 }
 #main-container.panel-hidden #toggle-panel-button:hover { background: #6366f1; }
 #main-container.panel-hidden #toggle-panel-button svg { transform: rotate(180deg); }
 
-/* ==================== 7. STATS (DROITE & ALIGNÉES) ==================== */
+/* ==================== 7. STATS (DROITE) ==================== */
 #stats-panel {
     position: absolute;
     right: 2rem;
-    /* Alignement symétrique avec la liste */
-    top: 8rem; 
-    bottom: 9rem;
-    
-    width: 280px; /* Un peu plus fin que la liste */
+    top: 8rem; bottom: 8rem; /* Symétrique à la liste */
+    width: 280px;
     z-index: 20;
     
     background: rgba(20, 28, 45, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     
     padding: 1.5rem;
     overflow-y: auto;
-    
-    /* Animation d'apparition */
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    color: white;
 }
 
 /* ==================== 8. FOOTER ==================== */
@@ -202,35 +190,29 @@ footer {
     bottom: 1.5rem; left: 50%; transform: translateX(-50%);
     z-index: 50; width: auto; max-width: 95%;
     
-    background: rgba(20, 28, 45, 0.9); backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 24px;
-    box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+    background: rgba(20, 28, 45, 0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
     
     padding: 0.75rem;
     display: flex; gap: 0.75rem; align-items: center;
 }
 
-/* Boutons du footer */
-footer button { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-
+footer button { transition: transform 0.2s ease; }
 footer > div button {
-    background: rgba(55, 65, 81, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px; padding: 0.75rem;
 }
 footer > div button:hover {
-    background: rgba(99, 102, 241, 0.3); border-color: #6366f1;
-    transform: translateY(-6px); /* Effet rebond */
+    background: rgba(99, 102, 241, 0.4); transform: translateY(-3px);
 }
 
-/* Bouton Tisser */
 #word-form button[type="submit"] {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border-radius: 12px; padding: 0 1.5rem; font-weight: 600;
     border: 1px solid rgba(255,255,255,0.2);
 }
-#word-form button[type="submit"]:hover {
-    transform: scale(1.05); box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
-}
+#word-form button[type="submit"]:hover { transform: scale(1.05); }
 
 #word-form { display: flex; gap: 0.5rem; }
 #word-input {
@@ -242,25 +224,23 @@ footer > div button:hover {
 
 /* ==================== 9. MODALES (PARAMÈTRES & QR) ==================== */
 #settings-modal, #qr-modal {
-    background-color: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
     z-index: 100;
     display: flex !important; align-items: center; justify-content: center;
 }
 #settings-modal.hidden, #qr-modal.hidden, #stats-panel.hidden { display: none !important; }
 
 #settings-modal > div, #qr-modal > div {
-    background: rgba(20, 28, 45, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: #1a1f2e !important; /* Fond solide pour éviter bugs graphiques */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px !important;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
     color: white;
     
-    /* Taille contrôlée avec scroll */
     width: 90%; max-width: 450px;
-    max-height: 80vh; /* Ne dépasse jamais 80% de l'écran */
-    overflow-y: auto; 
-    margin: 0; position: relative;
+    max-height: 80vh; overflow-y: auto; 
+    position: relative; margin: 0;
 }
 
 #close-settings-button, #close-modal-button {
@@ -269,33 +249,28 @@ footer > div button:hover {
     cursor: pointer; z-index: 10;
 }
 
-/* ==================== 10. MOBILE (CLEANUP) ==================== */
+/* ==================== 10. MOBILE ==================== */
 @media (max-width: 767px) {
     .header-minimal { top: 0.5rem; width: 90%; padding: 0.5rem 1rem; }
     .subtitle-minimal { display: none; }
 
-    /* ON ENLÈVE LA LISTE SUR MOBILE COMME DEMANDÉ */
-    #words-panel { display: none !important; }
-    #toggle-panel-button { display: none !important; }
+    /* ON CACHE LA LISTE SUR MOBILE */
+    #words-panel, #toggle-panel-button { display: none !important; }
 
-    /* Stats Mobile (Centrées) */
+    /* Stats centrées */
     #stats-panel {
-        width: 90%; left: 5%; right: 5%;
-        top: 15%; bottom: auto; max-height: 60vh;
+        width: 90%; left: 5%; right: 5%; top: 15%; bottom: auto; max-height: 60vh;
     }
 
-    footer {
-        width: 95%; bottom: 1rem; flex-wrap: wrap; justify-content: center;
-    }
+    footer { width: 95%; bottom: 1rem; flex-wrap: wrap; justify-content: center; }
     #word-form { width: 100%; } #word-input { width: 100%; }
     footer > div { width: 100%; justify-content: space-between; display: flex; margin-top: 0.5rem; }
 }
 
-/* ==================== 11. UTILITAIRES ==================== */
+/* ==================== 11. SCROLLBAR ==================== */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 #color-picker-input { width: 50px; height: 50px; border: none; border-radius: 12px; padding: 0; }
 #color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
 #color-picker-input::-webkit-color-swatch { border: none; }
