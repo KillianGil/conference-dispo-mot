@@ -45,111 +45,128 @@ body {
     pointer-events: auto;
 }
 
-/* ==================== 4. HEADER (MINIMALISTE & ÉLÉGANT) ==================== */
+/* ==================== 4. HEADER (TYPOGRAPHIE ÉLÉGANTE) ==================== */
 .header-minimal {
     position: absolute;
-    top: 1.5rem; 
-    left: 50%; 
-    /* On garde le centrage horizontal, mais on prépare l'animation */
-    transform: translateX(-50%);
+    top: 1.5rem; left: 50%; transform: translateX(-50%);
     z-index: 50;
-    min-width: 340px; /* Un peu plus large pour l'élégance */
+    min-width: 350px;
     
-    /* Couleurs conservées mais transparence ajustée pour la modernité */
-    background: rgba(20, 28, 45, 0.65);
-    /* Bordure plus fine et subtile */
-    border: 1px solid rgba(255, 255, 255, 0.08); 
-    border-top: 1px solid rgba(255, 255, 255, 0.15); /* Effet lumière du haut */
-    border-radius: 100px; /* Arrondi complet type "pillule" */
+    background: rgba(20, 28, 45, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15); 
+    border-radius: 50px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 40px rgba(99, 102, 241, 0.1);
+    backdrop-filter: blur(10px);
     
-    /* Ombre plus douce et diffusée */
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(16px); /* Flou plus intense */
-    -webkit-backdrop-filter: blur(16px);
-    
-    padding: 0.8rem 2.5rem; 
-    text-align: center;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    
-    /* SÉCURITÉ ANTI-POINT BLANC */
-    list-style: none !important;
-    text-decoration: none !important;
+    padding: 1rem 2.5rem; text-align: center;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    overflow: hidden;
 }
 
-/* Effet au survol : le header s'illumine et flotte légèrement */
+.header-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    transition: left 0.6s ease;
+}
+
+.header-minimal:hover::before {
+    left: 100%;
+}
+
 .header-minimal:hover { 
-    background: rgba(20, 28, 45, 0.85);
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
     transform: translateX(-50%) translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(99, 102, 241, 0.2);
 }
 
 .title-minimal {
-    font-family: 'Inter', sans-serif;
-    font-size: 1.4rem; 
-    font-weight: 500; /* Un peu plus gras pour la lisibilité */
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 1.5rem; 
+    font-weight: 500; 
     color: white; 
     margin: 0;
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    gap: 1.2rem; /* Plus d'espace autour du cercle */
-    letter-spacing: -0.02em; /* Lettrage moderne serré */
-    
-    /* Sécurité anti-point blanc */
-    list-style: none;
+    gap: 0.75rem;
+    letter-spacing: 0.02em;
 }
 
 .title-word {
     position: relative;
     display: inline-block;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    animation: fadeInUp 0.8s ease forwards;
+    opacity: 0;
 }
 
-/* Le cercle qui respire (couleurs conservées) */
+.title-word:first-child {
+    animation-delay: 0.1s;
+    font-weight: 300;
+}
+
+.title-word:last-child {
+    animation-delay: 0.3s;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .title-separator { 
-    position: relative;
-    display: block; /* Changé en block pour éviter les artefacts de ligne */
-    width: 10px; /* Légèrement plus grand */
-    height: 10px;
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); /* Glow permanent */
-    animation: pulseCircle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    color: #818cf8;
+    font-size: 1.2rem;
+    font-weight: 300;
+    opacity: 0.6;
+    animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulseCircle {
-    0% { 
-        box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.7);
-        transform: scale(1);
-    }
-    50% { 
-        box-shadow: 0 0 0 10px rgba(129, 140, 248, 0);
-        transform: scale(1.2); /* Pulsation plus douce */
-    }
-    100% { 
-        box-shadow: 0 0 0 0 rgba(129, 140, 248, 0);
-        transform: scale(1);
-    }
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
 }
 
 .subtitle-minimal { 
-    font-family: 'Inter', sans-serif;
-    font-size: 0.75rem; /* Plus petit */
-    font-weight: 600;
-    text-transform: uppercase; /* Majuscules pour le style "Premium" */
-    color: rgba(255, 255, 255, 0.6); 
-    margin-top: 0.4rem;
-    letter-spacing: 0.15em; /* Espacement large des lettres */
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem; 
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.5); 
+    margin-top: 0.35rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: fadeIn 1s ease 0.5s forwards;
+    opacity: 0;
 }
 
-/* Cache tout élément décoratif inutile qui pourrait créer un point */
-.line-decoration, 
-.header-minimal::before, 
-.header-minimal::after { 
-    display: none !important; 
-    content: none !important;
+@keyframes fadeIn {
+    to { opacity: 1; }
 }
+
+.subtitle-minimal::before,
+.subtitle-minimal::after {
+    content: '◆';
+    display: inline-block;
+    margin: 0 0.5rem;
+    font-size: 0.6rem;
+    color: #818cf8;
+    opacity: 0.4;
+}
+
+.line-decoration { display: none; }
 
 /* ==================== 5. LISTE DES MOTS ==================== */
 #words-panel {
