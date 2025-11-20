@@ -18,7 +18,7 @@ const FORBIDDEN_WORDS = [
   // Insultes fortes
   "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
   "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
-  "ntm", "fils de pute", "ta gueule", "tg",
+  "ntm", "fils de pute", "ta gueule", "tg", "ta gueule",
 
 
   // Insultes fortes
