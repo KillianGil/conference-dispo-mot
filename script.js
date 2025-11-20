@@ -2106,7 +2106,7 @@ function updateWordListColors(forceColor = null) {
     progressModal.innerHTML = `
       <div class="bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-md">
         <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-500 mx-auto mb-4"></div>
-        <h3 class="text-xl font-bold text-white mb-2">Création ULTRA HD...</h3>
+        <h3 class="text-xl font-bold text-white mb-2">Création ...</h3>
         <p class="text-gray-400 mb-4">
           <span id="progress-text">Préparation...</span>
         </p>
@@ -2194,7 +2194,7 @@ function updateWordListColors(forceColor = null) {
         const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
         const duration = (recordedFrames.length * 0.05).toFixed(1);
         alert(
-          `✅ Time-lapse ULTRA HD exporté!\n\n` +
+          `✅ Time-lapse exporté!\n\n` +
             `📦 Taille: ${sizeMB} MB\n` +
             `🎞️ ${recordedFrames.length} frames à 60 FPS\n` +
             `⏱️ Durée: ~${duration}s\n` +
