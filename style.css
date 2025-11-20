@@ -256,7 +256,7 @@ body {
     /* --- ÉTAT OUVERT --- */
     /* Calcul précis : 2rem (marge) + 300px (liste) - 48px (bouton + écart) */
     /* Y = 9.5rem (Un peu sous le haut de la liste) */
-    transform: translate3d(calc(2rem + 300px - 48px), 8.5rem, 0);
+    transform: translate3d(calc(2rem + 300px - 48px), 9rem, 0);
     
     /* C'est LE secret : on anime uniquement transform et les dimensions */
     transition: 
