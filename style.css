@@ -85,7 +85,7 @@ body {
 .title-minimal {
     font-family: 'Space Grotesk', 'Inter', sans-serif;
     font-size: 1.5rem; 
-    font-weight: 500; 
+    font-weight: 700; 
     color: white; 
     margin: 0;
     display: flex; 
@@ -110,7 +110,7 @@ body {
 .title-word:last-child {
     animation-delay: 0.3s;
     font-weight: 700;
-    background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%);
+    background: white;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -137,7 +137,7 @@ body {
 
 @keyframes pulse {
     0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.1); }
+    50% { opacity: 0.8; transform: scale(3); }
 }
 
 .subtitle-minimal { 
