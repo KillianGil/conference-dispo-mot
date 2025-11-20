@@ -1,6 +1,6 @@
 // ==================== CONFIGURATION ====================
 const CONFIG = {
-  MAX_WORDS_PER_USER: 5000,
+  MAX_WORDS_PER_USER: 2,
   RESET_PASSWORD: "tissage2025",
   TARGET_FPS: 60,
   MAX_POOL_SIZE: 100,
@@ -32,7 +32,7 @@ const FORBIDDEN_WORDS = [
   "cul", "bite", "teub", "queue", "zizi", "couille", "couilles",
   "chatte", "vagin", "pénis", "penis", "nichon", "nichons",
   "sucer", "fellation", "branlette", "branler", "baiser", "baisé",
-  "éjaculation", "sperme", "foutre", "pénétration","paf", "paf",
+  "éjaculation", "sperme", "foutre", "pénétration","paf", 
 
   // Violence / menaces
   "tuer", "je vais te tuer", "crève", "crève sale con", "meurtre",
