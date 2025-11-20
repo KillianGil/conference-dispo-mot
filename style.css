@@ -48,54 +48,74 @@ body {
 /* ==================== 4. HEADER (MINIMALISTE & ÉLÉGANT) ==================== */
 .header-minimal {
     position: absolute;
-    top: 1.5rem; left: 50%; transform: translateX(-50%);
+    top: 1.5rem; 
+    left: 50%; 
+    /* On garde le centrage horizontal, mais on prépare l'animation */
+    transform: translateX(-50%);
     z-index: 50;
-    min-width: 320px;
+    min-width: 340px; /* Un peu plus large pour l'élégance */
     
-    background: rgba(20, 28, 45, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1); 
-    border-radius: 50px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(12px);
+    /* Couleurs conservées mais transparence ajustée pour la modernité */
+    background: rgba(20, 28, 45, 0.65);
+    /* Bordure plus fine et subtile */
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    border-top: 1px solid rgba(255, 255, 255, 0.15); /* Effet lumière du haut */
+    border-radius: 100px; /* Arrondi complet type "pillule" */
     
-    padding: 0.9rem 2rem; 
+    /* Ombre plus douce et diffusée */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(16px); /* Flou plus intense */
+    -webkit-backdrop-filter: blur(16px);
+    
+    padding: 0.8rem 2.5rem; 
     text-align: center;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    /* SÉCURITÉ ANTI-POINT BLANC */
+    list-style: none !important;
+    text-decoration: none !important;
 }
 
+/* Effet au survol : le header s'illumine et flotte légèrement */
 .header-minimal:hover { 
     background: rgba(20, 28, 45, 0.85);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    transform: translateX(-50%) translateY(-2px);
 }
 
 .title-minimal {
     font-family: 'Inter', sans-serif;
-    font-size: 1.3rem; 
-    font-weight: 400; 
+    font-size: 1.4rem; 
+    font-weight: 500; /* Un peu plus gras pour la lisibilité */
     color: white; 
     margin: 0;
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    gap: 1rem;
-    letter-spacing: 0.03em;
+    gap: 1.2rem; /* Plus d'espace autour du cercle */
+    letter-spacing: -0.02em; /* Lettrage moderne serré */
+    
+    /* Sécurité anti-point blanc */
+    list-style: none;
 }
 
 .title-word {
     position: relative;
     display: inline-block;
-    font-weight: 400;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
+/* Le cercle qui respire (couleurs conservées) */
 .title-separator { 
     position: relative;
-    display: inline-block;
-    width: 8px;
-    height: 8px;
+    display: block; /* Changé en block pour éviter les artefacts de ligne */
+    width: 10px; /* Légèrement plus grand */
+    height: 10px;
     background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.7);
-    animation: pulseCircle 2.5s ease-in-out infinite;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); /* Glow permanent */
+    animation: pulseCircle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulseCircle {
@@ -104,8 +124,8 @@ body {
         transform: scale(1);
     }
     50% { 
-        box-shadow: 0 0 0 12px rgba(129, 140, 248, 0);
-        transform: scale(1.3);
+        box-shadow: 0 0 0 10px rgba(129, 140, 248, 0);
+        transform: scale(1.2); /* Pulsation plus douce */
     }
     100% { 
         box-shadow: 0 0 0 0 rgba(129, 140, 248, 0);
@@ -115,14 +135,21 @@ body {
 
 .subtitle-minimal { 
     font-family: 'Inter', sans-serif;
-    font-size: 0.75rem; 
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.5); 
-    margin-top: 0.3rem;
-    letter-spacing: 0.05em;
+    font-size: 0.75rem; /* Plus petit */
+    font-weight: 600;
+    text-transform: uppercase; /* Majuscules pour le style "Premium" */
+    color: rgba(255, 255, 255, 0.6); 
+    margin-top: 0.4rem;
+    letter-spacing: 0.15em; /* Espacement large des lettres */
 }
 
-.line-decoration { display: none; }
+/* Cache tout élément décoratif inutile qui pourrait créer un point */
+.line-decoration, 
+.header-minimal::before, 
+.header-minimal::after { 
+    display: none !important; 
+    content: none !important;
+}
 
 /* ==================== 5. LISTE DES MOTS ==================== */
 #words-panel {
