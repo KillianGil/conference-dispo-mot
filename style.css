@@ -242,7 +242,7 @@ body {
     /* --- ÉTAT OUVERT --- */
     /* Positionnement précis */
     left: calc(2rem + 300px - 48px); 
-    top: 9rem; 
+    top: 8rem; 
     
     width: 32px; height: 32px;
     border-radius: 50%;
