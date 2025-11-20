@@ -2775,7 +2775,7 @@ resetButton.addEventListener("click", (e) => {
 
         confirmDiv.style.position = "fixed";
         confirmDiv.style.top = "140px"; 
-        confirmDiv.style.left = "40%";
+        confirmDiv.style.left = "30%";
         confirmDiv.style.transform = "translateX(-50%)";
         
         confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
