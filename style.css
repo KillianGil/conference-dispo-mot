@@ -4,15 +4,14 @@ body {
     -webkit-tap-highlight-color: transparent;
     margin: 0;
     padding: 0;
-    background-color: #0a0f1a; /* Fond sombre */
+    background-color: #0a0f1a;
     overflow: hidden;
 }
 
-/* ==================== CONTAINER PRINCIPAL (STRUCTURE D'ORIGINE) ==================== */
-/* On garde le Flexbox pour que le canvas et le panel ne se chevauchent pas */
+/* ==================== LAYOUT PRINCIPAL (Ne touche pas au Canvas) ==================== */
 #main-container {
     display: flex;
-    flex-direction: column; /* Mobile : l'un sous l'autre */
+    flex-direction: column;
     height: 100vh;
     width: 100vw;
     position: relative;
@@ -20,13 +19,12 @@ body {
 
 @media (min-width: 768px) {
     #main-container {
-        flex-direction: row; /* Desktop : côte à côte */
+        flex-direction: row; /* Met le panneau à gauche et le canvas à droite */
+        align-items: stretch; /* Prend toute la hauteur */
     }
 }
 
 /* ==================== CANVAS (INTACT) ==================== */
-/* On ne touche PAS au positionnement absolu ici. 
-   Il reste dans son conteneur flexible */
 #canvas-container {
     position: relative;
     flex-grow: 1; /* Prend tout l'espace restant */
@@ -34,7 +32,6 @@ body {
     z-index: 1;
     background: #0a0f1a;
     overflow: hidden;
-    transition: width 0.3s ease; /* Juste pour l'ouverture/fermeture du panel */
 }
 
 #weave-canvas {
@@ -50,7 +47,7 @@ body {
     cursor: grabbing;
 }
 
-/* ==================== HEADER (NOUVEAU STYLE CAPSULE) ==================== */
+/* ==================== HEADER (CELUI QUE TU AIMES) ==================== */
 .header-minimal {
     position: absolute;
     top: 1.5rem;
@@ -59,14 +56,14 @@ body {
     width: auto;
     min-width: 300px;
     max-width: 90%;
-    z-index: 60; /* Au-dessus de tout */
+    z-index: 60;
     
-    /* Style Verre (Glassmorphism) */
-    background: rgba(17, 24, 39, 0.75); /* Fond semi-transparent */
+    /* Style Capsule Verre */
+    background: rgba(17, 24, 39, 0.75);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50px; /* Forme arrondie */
+    border-radius: 50px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     
     padding: 0.75rem 2rem;
@@ -99,22 +96,41 @@ body {
 }
 .line-decoration { display: none; }
 
-/* ==================== PANNEAU LISTE DES MOTS ==================== */
-/* On garde le positionnement flex, mais on change l'apparence */
+/* ==================== PANNEAU DÉTACHÉ (LE FIX) ==================== */
 #words-panel {
     position: relative;
     z-index: 20;
+    width: 320px; /* Largeur fixe */
+    flex-shrink: 0; /* Ne s'écrase pas */
+    
+    /* C'EST ICI QUE ÇA DEVIENT "DÉTACHÉ" */
+    margin: 1.5rem; /* Écarte le panneau des bords */
+    margin-right: 0; /* Colle un peu plus vers le canvas */
+    margin-top: 6rem; /* Laisse la place au header */
+    margin-bottom: 6rem; /* Laisse la place au footer */
+    border-radius: 24px; /* Gros arrondis */
     
     /* Style Verre */
-    background: rgba(20, 25, 40, 0.85); /* Un peu plus transparent */
+    background: rgba(20, 25, 40, 0.75);
     backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 5px 0 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Pour gérer le scroll interne proprement */
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* Liste items */
+/* Liste scrollable à l'intérieur du panneau */
+#words-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 5px; /* Place pour la scrollbar */
+}
+
+/* Items de la liste */
 .word-item { 
     margin-bottom: 0.5rem;
     padding: 0.75rem;
@@ -122,67 +138,106 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     border-left-width: 4px !important;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Rebond */
 }
 
 .word-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(4px); /* Petit mouvement simple */
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(6px) scale(1.02);
 }
 
-/* Barre de recherche */
+/* Recherche */
 #word-filter {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     color: white;
-}
-
-/* Gestion Panel Caché (Garde le comportement d'origine) */
-#main-container.panel-hidden #words-panel {
-    margin-left: -100%; /* Ou width 0 selon ton JS, ici on simule la fermeture */
-    width: 0 !important;
-    padding: 0 !important;
-    opacity: 0;
-    overflow: hidden;
-}
-
-/* ==================== FOOTER (FLOTTANT MAIS NON INTRUSIF) ==================== */
-footer {
-    /* On le laisse en bas de la colonne flex pour ne pas couvrir le canvas */
-    position: relative; 
-    z-index: 30;
-    
-    /* Style moderne */
-    background: rgba(17, 24, 39, 0.9);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
-    
-    padding: 1rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-}
-
-/* ==================== INPUTS & BOUTONS (TAILLE NORMALE) ==================== */
-#word-form {
-    display: flex;
-    gap: 0.5rem;
+    padding: 0.5rem 1rem;
     width: 100%;
-    max-width: 600px; /* Largeur max confortable */
+    margin-bottom: 1rem;
 }
 
+/* Gestion panneau caché */
+#main-container.panel-hidden #words-panel {
+    width: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+    opacity: 0;
+}
+
+/* ==================== FOOTER FLOTTANT (ANIMATIONS RESTAURÉES) ==================== */
+footer {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    width: auto;
+    max-width: 90%;
+    
+    /* Style Verre */
+    background: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* ==================== ANIMATIONS BOUTONS (LE RETOUR) ==================== */
+/* Application de l'effet élastique "bouncy" */
+button, .word-item {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Boutons du footer (Outils) */
+footer > div button {
+    background: rgba(55, 65, 81, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 0.75rem;
+}
+
+/* L'animation sympa au survol */
+footer > div button:hover {
+    background: rgba(99, 102, 241, 0.2); /* Légère teinte indigo */
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-5px) scale(1.1); /* Ça bouge vers le haut et grossit */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+footer > div button:active {
+    transform: scale(0.9); /* Clic enfoncé */
+}
+
+/* Bouton Tisser (Principal) */
+#word-form button[type="submit"] {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-radius: 12px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+
+#word-form button[type="submit"]:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+}
+
+/* Input (Taille normale fixe) */
 #word-input {
-    flex-grow: 1;
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px; /* Arrondi standard */
+    border-radius: 12px;
     color: white;
     padding: 0.75rem 1rem;
-    font-size: 1rem;
+    width: 250px; /* Taille fixe confortable */
     outline: none;
-    transition: border-color 0.2s ease;
 }
 
 #word-input:focus {
@@ -190,135 +245,84 @@ footer {
     background: rgba(0, 0, 0, 0.6);
 }
 
-/* Bouton Tisser */
-#word-form button[type="submit"] {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    border-radius: 8px;
-    padding: 0 1.5rem;
-    font-weight: 600;
-    transition: opacity 0.2s;
-}
-
-#word-form button[type="submit"]:hover {
-    opacity: 0.9;
-}
-
-/* Boutons d'outils (rond/carré) */
-footer > div button {
-    background: rgba(55, 65, 81, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 0.75rem;
-    transition: background 0.2s;
-}
-
-footer > div button:hover {
-    background: rgba(75, 85, 99, 0.9);
-}
-
 /* ==================== BOUTON TOGGLE PANEL ==================== */
 #toggle-panel-button {
     position: absolute;
-    top: 1rem; /* Un peu en haut */
-    left: 1rem; /* À gauche par défaut (mobile) */
-    z-index: 50;
-    background: rgba(31, 41, 55, 0.9);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    color: white;
-    transition: transform 0.3s ease;
-}
-
-/* Sur Desktop, le bouton suit le panneau */
-@media (min-width: 768px) {
-    #toggle-panel-button {
-        top: 50%;
-        left: auto;
-        /* On le place "sur" la bordure du panel */
-        margin-left: -20px; 
-        transform: translateY(-50%);
-    }
+    top: 7rem;
+    left: 23rem; /* Collé au panel quand il est ouvert */
+    z-index: 30;
     
-    /* Si le panel est caché, on déplace le bouton */
-    #main-container.panel-hidden #toggle-panel-button {
-        left: 1.5rem;
-        background: #6366f1;
-    }
-    #main-container.panel-hidden #toggle-panel-button svg {
-        transform: rotate(180deg);
-    }
+    background: rgba(31, 41, 55, 0.9);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ==================== MODALES & SCROLLBARS ==================== */
-/* Scrollbars propres */
+#toggle-panel-button:hover {
+    transform: scale(1.1) rotate(90deg); /* Petite rotation fun */
+    background: #6366f1;
+}
+
+#main-container.panel-hidden #toggle-panel-button {
+    left: 1.5rem; /* Revient à gauche quand fermé */
+    background: #6366f1;
+}
+
+/* ==================== SCROLLBARS & MODALES ==================== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
-/* Stats Panel */
 #stats-panel {
     position: absolute;
-    top: 5rem;
-    right: 1rem;
-    width: 300px;
-    max-height: 80vh;
+    top: 7rem; right: 2rem;
+    width: 300px; max-height: 80vh;
     z-index: 55;
-    background: rgba(20, 25, 40, 0.95);
+    background: rgba(20, 25, 40, 0.9);
+    backdrop-filter: blur(20px);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    padding: 1rem;
+    border-radius: 24px;
+    padding: 1.5rem;
     overflow-y: auto;
 }
 
-/* QR & Settings */
-#settings-modal > div, #qr-modal > div {
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-/* Color picker */
-#color-picker-input {
-    appearance: none; -webkit-appearance: none; border: none;
-    width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
-    padding: 0;
-}
+#settings-modal > div, #qr-modal > div { max-height: 80vh; overflow-y: auto; }
+#color-picker-input { width: 50px; height: 50px; border: none; border-radius: 8px; overflow: hidden; padding: 0; }
 #color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
 #color-picker-input::-webkit-color-swatch { border: none; }
 
-/* ==================== RESPONSIVE MOBILE ==================== */
+/* ==================== MOBILE ==================== */
 @media (max-width: 767px) {
-    .header-minimal {
-        top: 0.5rem;
-        width: 95%;
-        padding: 0.5rem;
-    }
-    
-    .title-minimal { font-size: 1rem; }
+    .header-minimal { top: 0.5rem; padding: 0.5rem 1rem; width: 90%; }
     .subtitle-minimal { display: none; }
 
-    footer {
-        flex-wrap: wrap;
-        padding: 0.5rem;
-    }
-    
-    #word-form { width: 100%; }
-    footer > div { width: 100%; justify-content: space-between; display: flex; margin-top: 0.5rem;}
-    
-    /* Sur mobile, le panel prend de la hauteur mais reste flex pour ne pas couvrir le canvas */
+    /* Sur mobile, le panel repasse en mode "tiroir" pour gagner de la place */
     #words-panel {
-        width: 100%;
-        height: 40vh; /* Prend 40% de l'écran en haut */
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        border-right: none;
+        position: absolute;
+        top: 5rem; left: 1rem; right: 1rem;
+        width: auto; height: auto; max-height: 40vh;
+        margin: 0; /* On enlève les grosses marges desktop */
+        z-index: 40;
+        background: rgba(20, 25, 40, 0.95);
     }
     
+    /* Le bouton toggle passe en bas à droite du panel */
     #toggle-panel-button {
-        top: auto;
-        bottom: 1rem; /* Bouton en bas à droite du panel ? ou ailleurs */
-        right: 1rem;
-        left: auto;
+        top: 5.5rem; left: auto; right: 1.5rem;
     }
+
+    footer {
+        width: 95%;
+        bottom: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    #word-form { width: 100%; }
+    #word-input { width: 100%; }
+    footer > div { width: 100%; justify-content: space-between; display: flex; margin-top: 0.5rem; }
 }
