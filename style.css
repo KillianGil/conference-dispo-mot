@@ -234,14 +234,15 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (FLUIDITÉ TOTALE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (FLUIDITÉ PARFAITE) ==================== */
 #toggle-panel-button {
     position: fixed;
     z-index: 60;
     
     /* --- ÉTAT OUVERT --- */
+    /* Positionnement précis */
     left: calc(2rem + 300px - 48px); 
-    top: 10rem; 
+    top: 9rem; 
     
     width: 32px; height: 32px;
     border-radius: 50%;
@@ -253,14 +254,11 @@ body {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
-    /* Centrage vertical constant */
+    /* Centrage vertical constant pour éviter les sauts */
     transform: translateY(-50%);
     
-    /* SECRET DE LA FLUIDITÉ : Même durée et courbe que le panneau */
-    transition: all 0.5s ease-in-out;
-    
-    /* Empêche le flou pendant le mouvement */
-    backface-visibility: hidden; 
+    /* C'est ici le secret : une transition unique et longue pour tout lisser */
+    transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 #toggle-panel-button:hover { 
@@ -271,12 +269,14 @@ body {
 /* --- ÉTAT FERMÉ --- */
 #main-container.panel-hidden #toggle-panel-button {
     left: 1.5rem;
-    top: 50vh; /* Utilise vh pour éviter les sauts de pourcentage */
+    top: 50vh; /* vh est plus stable que % pour les animations */
     
     width: 48px; height: 48px;
     background: #6366f1;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    
+    /* Le transform reste le même, donc pas de "saut" */
 }
 
 #main-container.panel-hidden #toggle-panel-button:hover { 
@@ -284,12 +284,12 @@ body {
     transform: translateY(-50%) scale(1.1);
 }
 
-/* La flèche tourne aussi de manière fluide */
 #main-container.panel-hidden #toggle-panel-button svg { 
     transform: rotate(180deg); 
-    transition: transform 0.5s ease-in-out;
+    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* Mobile : Toujours caché */
 @media (max-width: 767px) {
     #toggle-panel-button { display: none !important; }
 }

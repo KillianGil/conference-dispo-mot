@@ -1,98 +1,12 @@
 // ==================== CONFIGURATION ====================
 const CONFIG = {
   MAX_WORDS_PER_USER: 5000,
-  RESET_PASSWORD: "tissage2025",
   TARGET_FPS: 60,
   MAX_POOL_SIZE: 100,
   FETCH_INTERVAL: 2000,
 };
 
-const FORBIDDEN_WORDS = [
 
-  // Insultes courantes
-  "con", "connard", "connasse", "abruti", "idiot", "imbécile", "crétin",
-  "gogol", "clown", "bouffon", "guignol", "andouille", "glandeur",
-  "branleur", "clochard", "manchot", "nul", "minable", "raté", "pathétique",
-  "balourd", "tocard", "pauv' con", "sale con", "sale type", "pleutre",
-
-  // Insultes fortes
-  "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
-  "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
-  "ntm", "fils de pute", "ta gueule", "tg", "ta gueule",
-
-
-  // Insultes fortes
-  "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
-  "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
-  "ntm", "fils de pute", "ta gueule", "tg", "enculé","caca", "kaka", "pipi", "prout", "zeub", "teub", "bouffon", "boloss", "ptn", 
-  "grosse merde", "gros con", "grosse conne", "grosse", "gros", "grognasse", "juif", "juive", "juifs", "juives", "israel", 
-
-  // Vulgarité / sexualité explicite
-  "merde", "bordel", "chiant", "chier", "faire chier", "chiotte",
-  "cul", "bite", "teub", "queue", "zizi", "couille", "couilles",
-  "chatte", "vagin", "pénis", "penis", "nichon", "nichons",
-  "sucer", "fellation", "branlette", "branler", "baiser", "baisé",
-  "éjaculation", "sperme", "foutre", "pénétration","paf", 
-
-  // Violence / menaces
-  "tuer", "je vais te tuer", "crève", "crève sale con", "meurtre",
-  "massacre", "assassiner", "assassin", "frapper", "violence",
-  "viol", "agression", "décapiter", "étrangler", "tabasser",
-  "bombarder", "explosion", "arme", "fusillade",
-
-  // Troubles mentaux utilisés comme insultes génériques
-  "taré", "cinglé", "folle", "malade mental", "débile", "psychopathe",
-  "sociopathe", "timbré",
-
-  // Haine / hostilité
-  "haine", "je te hais", "je te déteste",
-  "ordure", "déchet", "parasite", "vermine",
-
-  // Extrémisme / idéologies violentes
-  "nazi", "nazisme", "facho", "fasciste",
-  "terroriste", "djihadiste", "extrémiste",
-
-  // Figures historiques liées à la violence (autorisé)
-  "hitler", "adolf hitler",
-  "himmler", "goebbels", "goering",
-  "staline", "lenine", "mao",
-  "ben laden", "osama ben laden",
-  "kadhafi", "saddam", "pol pot",
-  "pétain", "mussolini", "benladen", "netanyahu", "putain", "ptn", "put3", "h1tler","kiki",
-
-  // Criminels connus (aucune restriction)
-  "dahmer", "bundy", "manson", "joachim kroll",
-  "fourniret", "zemmour" /* (politique polémique mais pas un slur) */,
-  "merah", "coulibaly", "abdeslam",
-
-  // Termes liés au crime / illégal
-  "drogue", "cocaïne", "coke", "heroine", "meth",
-  "dealer", "trafiquant", "cartel",
-  "kidnapping", "enlèvement",
-
-  // Termes morbides
-  "cadavre", "mort", "sang", "démembrement", "charogne",
-
-  // Harcèlement / intimidation
-  "suicide toi", "suicid", "tu sers à rien", "personne t'aime",
-  "t'es inutile", "t'es moche", "t'es laid", "t'es une merde",
-
-  // Disqualification / mépris
-  "va te faire voir", "va te faire foutre", "nique ta mère",
-  "nique ta race" /* grossier mais ne cible aucun groupe protégé */,
-  "j't'emmerde", "emmerdeur",
-
-  // Déshumanisation générique
-  "animal", "bête", "rat", "vermine", "porc", "cafard",
-  "clodo", "sdf", "pouilleux",
-
-  // Termes divers dégradants
-  "prostitué", "prostitution", "pute à fric",
-  "cassos", "cassosss", "cassossssss",
-  "bougnoul" , "negro", "nigga", "nigger", 
-  "pleurnicheur", "victimisation",
-  "gamin", "sale gosse",
-];
 
 // Descriptions des modes
 const MODE_DESCRIPTIONS = {
@@ -336,6 +250,18 @@ document.addEventListener("DOMContentLoaded", () => {
     globalScale: 1.0,         
   };
 
+  // --- Fonction de sécurité ---
+async function verifyPasswordOnServer(password) {
+  try {
+      const res = await fetch('/api/words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'verify-password', password: password })
+      });
+      if (res.status === 200) return true;
+      return false;
+  } catch(e) { return false; }
+}
   // ==================== GESTION DU POOL DE PARTICULES ====================
   function getParticle(x, y, color) {
     if (particlePool.length > 0) {
@@ -1881,10 +1807,11 @@ function updateWordListColors(forceColor = null) {
   }
 
  // ==================== ENREGISTREMENT TIME-LAPSE (MODIFIÉ) ====================
- function startRecording() {
+// ==================== ENREGISTREMENT SÉCURISÉ ====================
+function startRecording() {
   if (isRecording) return;
 
-  // Fonction interne pour lancer vraiment l'enregistrement après validation
+  // Fonction interne de démarrage (Ton code original inchangé)
   const executeStart = () => {
     recordedFrames = [];
     isRecording = true;
@@ -1904,22 +1831,20 @@ function updateWordListColors(forceColor = null) {
       try {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
-        // Logique de debug optionnelle...
       } catch (err) {
-        console.error("❌ Erreur capture frame:", err);
+        console.error("❌ Erreur capture:", err);
         stopRecording();
       }
     }, 100);
   };
 
-  const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
-
-  if (isAdmin) {
-    executeStart();
-    return;
+  // Si déjà connecté, on lance direct
+  if (localStorage.getItem("isRecordingAdmin") === "true") {
+      executeStart();
+      return;
   }
 
-  // --- CRÉATION DE LA MODALE (Même style que Reset) ---
+  // TA MODALE (CODE EXACT CONSERVÉ)
   const passwordModal = document.createElement("div");
   passwordModal.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
   
@@ -1950,45 +1875,39 @@ function updateWordListColors(forceColor = null) {
   const confirmBtn = document.getElementById("confirm-record-auth");
   const cancelBtn = document.getElementById("cancel-record-auth");
 
-  // Focus automatique
   setTimeout(() => input.focus(), 100);
 
   const closeModal = () => {
-    if (document.body.contains(passwordModal)) {
-      document.body.removeChild(passwordModal);
-    }
+    if (document.body.contains(passwordModal)) document.body.removeChild(passwordModal);
   };
 
-  // Gestionnaires d'événements
   cancelBtn.onclick = closeModal;
-  
-  passwordModal.onclick = (e) => {
-    if (e.target === passwordModal) closeModal();
-  };
+  passwordModal.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
 
-  const checkPassword = () => {
-    if (input.value.trim() === CONFIG.RESET_PASSWORD) {
-      localStorage.setItem("isRecordingAdmin", "true");
-      closeModal();
-      executeStart();
-    } else {
-      input.value = "";
-      input.placeholder = "❌ Mot de passe incorrect";
-      input.classList.add("border-2", "border-red-500");
-      setTimeout(() => {
-          input.classList.remove("border-2", "border-red-500");
-          input.placeholder = "Mot de passe...";
-      }, 2000);
-    }
+  // --- LA SEULE PARTIE QUI CHANGE (Vérification Serveur) ---
+  const checkPassword = async () => {
+      const pwd = input.value.trim();
+      // On demande au serveur au lieu de regarder CONFIG
+      const isValid = await verifyPasswordOnServer(pwd);
+
+      if (isValid) {
+          localStorage.setItem("isRecordingAdmin", "true");
+          closeModal();
+          executeStart();
+      } else {
+          input.value = "";
+          input.placeholder = "❌ Mot de passe incorrect";
+          input.classList.add("border-2", "border-red-500");
+          setTimeout(() => {
+              input.classList.remove("border-2", "border-red-500");
+              input.placeholder = "Mot de passe...";
+          }, 2000);
+      }
   };
 
   confirmBtn.onclick = checkPassword;
-  
-  input.onkeypress = (e) => {
-    if (e.key === "Enter") checkPassword();
-  };
+  input.onkeypress = (e) => { if (e.key === "Enter") checkPassword(); };
 }
-
   function stopRecording() {
     if (!isRecording) return;
 
@@ -2454,135 +2373,143 @@ document.getElementById("performance-mode-toggle")?.addEventListener("change", (
   scheduleRedraw();
 });
 
-  wordForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = wordInput.value.trim();
-    if (!text) return;
+wordForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = wordInput.value.trim();
+  if (!text) return;
 
-    console.log("Tentative d'ajout de mot:", text);
+  console.log("Tentative d'ajout de mot:", text);
 
-    if (isForbidden(text)) {
-      wordInput.value = "";
-      wordInput.placeholder = "⚠️ Mot inapproprié";
-      wordInput.classList.add("border-2", "border-red-500");
+  // NOTE : La vérification des mots interdits (isForbidden) a été retirée ici.
+  // C'est maintenant l'API qui s'en charge pour la sécurité.
 
-      setTimeout(() => {
-        wordInput.placeholder = "Partagez un mot...";
-        wordInput.classList.remove("border-2", "border-red-500");
-      }, 2500);
+  if (!canUserAddWord()) {
+    const count = getUserWordCount();
+    console.log("Limite atteinte:", count);
+    alert(
+      `❌ Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant.\n\nLaissez la place aux autres ! 😊`
+    );
+    wordInput.value = "";
+    return;
+  }
 
-      return;
-    }
+  const submitButton = wordForm.querySelector("button");
+  const originalPlaceholder = wordInput.placeholder;
+  wordInput.disabled = true;
+  submitButton.disabled = true;
+  submitButton.textContent = "...";
 
-    if (!canUserAddWord()) {
-      const count = getUserWordCount();
-      console.log("Limite atteinte:", count);
+  const existingWord = findExistingWord(text);
+
+  let newWordPayload;
+
+  if (existingWord) {
+    console.log("Mot existant trouvé");
+    newWordPayload = {
+      text : existingWord.text,
+      x: existingWord.x,
+      y: existingWord.y,
+      color: existingWord.color,
+      radius: existingWord.radius,
+    };
+  } else {
+    const newColor = colorGenerator.getColor();
+    const position = findValidPosition();
+
+    if (!position) {
       alert(
-        `❌ Vous avez atteint la limite de ${CONFIG.MAX_WORDS_PER_USER} mots par participant.\n\nLaissez la place aux autres ! 😊`
+        "❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment"
       );
+      wordInput.disabled = false;
+      submitButton.disabled = false;
+      submitButton.textContent = "Tisser";
       wordInput.value = "";
       return;
     }
 
-    const submitButton = wordForm.querySelector("button");
-    const originalPlaceholder = wordInput.placeholder;
-    wordInput.disabled = true;
-    submitButton.disabled = true;
-    submitButton.textContent = "...";
+    newWordPayload = {
+      text,
+      x: position.x,
+      y: position.y,
+      color: newColor,
+    };
+  }
 
-    const existingWord = findExistingWord(text);
+  try {
+    const response = await fetch("/api/words", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newWordPayload),
+    });
 
-    let newWordPayload;
+    // --- GESTION SÉCURISÉE DES ERREURS (REMPLACE LE CHECK LOCAL) ---
+    if (!response.ok) {
+      const data = await response.json();
+      
+      // Si le serveur rejette le mot (Code 400 + message spécifique)
+      if (response.status === 400 && (data.error.includes("inapproprié") || data.error.includes("interdit"))) {
+           wordInput.value = "";
+           wordInput.placeholder = "⚠️ Mot inapproprié";
+           wordInput.classList.add("border-2", "border-red-500");
 
-    if (existingWord) {
-      console.log("Mot existant trouvé");
-      newWordPayload = {
-        text : existingWord.text,
-        x: existingWord.x,
-        y: existingWord.y,
-        color: existingWord.color,
-        radius: existingWord.radius,
-      };
+           setTimeout(() => {
+             wordInput.placeholder = originalPlaceholder;
+             wordInput.classList.remove("border-2", "border-red-500");
+           }, 2500);
+           throw new Error("Mot interdit par le serveur");
+      }
+
+      // Autres erreurs
+      let errorMsg = `Erreur serveur (${response.status})`;
+      if (data && data.error) errorMsg = data.error;
+      throw new Error(errorMsg);
+    }
+
+    // --- SUCCÈS ---
+    incrementUserWordCount();
+    console.log("Mot ajouté avec succès");
+
+    wordInput.value = "";
+    submitButton.textContent = "✓";
+
+    const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
+    console.log("Mots restants:", remaining);
+
+    if (remaining > 0) {
+      wordInput.placeholder = `${remaining} mot${remaining > 1 ? "s" : ""} restant${
+        remaining > 1 ? "s" : ""
+      }...`;
     } else {
-      const newColor = colorGenerator.getColor();
-      const position = findValidPosition();
-
-      if (!position) {
-        alert(
-          "❌ Canvas saturé - Impossible d'ajouter plus de mots pour le moment"
-        );
-        wordInput.disabled = false;
-        submitButton.disabled = false;
-        submitButton.textContent = "Tisser";
-        wordInput.value = "";
-        return;
-      }
-
-      newWordPayload = {
-        text,
-        x: position.x,
-        y: position.y,
-        color: newColor,
-      };
+      wordInput.placeholder = "Limite atteinte (5 mots max)";
     }
 
-    try {
-      const response = await fetch("/api/words", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newWordPayload),
-      });
-
-      if (!response.ok || response.status !== 201) {
-        let errorMsg = `Erreur serveur (${response.status})`;
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorMsg;
-        } catch (err) {}
-        throw new Error(errorMsg);
+    setTimeout(() => {
+      submitButton.textContent = "Tisser";
+      if (remaining === 0) {
+        wordInput.disabled = true;
+        submitButton.disabled = true;
       }
+    }, 800);
 
-      incrementUserWordCount();
-      console.log("Mot ajouté avec succès");
-
-      wordInput.value = "";
-      submitButton.textContent = "✓";
-
-      const remaining = CONFIG.MAX_WORDS_PER_USER - getUserWordCount();
-      console.log("Mots restants:", remaining);
-
-      if (remaining > 0) {
-        wordInput.placeholder = `${remaining} mot${remaining > 1 ? "s" : ""} restant${
-          remaining > 1 ? "s" : ""
-        }...`;
-      } else {
-        wordInput.placeholder = "Limite atteinte (2 mots max)";
-      }
-
-      setTimeout(() => {
-        submitButton.textContent = "Tisser";
-        if (remaining === 0) {
-          wordInput.disabled = true;
-          submitButton.disabled = true;
-        }
-      }, 800);
-
-      await fetchWords();
-    } catch (error) {
-      console.error("Erreur d'ajout:", error);
-      wordInput.placeholder = error.message;
-      setTimeout(() => {
-        wordInput.placeholder = originalPlaceholder;
-      }, 3000);
-      wordInput.value = "";
-    } finally {
-      if (getUserWordCount() < CONFIG.MAX_WORDS_PER_USER) {
-        wordInput.disabled = false;
-        submitButton.disabled = false;
-        wordInput.focus();
-      }
+    await fetchWords();
+  } catch (error) {
+    console.error("Erreur d'ajout:", error);
+    // On affiche l'erreur dans le placeholder sauf si c'est déjà géré (mot interdit)
+    if (error.message !== "Mot interdit par le serveur") {
+        wordInput.placeholder = error.message;
+        setTimeout(() => {
+          wordInput.placeholder = originalPlaceholder;
+        }, 3000);
     }
-  });
+    wordInput.value = "";
+  } finally {
+    if (getUserWordCount() < CONFIG.MAX_WORDS_PER_USER) {
+      wordInput.disabled = false;
+      submitButton.disabled = false;
+      wordInput.focus();
+    }
+  }
+});
 
   // Stats button
   const statsButton = document.getElementById("stats-button");
@@ -2910,143 +2837,121 @@ document.getElementById("shuffle-positions-button")?.addEventListener("click", (
   setTimeout(() => { btn.style.transform = ""; }, 500);
 });
 
-  // Reset button
-  resetButton.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+// ==================== RESET SÉCURISÉ ====================
+resetButton.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-    const passwordModal = document.createElement("div");
-    passwordModal.id = "password-reset-modal";
-    passwordModal.className =
-      "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
-    passwordModal.style.zIndex = "100";
+  // TA MODALE (CODE EXACT CONSERVÉ)
+  const passwordModal = document.createElement("div");
+  passwordModal.id = "password-reset-modal";
+  passwordModal.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
+  passwordModal.style.zIndex = "100";
 
-    passwordModal.innerHTML = `
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full">
-        <h3 class="text-xl font-bold text-white mb-4">🔒 Accès Protégé</h3>
-        <p class="text-gray-300 text-sm mb-4">Entrez le mot de passe pour réinitialiser le tissage :</p>
-        <input type="password" id="reset-password-input" 
-          class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-600"
-          placeholder="Mot de passe..."
-          autocomplete="off">
-        <div class="flex gap-2">
-          <button type="button" id="cancel-reset" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
-            Annuler
-          </button>
-          <button type="button" id="confirm-reset" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
-            Réinitialiser
-          </button>
-        </div>
-        <p class="text-xs text-gray-500 mt-3 text-center">Action irréversible - Tous les mots seront supprimés</p>
+  passwordModal.innerHTML = `
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full">
+      <h3 class="text-xl font-bold text-white mb-4">🔒 Accès Protégé</h3>
+      <p class="text-gray-300 text-sm mb-4">Entrez le mot de passe pour réinitialiser le tissage :</p>
+      <input type="password" id="reset-password-input" 
+        class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-600"
+        placeholder="Mot de passe..."
+        autocomplete="off">
+      <div class="flex gap-2">
+        <button type="button" id="cancel-reset" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+          Annuler
+        </button>
+        <button type="button" id="confirm-reset" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">
+          Réinitialiser
+        </button>
       </div>
-    `;
+      <p class="text-xs text-gray-500 mt-3 text-center">Action irréversible - Tous les mots seront supprimés</p>
+    </div>
+  `;
 
-    document.body.appendChild(passwordModal);
+  document.body.appendChild(passwordModal);
 
-    const passwordInput = document.getElementById("reset-password-input");
-    const confirmBtn = document.getElementById("confirm-reset");
-    const cancelBtn = document.getElementById("cancel-reset");
+  const passwordInput = document.getElementById("reset-password-input");
+  const confirmBtn = document.getElementById("confirm-reset");
+  const cancelBtn = document.getElementById("cancel-reset");
 
-    setTimeout(() => passwordInput.focus(), 100);
+  setTimeout(() => passwordInput.focus(), 100);
 
-    const closeModal = () => {
-      if (document.body.contains(passwordModal)) {
-        document.body.removeChild(passwordModal);
-      }
-    };
+  const closeModal = () => {
+    if (document.body.contains(passwordModal)) document.body.removeChild(passwordModal);
+  };
 
-    cancelBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+  cancelBtn.onclick = closeModal;
+  passwordModal.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
+
+  // --- LA PARTIE QUI CHANGE (Appel Serveur) ---
+  const attemptReset = async () => {
+    const enteredPassword = passwordInput.value.trim();
+
+    // 1. On vérifie le MDP
+    const isValid = await verifyPasswordOnServer(enteredPassword);
+
+    if (isValid) {
       closeModal();
-    });
 
-    passwordModal.addEventListener("click", (e) => {
-      if (e.target === passwordModal) {
-        closeModal();
+      try {
+        // 2. On envoie la suppression AVEC le mot de passe en header
+        await fetch("/api/words", { 
+            method: "DELETE",
+            headers: { 'x-admin-password': enteredPassword } 
+        });
+
+        // Nettoyage local (Ton code original)
+        displayedWords = [];
+        wordsList.innerHTML = "";
+        particles.forEach((p) => recycleParticle(p));
+        particles = [];
+        currentAnimatingConnection = null;
+        animationProgress = 0;
+        scale = 1; offsetX = 0; offsetY = 0;
+        wordOccurrencesCache.clear();
+        geometryCache.clear();
+
+        resetUserCounter();
+        localStorage.setItem("lastResetTime", Date.now().toString());
+
+        wordInput.disabled = false;
+        wordInput.value = "";
+        wordInput.placeholder = "Partagez un mot...";
+        const submitButton = wordForm.querySelector("button");
+        submitButton.disabled = false;
+        submitButton.textContent = "Tisser";
+
+        scheduleRedraw();
+        updateStats();
+
+        // Notif centrée (comme demandé plus tôt)
+        const confirmDiv = document.createElement("div");
+        confirmDiv.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[110] animate-bounce font-bold text-center min-w-[300px]";
+        confirmDiv.style.transform = "translateX(-50%)";
+        confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
+        document.body.appendChild(confirmDiv);
+
+        setTimeout(() => { if (document.body.contains(confirmDiv)) document.body.removeChild(confirmDiv); }, 3000);
+
+        console.log("✅ Reset complet effectué");
+      } catch (err) {
+        console.error("Erreur reset:", err);
+        alert("❌ La réinitialisation a échoué");
       }
-    });
+    } else {
+      passwordInput.value = "";
+      passwordInput.placeholder = "❌ Mot de passe incorrect";
+      passwordInput.classList.add("border-2", "border-red-500");
+      setTimeout(() => {
+        passwordInput.placeholder = "Mot de passe...";
+        passwordInput.classList.remove("border-2", "border-red-500");
+      }, 2000);
+    }
+  };
 
-    const attemptReset = async () => {
-      const enteredPassword = passwordInput.value.trim();
-
-      if (enteredPassword === CONFIG.RESET_PASSWORD) {
-        closeModal();
-
-        try {
-          await fetch("/api/words", { method: "DELETE" });
-
-          displayedWords = [];
-          wordsList.innerHTML = "";
-          particles.forEach((p) => recycleParticle(p));
-          particles = [];
-          currentAnimatingConnection = null;
-          animationProgress = 0;
-          scale = 1;
-          offsetX = 0;
-          offsetY = 0;
-          wordOccurrencesCache.clear();
-          geometryCache.clear();
-
-          resetUserCounter();
-          localStorage.setItem("lastResetTime", Date.now().toString());
-
-          wordInput.disabled = false;
-          wordInput.value = "";
-          wordInput.placeholder = "Partagez un mot...";
-          const submitButton = wordForm.querySelector("button");
-          submitButton.disabled = false;
-          submitButton.textContent = "Tisser";
-
-          scheduleRedraw();
-          updateStats();
-
-          const confirmDiv = document.createElement("div");
-          // On utilise 'fixed' + 'inset-x-0' (tailwindcss) ou left/right 0 + margin auto pour être sûr
-          confirmDiv.className =
-            "fixed top-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[110] animate-bounce font-bold text-center min-w-[300px]";
-          
-          confirmDiv.style.transform = "translateX(-50%)"; // Force le centrage JS au cas où Tailwind fail
-          
-          confirmDiv.textContent =
-            "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
-          document.body.appendChild(confirmDiv);
-
-          setTimeout(() => {
-            if (document.body.contains(confirmDiv)) {
-              document.body.removeChild(confirmDiv);
-            }
-          }, 3000);
-
-          console.log("✅ Reset complet effectué");
-        } catch (err) {
-          console.error("Erreur reset:", err);
-          alert("❌ La réinitialisation a échoué");
-        }
-      } else {
-        passwordInput.value = "";
-        passwordInput.placeholder = "❌ Mot de passe incorrect";
-        passwordInput.classList.add("border-2", "border-red-500");
-        setTimeout(() => {
-          passwordInput.placeholder = "Mot de passe...";
-          passwordInput.classList.remove("border-2", "border-red-500");
-        }, 2000);
-      }
-    };
-
-    confirmBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      attemptReset();
-    });
-
-    passwordInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        attemptReset();
-      }
-    });
-  });
+  confirmBtn.onclick = attemptReset;
+  passwordInput.onkeypress = (e) => { if (e.key === "Enter") attemptReset(); };
+});
 
   // QR Code modal
   const qrButton = document.getElementById("qr-code-button");
