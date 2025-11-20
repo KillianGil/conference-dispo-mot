@@ -502,7 +502,7 @@ function findValidPosition() {
     const letters1 = new Set(word1.text.toLowerCase().split(""));
     const letters2 = new Set(word2.text.toLowerCase().split(""));
     const common = [...letters1].filter((l) => letters2.has(l));
-    return common.length >= 2;
+    return common.length >= 3;
   }
 
   function isVisible(word, scale, offsetX, offsetY, width, height) {
@@ -813,7 +813,7 @@ function findValidPosition() {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-// ==================== DESSIN PRINCIPAL (TOUS MODES + OPTIMISÉ) ====================
+// ==================== DESSIN PRINCIPAL (HYBRIDE : BEAUTÉ vs PERF) ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
 
@@ -824,9 +824,12 @@ function drawWeave(withBackground = false) {
   const height = canvas.clientHeight;
   const rect = container.getBoundingClientRect();
 
-  if (rect.width === 0 || rect.height === 0 || width === 0 || height === 0) {
-    return;
-  }
+  // Sécurité dimensions
+  if (rect.width === 0 || rect.height === 0 || width === 0 || height === 0) return;
+
+  // VÉRIFICATION DU MODE PERFORMANCE (Via le bouton des paramètres)
+  // Si le bouton est coché, on désactive les effets lourds (shadowBlur)
+  const usePerformance = settings.performanceMode === true;
 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -857,22 +860,18 @@ function drawWeave(withBackground = false) {
   );
 
   const time = Date.now() * 0.001;
-  const margin = 300; // Marge pour ne pas couper les effets sur les bords
 
-  // ==================== MODE 1 : FLOW (Train de particules) ====================
+  // ==================== MODE 1 : FLOW (Flux Temporel) ====================
   if (settings.linkMode === "flow") {
     const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
 
-    // 1. Tracer le chemin (Optimisé sans shadowBlur)
+    // 1. Le chemin de base
     for (let i = 1; i < sortedWords.length; i++) {
       const w1 = sortedWords[i - 1];
       const w2 = sortedWords[i];
+      
       const x1 = w1.x * width; const y1 = w1.y * height;
       const x2 = w2.x * width; const y2 = w2.y * height;
-
-      // Culling
-      if ((x1 < -margin - offsetX/scale && x2 < -margin - offsetX/scale) || 
-          (x1 > width/scale - offsetX/scale + margin)) continue;
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
@@ -882,7 +881,7 @@ function drawWeave(withBackground = false) {
       ctx.stroke();
     }
 
-    // 2. Le "Train" (inchangé car essentiel)
+    // 2. Le "Train" de particules
     const totalSegments = Math.max(1, sortedWords.length - 1);
     const numParticles = 4; 
     const spacing = 0.5;
@@ -901,14 +900,28 @@ function drawWeave(withBackground = false) {
             const px = (w1.x * width) + ((w2.x * width) - (w1.x * width)) * segProgress;
             const py = (w1.y * height) + ((w2.y * height) - (w1.y * height)) * segProgress;
 
-            // On garde un petit shadowBlur ici car c'est le focus visuel
+            // Tête lumineuse (On garde le glow ici car c'est le focus principal)
             ctx.save();
-            ctx.shadowBlur = 10; 
+            ctx.shadowBlur = usePerformance ? 0 : 15;
             ctx.shadowColor = w2.color;
             ctx.fillStyle = "white";
             ctx.beginPath();
-            ctx.arc(px, py, 5, 0, Math.PI*2);
+            ctx.arc(px, py, 6, 0, Math.PI*2);
             ctx.fill();
+            
+            // Traînée
+            const trailX = (w1.x * width) + ((w2.x * width) - (w1.x * width)) * Math.max(0, segProgress - 0.2);
+            const trailY = (w1.y * height) + ((w2.y * height) - (w1.y * height)) * Math.max(0, segProgress - 0.2);
+            
+            ctx.beginPath();
+            ctx.moveTo(trailX, trailY);
+            ctx.lineTo(px, py);
+            const grad = ctx.createLinearGradient(trailX, trailY, px, py);
+            grad.addColorStop(0, "rgba(255,255,255,0)");
+            grad.addColorStop(1, w2.color);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 4;
+            ctx.stroke();
             ctx.restore();
         }
     }
@@ -920,10 +933,6 @@ function drawWeave(withBackground = false) {
       const x1 = word1.x * width; const y1 = word1.y * height;
       const x2 = word2.x * width; const y2 = word2.y * height;
 
-      // Culling
-      if ((x1 < -margin - offsetX/scale && x2 < -margin - offsetX/scale) || 
-          (x1 > width/scale - offsetX/scale + margin)) return;
-
       const midX = (x1 + x2) / 2;
       const midY = (y1 + y2) / 2;
       const baseAmplitude = width * 0.05; 
@@ -933,19 +942,37 @@ function drawWeave(withBackground = false) {
       const perpX = len > 0 ? (-dy / len) * offset : 0;
       const perpY = len > 0 ? (dx / len) * offset : 0;
 
-      // FAUX GLOW (Large trait transparent)
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
-      ctx.lineWidth = Math.max(6, settings.lineWidth * 3);
-      ctx.strokeStyle = word2.color;
-      ctx.globalAlpha = 0.15 * settings.linesOpacity;
-      ctx.stroke();
+      // GESTION HYBRIDE DU GLOW
+      if (usePerformance) {
+         // Mode PERF : Trait large transparent (Faux Glow)
+         ctx.beginPath();
+         ctx.moveTo(x1, y1);
+         ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
+         ctx.lineWidth = Math.max(6, settings.lineWidth * 3);
+         ctx.strokeStyle = word2.color;
+         ctx.globalAlpha = 0.15 * settings.linesOpacity;
+         ctx.shadowBlur = 0;
+         ctx.stroke();
+      } else {
+         // Mode BEAUTÉ : Vrai Glow (shadowBlur)
+         ctx.save();
+         ctx.globalAlpha = 0.2 * settings.linesOpacity;
+         ctx.shadowBlur = 10;
+         ctx.shadowColor = word2.color;
+         ctx.beginPath();
+         ctx.moveTo(x1, y1);
+         ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
+         ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
+         ctx.strokeStyle = word2.color;
+         ctx.stroke();
+         ctx.restore();
+      }
 
-      // TRAIT NET
+      // Trait principal (Net)
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
+
       if (settings.useGradient) {
         const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
         gradient.addColorStop(0, word1.color);
@@ -956,41 +983,23 @@ function drawWeave(withBackground = false) {
       }
       ctx.lineWidth = Math.max(2, settings.lineWidth);
       ctx.globalAlpha = 0.85 * settings.linesOpacity;
+      ctx.shadowBlur = 0;
       ctx.stroke();
     });
   }
 
   // ==================== MODE 3 : CONSTELLATION ====================
   else if (settings.linkMode === "constellation") {
-    // Étoiles (points)
-    visibleWords.forEach((word) => {
-      const x = word.x * width;
-      const y = word.y * height;
-      // Culling simple
-      if (x < -margin - offsetX/scale || x > width/scale - offsetX/scale + margin) return;
-
-      const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
-      for (let i = 0; i < 3; i++) {
-        const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
-        const radius = 30 + Math.sin(time + i) * 10;
-        ctx.beginPath();
-        ctx.arc(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, 2, 0, Math.PI * 2);
-        ctx.fillStyle = word.color;
-        ctx.globalAlpha = twinkle * 0.6 * settings.linesOpacity;
-        ctx.fill();
-      }
-    });
-    ctx.globalAlpha = 1;
-    // Pas de lignes dans ce mode, ou très fines (gestion standard si besoin)
+    // Les étoiles sont dessinées plus bas avec les mots
+    // Ici on peut gérer des micro-liens si besoin, ou laisser vide
+    // Le scintillement est géré dans la boucle des mots
   }
 
   // ==================== MODE 4 : RIPPLE (Ondes) ====================
   else if (settings.linkMode === "ripple") {
+    // Cercles concentriques
     visibleWords.forEach((word, index) => {
       const x = word.x * width; const y = word.y * height;
-      // Culling
-      if (x < -margin - offsetX/scale || x > width/scale - offsetX/scale + margin) return;
-
       for (let ring = 0; ring < 3; ring++) {
         const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
         const radius = 30 + phase * 40;
@@ -1004,28 +1013,41 @@ function drawWeave(withBackground = false) {
       }
     });
 
-    // Lignes entre mots (Optimisées)
+    // Lignes
     connections.forEach(([word1, word2]) => {
       const x1 = word1.x * width; const y1 = word1.y * height;
       const x2 = word2.x * width; const y2 = word2.y * height;
-      if (x1 < -margin - offsetX/scale && x2 < -margin - offsetX/scale) return;
 
-      // Faux Glow
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.lineWidth = settings.lineWidth * 3;
-      ctx.strokeStyle = word2.color;
-      ctx.globalAlpha = 0.15 * settings.linesOpacity;
-      ctx.stroke();
+      if (usePerformance) {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineWidth = settings.lineWidth * 3;
+          ctx.strokeStyle = word2.color;
+          ctx.globalAlpha = 0.15 * settings.linesOpacity;
+          ctx.shadowBlur = 0;
+          ctx.stroke();
+      } else {
+          ctx.save();
+          ctx.globalAlpha = 0.2 * settings.linesOpacity;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = word2.color;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
+          ctx.strokeStyle = word2.color;
+          ctx.stroke();
+          ctx.restore();
+      }
 
-      // Trait
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = word2.color;
       ctx.lineWidth = settings.lineWidth;
       ctx.globalAlpha = 0.8 * settings.linesOpacity;
+      ctx.shadowBlur = 0;
       ctx.stroke();
     });
   }
@@ -1034,11 +1056,8 @@ function drawWeave(withBackground = false) {
   else if (settings.linkMode === "spiral") {
     const centerX = width / 2;
     const centerY = height / 2;
-
     visibleWords.forEach((word, index) => {
       const x = word.x * width; const y = word.y * height;
-      if (x < -margin - offsetX/scale || x > width/scale - offsetX/scale + margin) return;
-
       const dx = x - centerX; const dy = y - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const angle = Math.atan2(dy, dx);
@@ -1047,16 +1066,26 @@ function drawWeave(withBackground = false) {
       const spiralX = centerX + Math.cos(spiralAngle) * spiralRadius;
       const spiralY = centerY + Math.sin(spiralAngle) * spiralRadius;
 
-      // Faux Glow
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(spiralX, spiralY);
-      ctx.strokeStyle = word.color;
-      ctx.lineWidth = settings.lineWidth * 2.5;
-      ctx.globalAlpha = 0.15 * settings.linesOpacity;
-      ctx.stroke();
+      if (usePerformance) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(spiralX, spiralY);
+          ctx.strokeStyle = word.color;
+          ctx.lineWidth = settings.lineWidth * 2.5;
+          ctx.globalAlpha = 0.15 * settings.linesOpacity;
+          ctx.shadowBlur = 0;
+          ctx.stroke();
+      } else {
+          ctx.save();
+          ctx.shadowColor = word.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(spiralX, spiralY);
+          ctx.lineWidth = settings.lineWidth; 
+          // Note: Spiral utilise gradient ensuite, on laisse le trait simple pour le glow
+      }
 
-      // Trait (avec dégradé vers transparent)
       const gradient = ctx.createLinearGradient(x, y, spiralX, spiralY);
       gradient.addColorStop(0, word.color);
       gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
@@ -1064,18 +1093,17 @@ function drawWeave(withBackground = false) {
       ctx.moveTo(x, y);
       ctx.lineTo(spiralX, spiralY);
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = settings.lineWidth;
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
       ctx.globalAlpha = 0.8 * settings.linesOpacity;
-      ctx.stroke();
+      
+      if (!usePerformance) { ctx.stroke(); ctx.restore(); } // Fin du save() beauté
+      else { ctx.stroke(); }
     });
   }
 
   // ==================== MODE 6 : WEB (Toile) ====================
   else if (settings.linkMode === "web") {
     displayedWords.forEach((word) => {
-      // Culling préventif sur le mot source
-      if (word.x * width < -margin - offsetX/scale || word.x * width > width/scale - offsetX/scale + margin) return;
-
       const neighbors = displayedWords
         .filter((w) => w !== word)
         .map((w) => ({ word: w, dist: distance(word, w) }))
@@ -1087,16 +1115,32 @@ function drawWeave(withBackground = false) {
         const x2 = neighbor.x * width; const y2 = neighbor.y * height;
         const opacity = Math.max(0.25, 1 - dist / 0.5);
 
-        // Faux Glow
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.lineWidth = settings.lineWidth * 2;
-        ctx.strokeStyle = word.color;
-        ctx.globalAlpha = opacity * 0.15 * settings.linesOpacity;
-        ctx.stroke();
+        if (usePerformance) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineWidth = settings.lineWidth * 2;
+            ctx.strokeStyle = word.color;
+            ctx.globalAlpha = opacity * 0.15 * settings.linesOpacity;
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+        } else {
+            ctx.save();
+            ctx.globalAlpha = opacity * 0.2 * settings.linesOpacity;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = word.color;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2);
+            ctx.strokeStyle = word.color;
+            ctx.stroke();
+            ctx.restore();
+        }
 
-        // Trait
+        ctx.save();
+        ctx.shadowColor = usePerformance ? "transparent" : "rgba(255, 255, 255, 0.2)";
+        ctx.shadowBlur = usePerformance ? 0 : 6;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -1108,9 +1152,10 @@ function drawWeave(withBackground = false) {
         } else {
           ctx.strokeStyle = word.color;
         }
-        ctx.lineWidth = settings.lineWidth * 0.8;
         ctx.globalAlpha = opacity * 0.7 * settings.linesOpacity;
+        ctx.lineWidth = Math.max(2, settings.lineWidth * 0.9);
         ctx.stroke();
+        ctx.restore();
       });
     });
   }
@@ -1120,20 +1165,34 @@ function drawWeave(withBackground = false) {
     connections.forEach(([word1, word2], idx) => {
       const x1 = word1.x * width; const y1 = word1.y * height;
       const x2 = word2.x * width; const y2 = word2.y * height;
-      if (x1 < -margin - offsetX/scale && x2 < -margin - offsetX/scale) return;
-
       const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
 
-      // Faux Glow Pulsant
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.lineWidth = settings.lineWidth * (2 + pulse);
-      ctx.strokeStyle = word2.color;
-      ctx.globalAlpha = 0.2 * settings.linesOpacity;
-      ctx.stroke();
+      if (usePerformance) {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineWidth = settings.lineWidth * (2 + pulse);
+          ctx.strokeStyle = word2.color;
+          ctx.globalAlpha = 0.2 * settings.linesOpacity;
+          ctx.shadowBlur = 0;
+          ctx.stroke();
+      } else {
+          ctx.save();
+          ctx.globalAlpha = 0.25 * settings.linesOpacity;
+          ctx.shadowColor = word2.color;
+          ctx.shadowBlur = 10 * pulse;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.lineWidth = Math.max(3, settings.lineWidth * 1.2 + pulse * 1.5);
+          ctx.strokeStyle = word2.color;
+          ctx.stroke();
+          ctx.restore();
+      }
 
-      // Trait net
+      ctx.save();
+      ctx.shadowColor = usePerformance ? "transparent" : word2.color;
+      ctx.shadowBlur = usePerformance ? 0 : 8 * pulse;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -1146,33 +1205,27 @@ function drawWeave(withBackground = false) {
       } else {
         ctx.strokeStyle = word2.color;
       }
-      ctx.lineWidth = settings.lineWidth * (1 + pulse * 0.5);
+      ctx.lineWidth = Math.max(2, settings.lineWidth * 1.0 + pulse * 1.0);
       ctx.globalAlpha = (0.8 + pulse * 0.1) * settings.linesOpacity;
       ctx.stroke();
+      ctx.restore();
     });
   }
 
   // ==================== MODE 8 : BASKET (Vannerie) ====================
   else if (settings.linkMode === "basket") {
     const gridSize = Math.max(40, settings.weavingDensity || 60);
-    // Culling sur la grille
-    const startXGrid = Math.floor((-offsetX/scale - margin) / gridSize) * gridSize;
-    const endXGrid = Math.floor((width/scale - offsetX/scale + margin) / gridSize) * gridSize;
-    const startYGrid = Math.floor((-offsetY/scale - margin) / gridSize) * gridSize;
-    const endYGrid = Math.floor((height/scale - offsetY/scale + margin) / gridSize) * gridSize;
-
-    for (let y = Math.max(0, startYGrid); y < Math.min(height, endYGrid); y += gridSize) {
-      for (let x = Math.max(0, startXGrid); x < Math.min(width, endXGrid); x += gridSize) {
+    for (let y = 0; y < height; y += gridSize) {
+      for (let x = 0; x < width; x += gridSize) {
         const cellCenterX = x + gridSize / 2;
         const cellCenterY = y + gridSize / 2;
         let closestWord = displayedWords[0];
         let minDist = Infinity;
 
-        // Optimisation recherche (échantillon au lieu de tout parcourir si possible, mais ici on garde la précision)
         displayedWords.forEach((word) => {
           const dx = word.x * width - cellCenterX;
           const dy = word.y * height - cellCenterY;
-          const dist = dx * dx + dy * dy; // Dist au carré plus rapide
+          const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < minDist) {
             minDist = dist;
             closestWord = word;
@@ -1185,26 +1238,33 @@ function drawWeave(withBackground = false) {
         const weavePhase = (time + cellX * 0.2 + cellY * 0.3) % 2;
         const elevation = weavePhase < 1 ? weavePhase : 2 - weavePhase;
 
-        ctx.fillStyle = closestWord.color;
-        
-        // On garde shadowBlur ici car c'est des rectangles, moins coûteux que des paths complexes
-        // Mais on réduit la valeur
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 4 * elevation; 
+        ctx.save();
+        // Pour le basket, shadowBlur n'est pas le pire ennemi car c'est du rect,
+        // mais on peut le réduire en mode perf
+        if (!usePerformance) {
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 5 * elevation;
+            ctx.shadowOffsetY = 3 * elevation;
+        }
 
+        ctx.fillStyle = closestWord.color;
         if (pattern === 0 || pattern === 2) {
             ctx.globalAlpha = (0.7 + elevation * 0.2) * settings.linesOpacity;
-            for (let i = 0; i < 3; i++) ctx.fillRect(x, y + i * (gridSize / 3), gridSize, gridSize / 4);
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(x, y + i * (gridSize / 3), gridSize, gridSize / 4);
+            }
         } else {
             ctx.globalAlpha = (0.5 + elevation * 0.2) * settings.linesOpacity;
-            for (let i = 0; i < 3; i++) ctx.fillRect(x + i * (gridSize / 3), y, gridSize / 4, gridSize);
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(x + i * (gridSize / 3), y, gridSize / 4, gridSize);
+            }
         }
-        ctx.shadowBlur = 0; // Reset
+        ctx.restore();
       }
     }
   }
 
-  // ==================== MODE STANDARD (Par défaut) ====================
+  // ==================== MODE STANDARD (Chronological, Random, etc.) ====================
   else {
     connections.forEach(([word1, word2]) => {
       if (!word1.x || !word2.x) return;
@@ -1212,44 +1272,56 @@ function drawWeave(withBackground = false) {
       const x1 = word1.x * width; const y1 = word1.y * height;
       const x2 = word2.x * width; const y2 = word2.y * height;
 
-      // Culling (Optimisation cruciale)
-      if ((x1 < -margin - offsetX/scale && x2 < -margin - offsetX/scale) || 
-          (x1 > width/scale - offsetX/scale + margin)) return;
-
       let progress = 1;
       if (settings.animateLines && currentAnimatingConnection &&
          ((currentAnimatingConnection[0] === word1 && currentAnimatingConnection[1] === word2) ||
           (currentAnimatingConnection[0] === word2 && currentAnimatingConnection[1] === word1))) {
         progress = animationProgress;
       }
+      const tx = x1 + (x2 - x1) * progress;
+      const ty = y1 + (y2 - y1) * progress;
 
-      const targetX = x1 + (x2 - x1) * progress;
-      const targetY = y1 + (y2 - y1) * progress;
-
-      // PASSAGE 1 : FAUX GLOW (Large et transparent)
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(targetX, targetY);
-      ctx.lineWidth = Math.max(6, settings.lineWidth * 3);
-      ctx.strokeStyle = word2.color;
-      ctx.globalAlpha = 0.15 * settings.linesOpacity;
-      ctx.stroke();
-
-      // PASSAGE 2 : TRAIT NET
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(targetX, targetY);
-      if (settings.useGradient) {
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, word1.color);
-        gradient.addColorStop(1, word2.color);
-        ctx.strokeStyle = gradient;
+      if (usePerformance) {
+          // --- MODE PERF ---
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(tx, ty);
+          ctx.lineWidth = Math.max(6, settings.lineWidth * 3);
+          ctx.strokeStyle = word2.color;
+          ctx.globalAlpha = 0.15 * settings.linesOpacity;
+          ctx.shadowBlur = 0;
+          ctx.stroke();
       } else {
-        ctx.strokeStyle = word2.color;
+          // --- MODE BEAUTÉ ---
+          ctx.save();
+          ctx.globalAlpha = 0.25 * settings.linesOpacity;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = word2.color;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(tx, ty);
+          ctx.lineWidth = Math.max(4, settings.lineWidth * 1.4);
+          ctx.strokeStyle = word2.color;
+          ctx.stroke();
+          ctx.restore();
       }
+
+      // Trait net
+      ctx.save();
+      ctx.shadowColor = usePerformance ? "transparent" : "rgba(255, 255, 255, 0.3)";
+      ctx.shadowBlur = usePerformance ? 0 : 6;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(tx, ty);
+      if (settings.useGradient) {
+        const g = ctx.createLinearGradient(x1, y1, x2, y2);
+        g.addColorStop(0, word1.color); g.addColorStop(1, word2.color);
+        ctx.strokeStyle = g;
+      } else { ctx.strokeStyle = word2.color; }
       ctx.lineWidth = Math.max(2, settings.lineWidth);
       ctx.globalAlpha = 0.9 * settings.linesOpacity;
       ctx.stroke();
+      ctx.restore();
     });
   }
 
@@ -1258,129 +1330,141 @@ function drawWeave(withBackground = false) {
     const deadParticles = [];
     particles = particles.filter((p) => {
       if (p.life <= 0) { deadParticles.push(p); return false; }
-      // Culling particules
-      if (p.x * width < -margin - offsetX/scale || p.x * width > width/scale - offsetX/scale + margin) return true; // On garde mais on dessine pas ? Non on update quand même
       return true; 
     });
     deadParticles.forEach((p) => recycleParticle(p));
-
-    particles.forEach((p) => {
-      p.update();
-      // Dessin seulement si visible
-      const px = p.x * width;
-      if (px > -margin - offsetX/scale && px < width/scale - offsetX/scale + margin) {
-          p.draw(ctx); // Note: p.draw utilise scale/translate du contexte ? Non, p.x est relatif 0-1 ?
-          // Attention: ta classe Particle dessine en coordonnées absolues ou relatives ?
-          // Dans ton code original: this.x += this.vx; this.x est en pixels ou ratio ? 
-          // Particle semble être en pixels dans ton code original si update() fait += vx.
-          // Mais ici on a un scale contextuel...
-          // CORRECTION RAPIDE : Ton code original faisait p.draw(ctx) sans conversion spéciale.
-          // Je suppose que Particle gère ses coords.
-      }
-    });
+    // En mode perf, on peut aussi choisir de moins dessiner de particules, 
+    // mais gardons-les pour l'instant, c'est léger.
+    particles.forEach((p) => { p.update(); p.draw(ctx); });
   } else {
     particles.forEach((p) => recycleParticle(p));
     particles = [];
   }
 
-  // ==================== DESSIN DES MOTS (OPTIMISÉ) ====================
+  // ==================== DESSIN DES MOTS ====================
   const wordOccurrences = getWordOccurrences();
   const uniqueDisplayMap = new Map();
   
   visibleWords.forEach((word) => {
-    // Culling strict sur les mots
-    const wx = word.x * width;
-    const wy = word.y * height;
-    if (wx < -margin - offsetX/scale || wx > width/scale - offsetX/scale + margin ||
-        wy < -margin - offsetY/scale || wy > height/scale - offsetY/scale + margin) return;
-
     const key = word.text.toLowerCase();
     if (!uniqueDisplayMap.has(key)) uniqueDisplayMap.set(key, word);
   });
 
-  const uniqueWordsList = Array.from(uniqueDisplayMap.values());
   ctx.globalAlpha = 1;
-
-  uniqueWordsList.forEach((word) => {
+  
+  Array.from(uniqueDisplayMap.values()).forEach((word) => {
     const occurrences = wordOccurrences[word.text.toLowerCase()];
-    const pointSize = getPointRadius(occurrences);
+    const pointSize = getPointRadius(occurrences) * settings.globalScale;
     const isHighlighted = word.highlighted || false;
     const highlightBonus = isHighlighted ? 6 : 0;
-    const finalPointSize = (pointSize + highlightBonus) * settings.globalScale;
+    const finalSize = pointSize + highlightBonus;
 
     const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
     const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
 
-    if (settings.enableParticles && Math.random() < 0.06) {
-      // Attention coordonnées particules à vérifier selon implémentation
-      // particles.push(getParticle(x, y, word.color)); 
+    // MODE CONSTELLATION (Scintillement)
+    if (settings.linkMode === "constellation") {
+        const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
+        for (let i = 0; i < 3; i++) {
+            const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
+            const r = 30 + Math.sin(time + i) * 10;
+            ctx.beginPath();
+            ctx.arc(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 2, 0, Math.PI*2);
+            ctx.fillStyle = word.color;
+            ctx.globalAlpha = twinkle * 0.6 * settings.linesOpacity;
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
     }
 
-    // FAUX GLOW (Cercle transparent) au lieu de shadowBlur
-    ctx.beginPath();
-    ctx.arc(x, y, finalPointSize + 10, 0, Math.PI * 2);
-    ctx.fillStyle = word.color;
-    ctx.globalAlpha = 0.3; // Transparent
-    ctx.fill();
+    // DESSIN DU POINT
+    if (usePerformance) {
+        // --- PERF : Cercle transparent ---
+        ctx.beginPath();
+        ctx.arc(x, y, finalSize + 8, 0, Math.PI * 2);
+        ctx.fillStyle = word.color;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+    } else {
+        // --- BEAUTÉ : Pulse & ShadowBlur ---
+        const pulseSize = finalSize + 10 + Math.sin(time*3)*4;
+        ctx.beginPath();
+        ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+        ctx.strokeStyle = word.color;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.5;
+        // Pas de shadowBlur ici pour éviter la surcharge, le stroke suffit
+        ctx.stroke();
+    }
 
-    // CERCLE PRINCIPAL
+    // Coeur du point
     ctx.beginPath();
-    ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
+    ctx.arc(x, y, finalSize, 0, Math.PI * 2);
     ctx.fillStyle = word.color;
     ctx.globalAlpha = 1;
+    
+    if (usePerformance) {
+        ctx.shadowBlur = 0;
+    } else {
+        ctx.shadowColor = word.color;
+        ctx.shadowBlur = isHighlighted ? 28 : 20;
+    }
     ctx.fill();
 
-    // CONTOUR BLANC
+    // Contour blanc
     ctx.beginPath();
-    ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.arc(x, y, finalSize, 0, Math.PI * 2);
+    ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
     ctx.lineWidth = isHighlighted ? 5 : 3;
+    ctx.shadowBlur = 0;
     ctx.stroke();
-
-    // REFLET
+    
+    // Reflet (Petit détail sympa)
     ctx.beginPath();
-    ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
+    ctx.arc(x, y, finalSize * 0.35, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.shadowBlur = usePerformance ? 0 : 8;
+    ctx.shadowColor = "white";
     ctx.fill();
+    ctx.shadowBlur = 0;
   });
 
-  // ==================== DESSIN DU TEXTE (OPTIMISÉ) ====================
+  // --- 4. DESSIN DU TEXTE ---
   if (settings.showWords) {
     ctx.globalAlpha = 1;
-    const isMobile = window.innerWidth < 768;
-    const baseFontSize = isMobile ? 22 : 28;
-    const fontSize = baseFontSize * settings.globalScale;
+    const fontSize = (window.innerWidth < 768 ? 22 : 28) * settings.globalScale;
     ctx.font = `bold ${fontSize}px Inter, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
 
-    uniqueWordsList.forEach((word) => {
+    Array.from(uniqueDisplayMap.values()).forEach((word) => {
       const occurrences = wordOccurrences[word.text.toLowerCase()];
-      const isHighlighted = word.highlighted || false;
-      const highlightBonus = isHighlighted ? 6 : 0;
-      const pointSize = (getPointRadius(occurrences) + highlightBonus) * settings.globalScale;
-
+      const pointSize = getPointRadius(occurrences) * settings.globalScale;
       const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
       const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
       const x = word.x * width + wobbleX;
       const y = word.y * height + wobbleY;
-      const textY = y - pointSize - Math.max(22, fontSize * 0.6);
+      const textY = y - pointSize - (Math.max(22, fontSize * 0.6));
 
-      // CONTOUR TEXTE (Stroke au lieu de Shadow)
+      // Contour Texte
+      ctx.shadowColor = usePerformance ? "transparent" : "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = usePerformance ? 0 : 12;
       ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
       ctx.lineWidth = 6;
-      ctx.lineJoin = "round";
       ctx.strokeText(word.text, x, textY);
 
-      // TEXTE
-      const brightColor = word.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/, (m, h, s, l) => {
-          return `hsl(${h}, ${s}%, ${Math.min(85, parseInt(l) + 20)}%)`;
-      });
+      // Remplissage Texte
+      const brightColor = word.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/, (m, h, s, l) => `hsl(${h}, ${s}%, ${Math.min(85, parseInt(l) + 20)}%)`);
       ctx.fillStyle = brightColor;
-      // Petit glow léger sur le texte seulement si nécessaire
-      // ctx.shadowColor = brightColor; ctx.shadowBlur = 10; 
+      
+      if (usePerformance) {
+          ctx.shadowBlur = 0;
+      } else {
+          ctx.shadowColor = brightColor;
+          ctx.shadowBlur = 20; // Glow texte
+      }
       ctx.fillText(word.text, x, textY);
       ctx.shadowBlur = 0;
     });
@@ -2458,6 +2542,13 @@ function setupFullscreen() {
 }
 
   // ==================== EVENT LISTENERS ====================
+
+  // Ajoute ceci avec tes autres event listeners (vers ligne 1250)
+document.getElementById("performance-mode-toggle")?.addEventListener("change", (e) => {
+  settings.performanceMode = e.target.checked;
+  scheduleRedraw();
+});
+
   wordForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = wordInput.value.trim();
