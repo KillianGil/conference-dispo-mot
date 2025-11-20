@@ -1,90 +1,39 @@
-/* ==================== BASE ==================== */
+/* ==================== BASE & RESET ==================== */
 body { 
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    background-color: #0a0f1a; /* Fond sombre de base */
+    overflow: hidden; /* Empêche le scroll global (seuls les panels scrollent) */
 }
 
-.header-minimal {
+/* ==================== CONTAINER PRINCIPAL ==================== */
+#main-container {
     position: relative;
-    background: rgba(17, 24, 39, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1.5rem;
-    text-align: center;
+    height: 100vh;
+    width: 100vw;
+    /* On passe en block pour superposer les éléments (Z-index) */
+    display: block; 
 }
 
-.line-decoration {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        #667eea 50%, 
-        transparent 100%);
-    animation: lineMove 3s ease-in-out infinite;
-}
-
-@keyframes lineMove {
-    0%, 100% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
-}
-
-.title-minimal {
-    font-size: 2rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-}
-
-.title-word {
-    position: relative;
-    display: inline-block;
-    transition: all 0.3s ease;
-}
-
-.title-word:hover {
-    transform: translateY(-2px);
-    color: #667eea;
-}
-
-.title-separator {
-    color: #667eea;
-    font-weight: 300;
-}
-
-.subtitle-minimal {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 400;
-    font-style: italic;
-}
-
-/* ==================== CANVAS CONTAINER ==================== */
-/* ==================== CANVAS CONTAINER ==================== */
+/* ==================== CANVAS (ARRIÈRE-PLAN) ==================== */
+/* Le canvas est en absolute pour être derrière l'interface */
 #canvas-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    /* overflow: hidden; <--- C'EST LE COUPABLE ! SUPPRIMEZ OU CHANGEZ EN VISIBLE */
-    overflow: visible; 
-    background: #0a0f1a;
-    will-change: transform;
-    z-index: 10; /* Passe devant le panneau */
-}
-
-#weave-canvas {
     position: absolute;
     top: 0;
     left: 0;
     width: 100% !important;
     height: 100% !important;
+    z-index: 1; /* Tout en bas */
+    overflow: visible;
+    background: #0a0f1a;
+}
+
+#weave-canvas {
     display: block;
+    width: 100%;
+    height: 100%;
     touch-action: none;
     user-select: none;
     cursor: grab;
@@ -94,526 +43,319 @@ body {
     cursor: grabbing;
 }
 
-/* ==================== MAIN CONTAINER ==================== */
-#main-container {
+/* ==================== HEADER FLOTTANT (CAPSULE) ==================== */
+.header-minimal {
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: 280px;
+    max-width: 90%;
+    z-index: 60; /* Au-dessus de tout */
+    
+    /* Style Verre (Glassmorphism) */
+    background: rgba(17, 24, 39, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px; /* Forme de pilule */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    
+    padding: 0.75rem 2rem;
+    text-align: center;
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.header-minimal:hover {
+    background: rgba(17, 24, 39, 0.85);
+    transform: translateX(-50%) translateY(2px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.title-minimal {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    letter-spacing: 0.02em;
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-@media (min-width: 768px) {
-    #main-container {
-        flex-direction: row;
-    }
+.title-separator {
+    color: #818cf8; /* Indigo-400 */
 }
 
-/* Fix pour le canvas écrasé */
-#main-container.panel-hidden #canvas-container {
-    width: 100% !important;
+.subtitle-minimal {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 2px;
+    font-weight: 400;
 }
 
-#canvas-container {
-    transition: width 0.3s ease-in-out;
+.line-decoration { display: none; }
+
+/* ==================== PANNEAU LISTE DES MOTS (DÉTACHÉ) ==================== */
+#words-panel {
+    position: absolute;
+    top: 7rem; /* Sous le header */
+    left: 2rem;
+    bottom: 7rem; /* Au-dessus du footer */
+    width: 320px;
+    z-index: 10; /* Au-dessus du canvas */
+    
+    /* Style Carte Flottante */
+    background: rgba(20, 25, 40, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    
+    padding: 1.5rem;
+    
+    /* Animation Entrée/Sortie fluide */
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                opacity 0.4s ease;
+    transform: translateX(0);
+    opacity: 1;
 }
 
-/* ==================== SCROLLBARS ==================== */
-#words-panel::-webkit-scrollbar,
-#stats-panel::-webkit-scrollbar { 
-    width: 6px; 
+#words-panel h2 {
+    font-size: 1.25rem;
+    margin-top: 0;
 }
 
-#words-panel::-webkit-scrollbar-track,
-#stats-panel::-webkit-scrollbar-track { 
-    background: #1f2937; 
+/* État caché (Slide vers la gauche) */
+#main-container.panel-hidden #words-panel {
+    transform: translateX(-120%);
+    opacity: 0;
+    pointer-events: none;
 }
 
-#words-panel::-webkit-scrollbar-thumb,
-#stats-panel::-webkit-scrollbar-thumb { 
-    background-color: #4b5563; 
-    border-radius: 20px; 
-}
-
-/* ==================== WORD ITEMS ==================== */
+/* Items de la liste */
 .word-item { 
-    animation: fadeIn 0.4s ease-out;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    border-left-width: 4px !important;
+    
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Effet rebond */
 }
 
 .word-item:hover {
-    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(6px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.word-item:active {
-    transform: scale(0.98);
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-10px); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
-    }
-}
-
-/* ==================== TOGGLE PANEL BUTTON ==================== */
-#toggle-panel-button {
-    position: absolute;
-    z-index: 50; /* Au-dessus de tout */
-    
-    /* MOBILE (par défaut) : En haut, centré horizontalement */
-    top: 0; 
-    left: 50%;
-    transform: translate(-50%, -50%); /* Remonte de moitié pour chevaucher le bord */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-#toggle-panel-button svg {
-    transition: transform 0.3s ease;
-}
-/* ==================== PANEL TRANSITIONS ==================== */
-#main-container.panel-hidden #words-panel {
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-bottom-width: 0;
-    overflow: hidden;
-}
-
-#main-container.panel-hidden #toggle-panel-button svg {
-    transform: rotate(-180deg);
-}
-
-/* ==================== FOOTER ==================== */
-footer {
-        background: linear-gradient(to top, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.95));
-        backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(99, 102, 241, 0.2);
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-    }
-
-/* Amélioration des boutons du footer */
-footer button {
-    position: relative;
-    overflow: hidden;
+/* Barre de recherche */
+#word-filter {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     transition: all 0.3s ease;
 }
 
-footer button::before {
-    content: '';
+#word-filter:focus {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* ==================== BOUTON TOGGLE PANEL ==================== */
+#toggle-panel-button {
+    /* Positionné par rapport au panel pour bouger avec lui sur mobile, 
+       ou rester fixe en desktop. Ici on le fixe à l'écran. */
     position: absolute;
-    top: 50%;
+    top: 7rem;
+    left: 23rem; /* Juste à droite du panel (320px + margin) */
+    z-index: 20;
+    
+    background: rgba(31, 41, 55, 0.9);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Quand le panel est caché, le bouton revient vers la gauche */
+#main-container.panel-hidden #toggle-panel-button {
+    left: 1.5rem;
+    background: rgba(99, 102, 241, 0.9); /* Devient bleu pour inciter au clic */
+}
+
+#main-container.panel-hidden #toggle-panel-button svg {
+    transform: rotate(180deg);
+}
+
+/* ==================== FOOTER (DÉTACHÉ) ==================== */
+footer {
+    position: absolute;
+    bottom: 1.5rem;
     left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: 95%;
+    z-index: 50;
+    
+    /* Style Verre */
+    background: rgba(17, 24, 39, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
 }
 
-footer button:hover::before {
-    width: 300px;
-    height: 300px;
+/* ==================== BOUTONS & INPUTS (STYLE FLUIDE) ==================== */
+button {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-footer button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+button:active {
+    transform: scale(0.92);
 }
 
-/* Bouton Tisser avec effet spécial */
+#word-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+#word-input:focus {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: #818cf8;
+    transform: translateY(-1px);
+}
+
 #word-form button[type="submit"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 #word-form button[type="submit"]:hover {
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
     transform: translateY(-2px);
 }
 
-/* ==================== SETTINGS MODAL ==================== */
-#settings-modal,
-#qr-modal {
-    overflow-y: auto;
+/* Boutons d'outils (rond/carré) */
+footer > div button {
+    border-radius: 14px;
+    background: rgba(55, 65, 81, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-#settings-modal > div {
-    max-height: 70vh;
-    overflow-y: auto;
-    margin: 1rem auto;
+footer > div button:hover {
+    background: rgba(75, 85, 99, 0.8);
+    transform: translateY(-3px);
 }
 
-#settings-modal > div::-webkit-scrollbar {
-    width: 4px;
+/* ==================== SCROLLBARS PERSONNALISÉES ==================== */
+::-webkit-scrollbar {
+    width: 6px;
 }
-
-#settings-modal > div::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     background: transparent;
 }
-
-#settings-modal > div::-webkit-scrollbar-thumb {
-    background-color: rgba(99, 102, 241, 0.5);
-    border-radius: 20px;
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
 }
 
-#settings-modal > div::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(99, 102, 241, 0.7);
+/* ==================== STATS & MODALS ==================== */
+#stats-panel {
+    /* Positionnement fixe pour les stats aussi */
+    position: absolute;
+    top: 7rem;
+    right: 2rem;
+    width: 300px;
+    max-height: calc(100vh - 10rem);
+    z-index: 55;
+    
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
+/* ==================== RESPONSIVE / MOBILE ==================== */
 @media (max-width: 767px) {
-    #settings-modal > div {
-        max-width: calc(100vw - 2rem);
-        max-height: 65vh;
-        padding: 1rem;
-        margin: 1rem;
+    /* Le header devient plus petit */
+    .header-minimal {
+        top: 1rem;
+        width: 90%;
+        min-width: auto;
+        padding: 0.5rem 1rem;
     }
     
-    #settings-modal h3 {
-        font-size: 1.125rem;
-        padding-right: 2rem;
-        margin-bottom: 1rem;
-    }
-    
-    #settings-modal .mb-6 {
-        margin-bottom: 1rem;
-    }
-    
-    #settings-modal .space-y-2 > * + * {
-        margin-top: 0.5rem;
-    }
-    
-    #settings-modal .space-y-3 > * + * {
-        margin-top: 0.625rem;
-    }
-    
-    #settings-modal label {
-        font-size: 0.875rem;
-    }
-    
-    #settings-modal .text-xs {
-        font-size: 0.7rem;
-    }
-    
-    #close-settings-button {
-        z-index: 10;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    #close-settings-button:active {
-        background: rgba(0, 0, 0, 0.5);
-    }
-}
+    .title-minimal { font-size: 1rem; }
+    .subtitle-minimal { display: none; } /* Gain de place */
 
-@media (max-width: 380px) {
-    #settings-modal > div {
-        max-height: 55vh;
-        padding: 0.875rem;
+    /* Le Panel prend plus de place mais reste flottant */
+    #words-panel {
+        top: 5rem;
+        left: 1rem;
+        right: 1rem; /* Prend la largeur */
+        width: auto;
+        bottom: 6rem;
+        background: rgba(20, 25, 40, 0.95); /* Plus opaque pour lisibilité */
     }
     
-    #settings-modal h3 {
-        font-size: 1rem;
-    }
-}
-
-/* ==================== QR CODE MODAL ==================== */
-#qr-modal > div {
-    max-width: 400px;
-}
-
-@media (max-width: 640px) {
-    #qr-modal > div {
-        max-width: calc(100vw - 3rem);
-        padding: 1.5rem;
-    }
-    
-    #qr-modal h3 {
-        font-size: 1.125rem;
-    }
-    
-    #qr-modal p {
-        font-size: 0.875rem;
-    }
-    
-    #qrcode-display {
-        max-width: 100%;
-        overflow: hidden;
-    }
-    
-    #qrcode-display img {
-        max-width: 100%;
-        height: auto;
-    }
-}
-
-/* ==================== TABLET & DESKTOP (768px+) ==================== */
-/* ==================== TABLET & DESKTOP (768px+) ==================== */
-@media (min-width: 768px) {
+    /* Bouton toggle sur mobile */
     #toggle-panel-button {
-        top: 50%;
-        left: -5px; /* 🔥 Plus visible sur le côté */
-        transform: translateY(-50%);
-        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
-    }
-    
-    #main-container.panel-hidden #words-panel {
-        width: 0;
-        max-height: none;
-        padding-left: 0;
-        padding-right: 0;
-        transform: translateX(-100%);
-        border-right-width: 0;
-        border-bottom-width: inherit;
+        top: 5.5rem;
+        left: auto;
+        right: -10px; /* Cache le bouton ou le déplace */
+        /* En réalité sur mobile on peut vouloir le mettre ailleurs.
+           Ici on va le mettre en "overlay" sur le panel */
+        right: 1.5rem;
+        left: auto;
+        background: #4f46e5;
     }
     
     #main-container.panel-hidden #toggle-panel-button {
-        left: 10px; /* 🔥 Quand fermé, visible à gauche */
+        left: 1rem;
+        right: auto;
     }
-    
-    #main-container.panel-hidden #toggle-panel-button svg {
-        transform: rotate(180deg);
-    }
-}
 
-/* ==================== MOBILE (max 767px) ==================== */
-@media (max-width: 767px) {
-    header h1 {
-        font-size: 1.5rem;
-    }
-    
-    header p {
-        font-size: 0.75rem;
-    }
-    
+    /* Le footer colle au bas ou flotte très bas */
     footer {
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        bottom: 1rem;
+        width: 95%;
         padding: 0.5rem;
+        border-radius: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     #word-form {
         width: 100%;
-        order: -1;
         margin-bottom: 0.5rem;
-        display: flex;
-        gap: 0.5rem;
-    }
-    
-    #word-input {
-        flex: 1;
-        min-height: 44px;
-        font-size: 16px;
-        padding: 0.5rem 0.75rem;
-        background: rgba(55, 65, 81, 0.5);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        transition: all 0.3s ease;
-    }
-    
-    #word-input:focus {
-        background: rgba(55, 65, 81, 0.7);
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1),
-                    0 4px 12px rgba(102, 126, 234, 0.2);
-    }
-    
-    #word-input::placeholder {
-        color: rgba(156, 163, 175, 0.6);
-    }
-    
-    #word-form button[type="submit"] {
-        flex-shrink: 0;
-        padding: 0.5rem 1.25rem;
-        font-size: 15px;
-        white-space: nowrap;
-        min-width: 80px;
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        font-weight: 600;
     }
     
     footer > div {
         width: 100%;
         justify-content: space-between;
-    }
-    
-    footer > div > button {
-        flex: 1;
-        min-width: 48px;
-        max-width: none;
-        height: 48px;
-        padding: 0.75rem;
         display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    footer button svg {
-        width: 1.25rem;
-        height: 1.25rem;
-        margin: auto;
-    }
-    
-    .word-item {
-        padding: 0.625rem;
-        font-size: 0.875rem;
-    }
-    
-    #stats-panel {
-        /* On le centre au milieu de l'écran */
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        
-        /* On annule le positionnement du bas */
-        bottom: auto; 
-        right: auto;
-        
-        /* Dimensions contrôlées */
-        width: 90%;          /* Largeur : 90% de l'écran */
-        max-width: 400px;    /* Pas trop large sur les grands téléphones */
-        max-height: 80vh;    /* Hauteur Max : 80% de l'écran (laisse de la place pour fermer) */
-        
-        /* Activation du scroll */
-        overflow-y: auto; 
-        
-        /* Bordure et ombre pour bien le détacher */
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-}
-
-/* ==================== SMALL MOBILE (max 380px) ==================== */
-@media (max-width: 380px) {
-    footer > div > button {
-        min-width: 44px;
-        height: 44px;
-        padding: 0.625rem;
-    }
-    
-    footer button svg {
-        width: 1.1rem;
-        height: 1.1rem;
-    }
-    
-    #word-form button[type="submit"] {
-        min-width: 70px;
-        padding: 0.5rem 1rem;
-        font-size: 14px;
-    }
-}
-
-/* ==================== COLOR PICKER ==================== */
-#color-picker-input {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding: 0;
-    overflow: hidden;
-}
-
-#color-picker-input::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-
-#color-picker-input::-webkit-color-swatch {
-    border: none;
-    border-radius: 0.5rem;
-}
-
-#color-picker-input::-moz-color-swatch {
-    border: none;
-    border-radius: 0.5rem;
-}
-
-#color-hex-input.border-red-500 {
-    border-color: #ef4444 !important;
-    animation: shake 0.3s;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-#custom-color-picker {
-    animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        max-height: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        max-height: 300px;
-        transform: translateY(0);
-    }
-}
-
-/* ==================== TOUCH DEVICES ==================== */
-@media (hover: none) {
-    button:active {
-        transform: scale(0.95);
-    }
-    
-    input[type="radio"]:active,
-    input[type="checkbox"]:active {
-        transform: scale(1.1);
-    }
-}
-
-/* ==================== ANIMATIONS ==================== */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: .5;
-    }
-}
-
-.animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-/* ==================== FIX MOBILE STATS (Ajouté à la fin) ==================== */
-@media (max-width: 767px) {
-    #stats-panel {
-        /* On force le centrage au milieu de l'écran */
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        
-        /* On annule les positions parasites */
-        bottom: auto !important;
-        right: auto !important;
-        margin: 0 !important;
-        
-        /* Dimensions limitées pour voir la croix */
-        width: calc(100vw - 2rem) !important;
-        max-width: 400px !important;
-        max-height: 65vh !important; /* Hauteur max de 65% de l'écran */
-        
-        /* Scroll et style */
-        overflow-y: auto !important;
-        z-index: 9999 !important;
-        border-radius: 1rem !important;
-        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.7) !important; /* Assombrit le fond */
     }
 }

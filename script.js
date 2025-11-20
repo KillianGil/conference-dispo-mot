@@ -58,7 +58,7 @@ const FORBIDDEN_WORDS = [
   "staline", "lenine", "mao",
   "ben laden", "osama ben laden",
   "kadhafi", "saddam", "pol pot",
-  "pétain", "mussolini", "benladen", "netanyahu", "putain", "ptn", "put3", "h1tler",
+  "pétain", "mussolini", "benladen", "netanyahu", "putain", "ptn", "put3", "h1tler","kiki",
 
   // Criminels connus (aucune restriction)
   "dahmer", "bundy", "manson", "joachim kroll",
