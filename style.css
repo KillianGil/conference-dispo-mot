@@ -233,16 +233,15 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (CORRIGÉ) ==================== */
+/* ==================== 6. BOUTON TOGGLE (OPTIMISÉ FLUIDE) ==================== */
 #toggle-panel-button {
-    position: fixed; /* Important pour qu'il sorte du flux */
+    position: fixed;
     z-index: 60;
     
-    /* --- ETAT OUVERT : HAUT DROITE DE LA LISTE --- */
-    /* Calcul précis pour qu'il tombe dans le coin du panneau */
-    /* Left = 2rem (marge panneau) + 300px (largeur panneau) - 40px (largeur bouton + marge) */
-    left: calc(2rem + 300px - 50px); 
-    top: 9rem; /* Juste en dessous du titre "Liste des mots" */
+    /* --- ÉTAT OUVERT (Haut Droite de la liste) --- */
+    /* On ajuste le 'top' pour compenser le translateY(-50%) qu'on ajoute pour la fluidité */
+    left: calc(2rem + 300px - 48px); 
+    top: 9rem; 
     
     width: 32px; height: 32px;
     border-radius: 50%;
@@ -253,25 +252,39 @@ body {
     
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: all 0.4s ease; /* Doit être la même vitesse que le panneau */
+    
+    /* CRUCIAL : On applique le centrage Y dès le départ pour éviter le "saut" lors de l'anim */
+    transform: translateY(-50%);
+    
+    /* Lissage maximal des animations */
+    transition: 
+        left 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        top 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        width 0.4s ease,
+        height 0.4s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease;
+        
+    /* Indique au navigateur de préparer le GPU */
+    will-change: left, top, width, height;
 }
 
 #toggle-panel-button:hover { 
-    transform: scale(1.1); 
-    background: rgba(255, 255, 255, 0.2); 
+    transform: translateY(-50%) scale(1.1); /* On garde le translateY */
+    background: rgba(255, 255, 255, 0.2);
 }
 
-/* --- ETAT FERMÉ : FLOTTANT A GAUCHE --- */
-/* Quand le panneau a la classe .panel-hidden */
+/* --- ÉTAT FERMÉ (Flottant à gauche) --- */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 1.5rem; /* Collé à gauche */
-    top: 50%;
-    transform: translateY(-50%);
+    left: 1.5rem;
+    top: 50vh; /* Utiliser vh au lieu de % rend l'animation plus stable */
     
-    width: 48px; height: 48px; /* Plus gros pour être visible */
+    width: 48px; height: 48px;
     background: #6366f1;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    
+    /* Le transform: translateY(-50%) est hérité de l'état de base, donc pas de rupture */
 }
 
 #main-container.panel-hidden #toggle-panel-button:hover { 
@@ -282,9 +295,10 @@ body {
 /* Rotation de la flèche */
 #main-container.panel-hidden #toggle-panel-button svg { 
     transform: rotate(180deg); 
+    transition: transform 0.4s ease;
 }
 
-/* Masquer sur mobile comme avant */
+/* Mobile : Toujours caché */
 @media (max-width: 767px) {
     #toggle-panel-button { display: none !important; }
 }
