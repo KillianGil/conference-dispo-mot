@@ -233,15 +233,18 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (OPTIMISÉ FLUIDE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (POSITION PARFAITE & FLUIDE) ==================== */
 #toggle-panel-button {
     position: fixed;
     z-index: 60;
     
     /* --- ÉTAT OUVERT (Haut Droite de la liste) --- */
-    /* On ajuste le 'top' pour compenser le translateY(-50%) qu'on ajoute pour la fluidité */
+    /* Left = 2rem (marge panel) + 300px (largeur panel) - 48px (bouton + marge int) */
     left: calc(2rem + 300px - 48px); 
-    top: 9rem; 
+    
+    /* AJUSTEMENT HAUTEUR : On le descend à 10rem pour qu'il soit bien DANS le panneau */
+    /* (Le panneau commence à 8rem, donc 10rem laisse de l'espace au-dessus) */
+    top: 10rem; 
     
     width: 32px; height: 32px;
     border-radius: 50%;
@@ -253,38 +256,35 @@ body {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
-    /* CRUCIAL : On applique le centrage Y dès le départ pour éviter le "saut" lors de l'anim */
+    /* Centrage vertical constant pour éviter les sauts */
     transform: translateY(-50%);
     
-    /* Lissage maximal des animations */
+    /* Animation synchronisée avec le panneau (0.4s) pour la fluidité */
     transition: 
-        left 0.4s cubic-bezier(0.25, 1, 0.5, 1),
-        top 0.4s cubic-bezier(0.25, 1, 0.5, 1),
-        width 0.4s ease,
-        height 0.4s ease,
+        left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.3s ease,
+        height 0.3s ease,
         background 0.3s ease,
-        box-shadow 0.3s ease;
+        transform 0.3s ease;
         
-    /* Indique au navigateur de préparer le GPU */
-    will-change: left, top, width, height;
+    will-change: left, top; /* Optimisation fluidité */
 }
 
 #toggle-panel-button:hover { 
-    transform: translateY(-50%) scale(1.1); /* On garde le translateY */
+    transform: translateY(-50%) scale(1.1);
     background: rgba(255, 255, 255, 0.2);
 }
 
 /* --- ÉTAT FERMÉ (Flottant à gauche) --- */
 #main-container.panel-hidden #toggle-panel-button {
     left: 1.5rem;
-    top: 50vh; /* Utiliser vh au lieu de % rend l'animation plus stable */
+    top: 50%; /* Retour au milieu de l'écran */
     
     width: 48px; height: 48px;
     background: #6366f1;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    
-    /* Le transform: translateY(-50%) est hérité de l'état de base, donc pas de rupture */
 }
 
 #main-container.panel-hidden #toggle-panel-button:hover { 
