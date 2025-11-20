@@ -1518,73 +1518,77 @@ function drawWeave(withBackground = false) {
     document.getElementById("stats-content").innerHTML = html;
   }
 
-  // ==================== DÉTECTION CHEVAUCHEMENTS ====================
+ // ==================== DÉTECTION CHEVAUCHEMENTS (PUISSANCE MAX) ====================
 function detectAndResolveOverlaps() {
   const wordOccurrences = getWordOccurrences();
   const width = canvas.clientWidth || 800;
+  const height = canvas.clientHeight || 600; // On prend aussi la hauteur
   
   // Regrouper par mot unique
   const uniqueWords = new Map();
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
-    if (!uniqueWords.has(key)) {
-      uniqueWords.set(key, word);
-    }
+    if (!uniqueWords.has(key)) uniqueWords.set(key, word);
   });
   
   const uniqueArray = Array.from(uniqueWords.values());
-  let hasOverlaps = false;
   
-  // Vérifier chaque paire de mots
-  for (let i = 0; i < uniqueArray.length; i++) {
-    for (let j = i + 1; j < uniqueArray.length; j++) {
-      const word1 = uniqueArray[i];
-      const word2 = uniqueArray[j];
-      
-      const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
-      const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
-      
-      const radius1 = getPointRadius(occurrences1) / width;
-      const radius2 = getPointRadius(occurrences2) / width;
-      
-      const dx = word1.x - word2.x;
-      const dy = word1.y - word2.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      const minDist = radius1 + radius2 + 0.08; // Marge de sécurité
-      
-      if (dist < minDist && dist > 0.001) {
-        hasOverlaps = true;
-        
-        // Éloigner les deux points proportionnellement
-        const overlap = minDist - dist;
-        const angle = Math.atan2(dy, dx);
-        
-        word1.x += Math.cos(angle) * overlap / 2;
-        word1.y += Math.sin(angle) * overlap / 2;
-        word2.x -= Math.cos(angle) * overlap / 2;
-        word2.y -= Math.sin(angle) * overlap / 2;
-        
-        // Appliquer à tous les mots identiques
-        displayedWords.forEach(w => {
-          if (w.text.toLowerCase() === word1.text.toLowerCase()) {
-            w.x = word1.x;
-            w.y = word1.y;
+  // 🔥 5 PASSES DE RÉSOLUTION (Pour bien démêler les grappes)
+  for (let k = 0; k < 5; k++) {
+      let hasMoved = false;
+
+      for (let i = 0; i < uniqueArray.length; i++) {
+        for (let j = i + 1; j < uniqueArray.length; j++) {
+          const word1 = uniqueArray[i];
+          const word2 = uniqueArray[j];
+          
+          const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
+          const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
+          
+          // Rayon en % de l'écran (approximatif pour la collision)
+          // On divise par la moyenne largeur/hauteur pour être cohérent
+          const screenSize = (width + height) / 2;
+          const radius1 = (getPointRadius(occurrences1) + 10) / screenSize; 
+          const radius2 = (getPointRadius(occurrences2) + 10) / screenSize;
+          
+          const dx = word1.x - word2.x;
+          // Correction du ratio d'aspect pour que la distance soit visuellement juste
+          const aspect = width / height;
+          const dy = (word1.y - word2.y) / aspect; 
+          
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = radius1 + radius2 + 0.02; // Marge de sécurité (espace vide)
+          
+          if (dist < minDist && dist > 0.0001) {
+            hasMoved = true;
+            
+            const overlap = minDist - dist;
+            const angle = Math.atan2(dy, dx);
+            
+            // Force de repousse douce
+            const moveX = Math.cos(angle) * overlap * 0.5;
+            const moveY = Math.sin(angle) * overlap * 0.5 * aspect; // Rétablir l'aspect Y
+
+            word1.x += moveX;
+            word1.y += moveY;
+            word2.x -= moveX;
+            word2.y -= moveY;
           }
-          if (w.text.toLowerCase() === word2.text.toLowerCase()) {
-            w.x = word2.x;
-            w.y = word2.y;
-          }
-        });
+        }
       }
-    }
+      // Si rien n'a bougé cette passe, on arrête d'optimiser
+      if (!hasMoved) break; 
   }
-  
-  if (hasOverlaps) {
-    console.log("⚠️ Chevauchements détectés et corrigés");
-    geometryCache.clear();
-    scheduleRedraw();
-  }
+
+  // Appliquer les nouvelles positions aux doublons
+  uniqueArray.forEach(unique => {
+      displayedWords.forEach(w => {
+          if (w.text.toLowerCase() === unique.text.toLowerCase()) {
+              w.x = unique.x;
+              w.y = unique.y;
+          }
+      });
+  });
 }
   // ==================== FETCH WORDS ====================
   async function fetchWords() {
