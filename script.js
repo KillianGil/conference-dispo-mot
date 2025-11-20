@@ -2486,41 +2486,73 @@ function updateWordListColors(forceColor = null) {
     });
   }
 
-  // ==================== MODE PLEIN ÉCRAN ====================
-  function setupFullscreen() {
-    const fullscreenButton = document.getElementById("fullscreen-button");
+// ==================== MODE PLEIN ÉCRAN ====================
+function setupFullscreen() {
+  const fullscreenButton = document.getElementById("fullscreen-button");
 
-    if (fullscreenButton) {
-      fullscreenButton.addEventListener("click", () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch((err) => {
-            console.error("Erreur plein écran:", err);
-          });
-        } else {
-          document.exitFullscreen();
-        }
-      });
+  if (fullscreenButton) {
+    fullscreenButton.addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.error("Erreur plein écran:", err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
 
-      document.addEventListener("fullscreenchange", () => {
-        const icon = fullscreenButton.querySelector("svg");
-        if (document.fullscreenElement) {
-          // Mode plein écran actif - Icône "Quitter"
-          icon.innerHTML = `
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-          `;
-          fullscreenButton.title = "Quitter le plein écran (Échap)";
-        } else {
-          // Mode normal - Icône "Plein écran"
-          icon.innerHTML = `
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-          `;
-          fullscreenButton.title = "Plein écran";
-        }
-      });
-    }
+    document.addEventListener("fullscreenchange", () => {
+      const icon = fullscreenButton.querySelector("svg");
+      const header = document.querySelector("header");
+      const footer = document.querySelector("footer");
+      const wordsPanel = document.getElementById("words-panel");
+      const canvasContainer = document.getElementById("canvas-container");
+      
+      if (document.fullscreenElement) {
+        // 🎨 MODE IMMERSIF : On cache tout sauf le canvas
+        header.style.display = "none";
+        footer.style.display = "none";
+        wordsPanel.style.display = "none";
+        
+        // Le canvas prend tout l'écran
+        canvasContainer.style.width = "100%";
+        canvasContainer.style.height = "100vh";
+        
+        // Icône "Quitter"
+        icon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+        `;
+        fullscreenButton.title = "Quitter le plein écran (Échap)";
+        
+        // Redimensionner le canvas après l'application des styles
+        setTimeout(() => {
+          resizeCanvas();
+        }, 100);
+        
+      } else {
+        // 🔙 RETOUR NORMAL : On réaffiche tout
+        header.style.display = "";
+        footer.style.display = "";
+        wordsPanel.style.display = "";
+        canvasContainer.style.width = "";
+        canvasContainer.style.height = "";
+        
+        // Icône "Plein écran"
+        icon.innerHTML = `
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+        `;
+        fullscreenButton.title = "Plein écran";
+        
+        // Redimensionner le canvas après le retour
+        setTimeout(() => {
+          resizeCanvas();
+        }, 100);
+      }
+    });
   }
+}
 
   // ==================== EVENT LISTENERS ====================
   wordForm.addEventListener("submit", async (e) => {
