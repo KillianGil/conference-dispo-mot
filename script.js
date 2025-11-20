@@ -24,7 +24,8 @@ const FORBIDDEN_WORDS = [
   // Insultes fortes
   "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
   "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
-  "ntm", "fils de pute", "ta gueule", "tg", "enculé",
+  "ntm", "fils de pute", "ta gueule", "tg", "enculé","caca", "kaka", "pipi", "prout", "zeub", "teub", "bouffon", "boloss", "ptn", 
+  "grosse merde", "gros con", "grosse conne", "grosse", "gros", "grognasse", "juif", "juive", "juifs", "juives", "israel", 
 
   // Vulgarité / sexualité explicite
   "merde", "bordel", "chiant", "chier", "faire chier", "chiotte",
@@ -57,7 +58,7 @@ const FORBIDDEN_WORDS = [
   "staline", "lenine", "mao",
   "ben laden", "osama ben laden",
   "kadhafi", "saddam", "pol pot",
-  "pétain", "mussolini",
+  "pétain", "mussolini", "benladen", "netanyahu", "putain", "ptn", "put3", "h1tler", ""
 
   // Criminels connus (aucune restriction)
   "dahmer", "bundy", "manson", "joachim kroll",
