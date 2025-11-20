@@ -233,17 +233,13 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (POSITION PARFAITE & FLUIDE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (SYNCHRONISATION PARFAITE) ==================== */
 #toggle-panel-button {
     position: fixed;
     z-index: 60;
     
-    /* --- ÉTAT OUVERT (Haut Droite de la liste) --- */
-    /* Left = 2rem (marge panel) + 300px (largeur panel) - 48px (bouton + marge int) */
+    /* --- ÉTAT OUVERT --- */
     left: calc(2rem + 300px - 48px); 
-    
-    /* AJUSTEMENT HAUTEUR : On le descend à 10rem pour qu'il soit bien DANS le panneau */
-    /* (Le panneau commence à 8rem, donc 10rem laisse de l'espace au-dessus) */
     top: 10rem; 
     
     width: 32px; height: 32px;
@@ -256,19 +252,12 @@ body {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
-    /* Centrage vertical constant pour éviter les sauts */
     transform: translateY(-50%);
     
-    /* Animation synchronisée avec le panneau (0.4s) pour la fluidité */
-    transition: 
-        left 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        width 0.3s ease,
-        height 0.3s ease,
-        background 0.3s ease,
-        transform 0.3s ease;
-        
-    will-change: left, top; /* Optimisation fluidité */
+    /* LE SECRET : Une seule transition 'all' pour que taille et position bougent ENSEMBLE */
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    will-change: left, top, width, height;
 }
 
 #toggle-panel-button:hover { 
@@ -276,10 +265,11 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* --- ÉTAT FERMÉ (Flottant à gauche) --- */
+/* --- ÉTAT FERMÉ --- */
 #main-container.panel-hidden #toggle-panel-button {
     left: 1.5rem;
-    top: 50%; /* Retour au milieu de l'écran */
+    /* Utiliser 50vh au lieu de 50% évite parfois des sauts de calcul sur certains navigateurs */
+    top: 50vh; 
     
     width: 48px; height: 48px;
     background: #6366f1;
@@ -292,13 +282,12 @@ body {
     transform: translateY(-50%) scale(1.1);
 }
 
-/* Rotation de la flèche */
+/* La flèche tourne aussi à la même vitesse */
 #main-container.panel-hidden #toggle-panel-button svg { 
     transform: rotate(180deg); 
-    transition: transform 0.4s ease;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Mobile : Toujours caché */
 @media (max-width: 767px) {
     #toggle-panel-button { display: none !important; }
 }
