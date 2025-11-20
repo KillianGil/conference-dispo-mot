@@ -233,37 +233,60 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (Positionné AU DESSUS) ==================== */
+/* ==================== 6. BOUTON TOGGLE (CORRIGÉ) ==================== */
 #toggle-panel-button {
-    position: absolute;
-    z-index: 60; /* Au-dessus du panel */
+    position: fixed; /* Important pour qu'il sorte du flux */
+    z-index: 60;
     
-    /* Positionnement "Au dessus" de la liste, légèrement décalé */
-    top: 8rem; 
-    left: 340px; /* 300px (largeur panel) + 40px de marge */
+    /* --- ETAT OUVERT : HAUT DROITE DE LA LISTE --- */
+    /* Calcul précis pour qu'il tombe dans le coin du panneau */
+    /* Left = 2rem (marge panneau) + 300px (largeur panneau) - 40px (largeur bouton + marge) */
+    left: calc(2rem + 300px - 50px); 
+    top: 9rem; /* Juste en dessous du titre "Liste des mots" */
     
-    width: 44px; height: 44px;
-    border-radius: 50%; /* Cercle parfait */
+    width: 32px; height: 32px;
+    border-radius: 50%;
     
-    background: #6366f1;
-    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    transition: all 0.4s ease; /* Doit être la même vitesse que le panneau */
 }
 
 #toggle-panel-button:hover { 
     transform: scale(1.1); 
-    background: #818cf8; 
+    background: rgba(255, 255, 255, 0.2); 
 }
 
-/* Quand la liste est cachée */
+/* --- ETAT FERMÉ : FLOTTANT A GAUCHE --- */
+/* Quand le panneau a la classe .panel-hidden */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 2rem; /* Revient à gauche */
-    background: rgba(255, 255, 255, 0.1);
+    left: 1.5rem; /* Collé à gauche */
+    top: 50%;
+    transform: translateY(-50%);
+    
+    width: 48px; height: 48px; /* Plus gros pour être visible */
+    background: #6366f1;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+#main-container.panel-hidden #toggle-panel-button:hover { 
+    background: #818cf8; 
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* Rotation de la flèche */
+#main-container.panel-hidden #toggle-panel-button svg { 
+    transform: rotate(180deg); 
+}
+
+/* Masquer sur mobile comme avant */
+@media (max-width: 767px) {
+    #toggle-panel-button { display: none !important; }
 }
 #main-container.panel-hidden #toggle-panel-button:hover { background: #6366f1; }
 #main-container.panel-hidden #toggle-panel-button svg { transform: rotate(180deg); }
