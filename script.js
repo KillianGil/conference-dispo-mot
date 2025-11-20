@@ -2766,13 +2766,28 @@ resetButton.addEventListener("click", (e) => {
         scheduleRedraw();
         updateStats();
 
+
         const confirmDiv = document.createElement("div");
-        confirmDiv.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[110] animate-bounce font-bold text-center min-w-[300px]";
+          
+   
+        confirmDiv.className = "bg-green-600 text-white px-6 py-3 rounded-lg shadow-2xl z-[200] font-bold text-center min-w-[320px] animate-bounce";
+        
+
+        confirmDiv.style.position = "fixed";
+        confirmDiv.style.top = "140px"; 
+        confirmDiv.style.left = "50%";
         confirmDiv.style.transform = "translateX(-50%)";
+        
         confirmDiv.textContent = "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
         document.body.appendChild(confirmDiv);
 
-        setTimeout(() => { if (document.body.contains(confirmDiv)) document.body.removeChild(confirmDiv); }, 3000);
+        setTimeout(() => { 
+            if (document.body.contains(confirmDiv)) {
+                confirmDiv.style.transition = "opacity 0.5s";
+                confirmDiv.style.opacity = "0";
+                setTimeout(() => document.body.removeChild(confirmDiv), 500);
+            }
+        }, 3000);
 
         console.log("✅ Reset complet effectué");
       } catch (err) {
