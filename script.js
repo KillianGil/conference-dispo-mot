@@ -2917,19 +2917,43 @@ document.getElementById("shuffle-colors-button")?.addEventListener("click", () =
 
 // Shuffle positions
 document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
-  const existingPositions = displayedWords.map(w => ({ x: w.x, y: w.y }));
+  // 1. Identifier les mots uniques (1 seul par texte)
+  const uniqueWordsMap = new Map();
+  displayedWords.forEach(word => {
+    const key = word.text.toLowerCase();
+    if (!uniqueWordsMap.has(key)) {
+      uniqueWordsMap.set(key, word); // On garde le premier trouvé
+    }
+  });
+
+  const uniqueWords = Array.from(uniqueWordsMap.values());
   
-  for (let i = existingPositions.length - 1; i > 0; i--) {
+  // 2. Récupérer leurs positions actuelles
+  const positions = uniqueWords.map(w => ({ x: w.x, y: w.y }));
+  
+  // 3. Mélanger les positions (Fisher-Yates)
+  for (let i = positions.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [existingPositions[i], existingPositions[j]] = [existingPositions[j], existingPositions[i]];
+    [positions[i], positions[j]] = [positions[j], positions[i]];
   }
   
-  displayedWords.forEach((word, i) => {
-    word.x = existingPositions[i].x;
-    word.y = existingPositions[i].y;
+  // 4. Réassigner les nouvelles positions aux mots uniques
+  uniqueWords.forEach((word, i) => {
+    word.x = positions[i].x;
+    word.y = positions[i].y;
+  });
+
+  // 5. Propager ces positions à TOUS les doublons dans displayedWords
+  displayedWords.forEach(word => {
+    const key = word.text.toLowerCase();
+    const uniqueWord = uniqueWordsMap.get(key);
+    if (uniqueWord) {
+      word.x = uniqueWord.x;
+      word.y = uniqueWord.y;
+    }
   });
   
-  positionsShuffled = true; // 🔥 ACTIVER LE FLAG
+  positionsShuffled = true;
   
   wordOccurrencesCache.clear();
   geometryCache.clear();
