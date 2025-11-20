@@ -813,8 +813,6 @@ function findValidPosition() {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-// ==================== DESSIN PRINCIPAL (CORRIGÉ : VITESSE & ZOOM) ====================
-// ==================== DESSIN PRINCIPAL (ZOOM INTACT + FLUX CORRIGÉ) ====================
 // ==================== DESSIN PRINCIPAL ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
@@ -1000,38 +998,26 @@ function drawWeave(withBackground = false) {
 
   // ==================== AUTRES MODES (INCHANGÉS) ====================
   else if (settings.linkMode === "constellation") {
-    // A. Traits (Visible)
-    connections.forEach(([word1, word2]) => {
-        const x1 = word1.x * width; const y1 = word1.y * height;
-        const x2 = word2.x * width; const y2 = word2.y * height;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        // Couleur blanche explicite et opacité augmentée
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; 
-        ctx.lineWidth = 1; 
-        ctx.globalAlpha = settings.linesOpacity;
-        ctx.stroke();
-    });
-
-    // B. Étoiles (Scintillement)
     visibleWords.forEach((word) => {
-      const x = word.x * width; const y = word.y * height;
+      const x = word.x * width;
+      const y = word.y * height;
       const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
-      const starCount = isHeavy ? 1 : 3;
-      for (let i = 0; i < starCount; i++) {
+
+      for (let i = 0; i < 3; i++) {
         const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
         const radius = 30 + Math.sin(time + i) * 10;
+        const starX = x + Math.cos(angle) * radius;
+        const starY = y + Math.sin(angle) * radius;
+
         ctx.beginPath();
-        ctx.arc(x + Math.cos(angle)*radius, y + Math.sin(angle)*radius, 2, 0, Math.PI*2);
+        ctx.arc(starX, starY, 2, 0, Math.PI * 2);
         ctx.fillStyle = word.color;
-        // On assure une visibilité minimale même quand ça scintille (0.2 minimum)
-        ctx.globalAlpha = Math.max(0.2, twinkle * 0.6) * settings.linesOpacity;
+        ctx.globalAlpha = twinkle * 0.6 * settings.linesOpacity;
         ctx.fill();
       }
     });
-
-} else if (settings.linkMode === "ripple") {
+    ctx.globalAlpha = 1;
+  } else if (settings.linkMode === "ripple") {
     visibleWords.forEach((word, index) => {
       const x = word.x * width;
       const y = word.y * height;
