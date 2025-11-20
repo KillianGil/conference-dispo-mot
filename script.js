@@ -814,21 +814,18 @@ function findValidPosition() {
   }
 
 // ==================== DESSIN PRINCIPAL (CORRIGÉ : VITESSE & ZOOM) ====================
+// ==================== DESSIN PRINCIPAL (ZOOM INTACT + FLUX CORRIGÉ) ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
 
-  const container = document.getElementById("canvas-container");
-  if (!container) return;
-
-  // On utilise clientWidth/Height pour avoir la taille "écran" réelle
-  // C'est ça qui empêche le bug de "trop zoomé"
+  // ON GARDE LA LOGIQUE D'AVANT POUR LES DIMENSIONS
+  // C'est ça qui permet à votre zoom de marcher
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
 
   if (width === 0 || height === 0) return;
 
   ctx.save();
-  // Reset total de la matrice pour effacer proprement
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -837,11 +834,10 @@ function drawWeave(withBackground = false) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Gestion de la haute définition (Retina) sans casser le zoom
   const dpr = window.devicePixelRatio || 1;
   ctx.scale(dpr, dpr);
-
-  // Application du zoom et pan de l'utilisateur
+  
+  // ON APPLIQUE VOTRE ZOOM/PAN EXISTANT
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
@@ -853,7 +849,7 @@ function drawWeave(withBackground = false) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  const visibleWords = displayedWords;
+  // On utilise 'width' et 'height' du conteneur, pas de l'écran entier
   const connections = calculateConnections(
     settings.linkMode,
     displayedWords,
@@ -862,15 +858,15 @@ function drawWeave(withBackground = false) {
   );
 
   const time = Date.now() * 0.001;
-  const isHeavy = displayedWords.length > 80;
+  const isHeavy = displayedWords.length > 80; // Anti-lag
 
-  // ==================== 1. MODE FLUX TEMPOREL (CORRIGÉ : VITESSE LENTE) ====================
+  // ==================== 1. MODE FLUX TEMPOREL (CORRIGÉ : TRAIN CHRONOLOGIQUE) ====================
   if (settings.linkMode === "flow") {
     const sortedWords = [...displayedWords].sort(
       (a, b) => a.timestamp - b.timestamp
     );
 
-    // 1. Tracer le chemin (Fil d'Ariane)
+    // Tracer le chemin (Fil d'Ariane)
     ctx.beginPath();
     sortedWords.forEach((w, i) => {
         const x = w.x * width, y = w.y * height;
@@ -878,40 +874,40 @@ function drawWeave(withBackground = false) {
         else ctx.lineTo(x, y);
     });
     ctx.lineWidth = Math.max(2, settings.lineWidth);
-    ctx.strokeStyle = "rgba(255,255,255,0.15)"; // Un peu plus visible
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
     ctx.stroke();
 
-    // 2. Train de particules (LENT)
+    // LOGIQUE TRAIN : Plusieurs points qui partent du début
     const totalSegments = Math.max(1, sortedWords.length - 1);
-    const numParticles = 5; // 5 points qui se suivent
-    
-    // 🔥 VITESSE RÉDUITE ICI (0.15 au lieu de 0.8)
-    const speedFactor = 0.15; 
+    const numParticles = 4; // 4 wagons
+    const trainSpeed = 0.2; // Vitesse modérée
+    const spacing = 0.5; // Espace entre les points
 
     for(let p = 0; p < numParticles; p++) {
-        // Écartement entre les particules
-        const phaseOffset = p * (totalSegments / 8); 
+        // Position absolue sur la ligne temporelle
+        // (time * speed) fait avancer, (p * spacing) décale les wagons
+        let rawProgress = (time * trainSpeed * 10) - (p * spacing);
         
-        // Calcul de la position globale sur le chemin
-        const globalProg = (time * speedFactor + phaseOffset) % totalSegments;
-        
-        const currentSeg = Math.floor(globalProg);
-        const segProg = globalProg - currentSeg;
+        // Boucle infinie
+        let currentPos = rawProgress % totalSegments;
+        if (currentPos < 0) currentPos += totalSegments;
 
-        if (currentSeg < sortedWords.length - 1) {
-            const w1 = sortedWords[currentSeg];
-            const w2 = sortedWords[currentSeg + 1];
-            
-            const x1 = w1.x * width; 
-            const y1 = w1.y * height;
-            const x2 = w2.x * width; 
-            const y2 = w2.y * height;
-            
-            // Interpolation linéaire pour trouver la position exacte
-            const px = x1 + (x2 - x1) * segProg;
-            const py = y1 + (y2 - y1) * segProg;
+        const currentSegIndex = Math.floor(currentPos);
+        const segProgress = currentPos - currentSegIndex;
 
-            // Dessin de la tête (Point Blanc)
+        // Sécurité
+        if (currentSegIndex < sortedWords.length - 1) {
+            const w1 = sortedWords[currentSegIndex];
+            const w2 = sortedWords[currentSegIndex + 1];
+            
+            // Interpolation
+            const x1 = w1.x * width; const y1 = w1.y * height;
+            const x2 = w2.x * width; const y2 = w2.y * height;
+            
+            const px = x1 + (x2 - x1) * segProgress;
+            const py = y1 + (y2 - y1) * segProgress;
+
+            // Tête du point
             ctx.save();
             if (!isHeavy) {
                 ctx.shadowBlur = 15;
@@ -919,23 +915,22 @@ function drawWeave(withBackground = false) {
             }
             ctx.fillStyle = "white";
             ctx.beginPath();
-            // Taille qui respire légèrement
-            ctx.arc(px, py, 5 + (Math.sin(time * 4)*1), 0, Math.PI*2);
+            ctx.arc(px, py, 5 + Math.sin(time * 5)*1, 0, Math.PI*2);
             ctx.fill();
             
-            // Traînée dégradée derrière le point
-            ctx.beginPath();
-            // La traînée part un peu en arrière sur le segment
-            const trailLength = 0.3; // Longueur de la queue
-            const tx = x1 + (x2 - x1) * Math.max(0, segProg - trailLength);
-            const ty = y1 + (y2 - y1) * Math.max(0, segProg - trailLength);
+            // Traînée
+            const trailLength = 0.2; 
+            // Calcul point arrière
+            const tx = x1 + (x2 - x1) * Math.max(0, segProgress - trailLength);
+            const ty = y1 + (y2 - y1) * Math.max(0, segProgress - trailLength);
             
+            ctx.beginPath();
             ctx.moveTo(tx, ty);
             ctx.lineTo(px, py);
             
             const grad = ctx.createLinearGradient(tx, ty, px, py);
-            grad.addColorStop(0, "rgba(255,255,255,0)"); // Transparent queue
-            grad.addColorStop(1, w2.color); // Couleur tête
+            grad.addColorStop(0, "rgba(255,255,255,0)");
+            grad.addColorStop(1, w2.color);
             
             ctx.strokeStyle = grad;
             ctx.lineWidth = 4;
@@ -945,30 +940,27 @@ function drawWeave(withBackground = false) {
     }
   }
 
-  // ==================== 2. MODE VAGUES (ADAPTATIF DESKTOP/MOBILE) ====================
+  // ==================== 2. MODE VAGUES (ADAPTATIF) ====================
   else if (settings.linkMode === "waves") {
     connections.forEach(([word1, word2]) => {
-      const x1 = word1.x * width;
-      const y1 = word1.y * height;
-      const x2 = word2.x * width;
-      const y2 = word2.y * height;
+      const x1 = word1.x * width; const y1 = word1.y * height;
+      const x2 = word2.x * width; const y2 = word2.y * height;
 
       const midX = (x1 + x2) / 2;
       const midY = (y1 + y2) / 2;
       
-      // Amplitude = 5% de la largeur de l'écran (marche sur mobile et desktop)
+      // Amplitude relative à la largeur du canvas (5%)
+      // Fonctionne sur mobile ET desktop
       const baseAmplitude = width * 0.05; 
       const offset = Math.sin(time * 2) * baseAmplitude;
 
       const dx = x2 - x1;
       const dy = y2 - y1;
       const len = Math.sqrt(dx * dx + dy * dy);
-      
-      // Éviter division par zéro si points superposés
       const perpX = len > 0.1 ? (-dy / len) * offset : 0;
       const perpY = len > 0.1 ? (dx / len) * offset : 0;
 
-      // Halo (si pas lourd)
+      // Halo
       if (!isHeavy) {
         ctx.save();
         ctx.globalAlpha = 0.2 * settings.linesOpacity;
@@ -983,7 +975,7 @@ function drawWeave(withBackground = false) {
         ctx.restore();
       }
 
-      // Trait principal
+      // Trait
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
@@ -1003,15 +995,14 @@ function drawWeave(withBackground = false) {
     });
   }
 
-  // ==================== 3. AUTRES MODES (Code Standard) ====================
+  // ==================== 3. AUTRES MODES ====================
   else {
-    // Logique pour Constellation, Ripple, Spiral, etc.
     if (settings.linkMode === "constellation") {
-        // ... (Code constellation inchangé) ...
         visibleWords.forEach((word) => {
           const x = word.x * width; const y = word.y * height;
           const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
-          for (let i = 0; i < (isHeavy?1:3); i++) {
+          const starCount = isHeavy ? 1 : 3;
+          for (let i = 0; i < starCount; i++) {
             const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
             const radius = 30 + Math.sin(time + i) * 10;
             ctx.beginPath();
@@ -1023,10 +1014,10 @@ function drawWeave(withBackground = false) {
         });
     } 
     else if (settings.linkMode === "ripple") {
-        // ... (Code ripple inchangé mais utilisant width/height corrects) ...
         visibleWords.forEach((word, index) => {
           const x = word.x * width; const y = word.y * height;
-          for (let ring = 0; ring < (isHeavy?1:3); ring++) {
+          const rings = isHeavy ? 1 : 3;
+          for (let ring = 0; ring < rings; ring++) {
             const phase = (time * 2 + index * 0.5 + ring * 0.8) % 4;
             const r = 30 + phase * 40;
             ctx.beginPath();
@@ -1037,7 +1028,6 @@ function drawWeave(withBackground = false) {
             ctx.stroke();
           }
         });
-        // Dessin des liens Ripple
         connections.forEach(([w1, w2]) => {
             const x1 = w1.x*width, y1 = w1.y*height, x2 = w2.x*width, y2 = w2.y*height;
             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
@@ -1045,65 +1035,102 @@ function drawWeave(withBackground = false) {
             ctx.globalAlpha = 0.8 * settings.linesOpacity; ctx.stroke();
         });
     }
-    else if (settings.linkMode === "basket" && !isHeavy) {
-        // Mode Basket simplifié
-        const gridSize = Math.max(40, settings.weavingDensity || 60);
-        for (let y = 0; y < height; y += gridSize) {
-          for (let x = 0; x < width; x += gridSize) {
-             // (Logique basket minimale pour ne pas surcharger le message)
-             // Si tu veux le basket complet, dis-le, mais c'est souvent la cause du lag
-          }
-        }
+    else if (settings.linkMode === "spiral") {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        visibleWords.forEach((word, index) => {
+          const x = word.x * width; const y = word.y * height;
+          const dx = x - centerX; const dy = y - centerY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const angle = Math.atan2(dy, dx);
+          const spiralAngle = angle + (dist / 100) * Math.sin(time + index * 0.1);
+          const spiralRadius = dist * (1 + Math.sin(time * 2 + index * 0.2) * 0.1);
+          const sx = centerX + Math.cos(spiralAngle) * spiralRadius;
+          const sy = centerY + Math.sin(spiralAngle) * spiralRadius;
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(sx, sy);
+          const g = ctx.createLinearGradient(x, y, sx, sy);
+          g.addColorStop(0, word.color); g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.strokeStyle = g; ctx.lineWidth = settings.lineWidth; 
+          ctx.globalAlpha = 0.8 * settings.linesOpacity; ctx.stroke();
+        });
     }
-    // Mode par défaut (Chronologique, Random, Proximity...)
+    else if (settings.linkMode === "web") {
+        visibleWords.forEach((word) => {
+          const neighbors = visibleWords.filter(w => w !== word)
+            .map(w => ({ w, dist: Math.sqrt((w.x-word.x)**2 + (w.y-word.y)**2) })) // distance simplifiée
+            .sort((a, b) => a.dist - b.dist).slice(0, 4);
+          neighbors.forEach(({ w: neighbor, dist }) => {
+            const x1 = word.x * width; const y1 = word.y * height;
+            const x2 = neighbor.x * width; const y2 = neighbor.y * height;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            if (settings.useGradient) {
+                const g = ctx.createLinearGradient(x1, y1, x2, y2);
+                g.addColorStop(0, word.color); g.addColorStop(1, neighbor.color);
+                ctx.strokeStyle = g;
+            } else ctx.strokeStyle = word.color;
+            ctx.globalAlpha = Math.max(0.2, 1 - dist*5) * 0.7 * settings.linesOpacity;
+            ctx.lineWidth = settings.lineWidth; ctx.stroke();
+          });
+        });
+    }
+    else if (settings.linkMode === "pulse") {
+        connections.forEach(([w1, w2], idx) => {
+            const x1 = w1.x*width, y1 = w1.y*height, x2 = w2.x*width, y2 = w2.y*height;
+            const pulse = Math.abs(Math.sin(time * 3 - idx * 0.3));
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            if (settings.useGradient) {
+                const g = ctx.createLinearGradient(x1, y1, x2, y2);
+                g.addColorStop(0, w1.color); g.addColorStop(0.5, "white"); g.addColorStop(1, w2.color);
+                ctx.strokeStyle = g;
+            } else ctx.strokeStyle = w2.color;
+            ctx.lineWidth = settings.lineWidth + pulse;
+            ctx.globalAlpha = (0.8 + pulse * 0.1) * settings.linesOpacity;
+            ctx.stroke();
+        });
+    }
+    else if (settings.linkMode === "basket" && !isHeavy) {
+         // On zappe si lourd, sinon logique standard
+         const gridSize = Math.max(40, settings.weavingDensity || 60);
+         for (let y = 0; y < height; y += gridSize) {
+            for (let x = 0; x < width; x += gridSize) {
+                // Logique basket minimale (pour ne pas alourdir)
+                // On pourrait copier tout le bloc basket ici si besoin
+            }
+         }
+    }
     else {
+        // Standard (Chronologique, Random, etc.)
         connections.forEach(([word1, word2]) => {
           if (!word1.x || !word2.x) return;
-          const x1 = word1.x * width;
-          const y1 = word1.y * height;
-          const x2 = word2.x * width;
-          const y2 = word2.y * height;
+          const x1 = word1.x * width; const y1 = word1.y * height;
+          const x2 = word2.x * width; const y2 = word2.y * height;
 
           // Halo
           if (!isHeavy) {
-              ctx.save();
-              ctx.globalAlpha = 0.25 * settings.linesOpacity;
-              ctx.shadowBlur = 12;
-              ctx.shadowColor = word2.color;
-              ctx.beginPath();
-              ctx.moveTo(x1, y1);
-              ctx.lineTo(x2, y2);
+              ctx.save(); ctx.globalAlpha = 0.25 * settings.linesOpacity;
+              ctx.shadowBlur = 12; ctx.shadowColor = word2.color;
+              ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
               ctx.lineWidth = Math.max(4, settings.lineWidth * 1.4);
-              ctx.strokeStyle = word2.color;
-              ctx.stroke();
-              ctx.restore();
+              ctx.strokeStyle = word2.color; ctx.stroke(); ctx.restore();
           }
-
           // Trait
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
           if (settings.useGradient) {
             const g = ctx.createLinearGradient(x1, y1, x2, y2);
-            g.addColorStop(0, word1.color);
-            g.addColorStop(1, word2.color);
+            g.addColorStop(0, word1.color); g.addColorStop(1, word2.color);
             ctx.strokeStyle = g;
-          } else {
-            ctx.strokeStyle = word2.color;
-          }
+          } else ctx.strokeStyle = word2.color;
           ctx.lineWidth = Math.max(2, settings.lineWidth);
-          ctx.globalAlpha = 0.85 * settings.linesOpacity;
-          ctx.stroke();
+          ctx.globalAlpha = 0.85 * settings.linesOpacity; ctx.stroke();
         });
     }
   }
 
   ctx.globalAlpha = 1;
 
-  // ==================== DESSIN DES POINTS (MOTS) ====================
+  // ==================== DESSIN DES POINTS ====================
   const wordOccurrences = getWordOccurrences();
   
-  // Gestion Particules globales
   if (settings.enableParticles && !isHeavy) {
     particles = particles.filter(p => p.life > 0);
     particles.forEach(p => { p.update(); p.draw(ctx); });
@@ -1111,7 +1138,6 @@ function drawWeave(withBackground = false) {
     particles = [];
   }
 
-  // Trier pour afficher les gros points devant
   const uniqueWordsMap = new Map();
   visibleWords.forEach(word => uniqueWordsMap.set(word.text.toLowerCase(), word));
   const sortedWords = Array.from(uniqueWordsMap.values()).sort((a, b) => {
@@ -1121,15 +1147,13 @@ function drawWeave(withBackground = false) {
   sortedWords.forEach(word => {
     const occurrences = wordOccurrences[word.text.toLowerCase()];
     const isHighlighted = word.highlighted || false;
-    const highlightBonus = isHighlighted ? 6 : 0;
-    const pointSize = (getPointRadius(occurrences) + highlightBonus) * settings.globalScale;
+    const pointSize = (getPointRadius(occurrences) + (isHighlighted ? 6 : 0)) * settings.globalScale;
 
     const wobbleX = Math.sin(time * 2 + word.timestamp * 0.001) * 3;
     const wobbleY = Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
     const y = word.y * height + wobbleY;
 
-    // Particules (Rare si lourd)
     if (settings.enableParticles && Math.random() < (isHeavy ? 0.005 : 0.06)) {
       particles.push(getParticle(x, y, word.color));
     }
@@ -1155,7 +1179,7 @@ function drawWeave(withBackground = false) {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Bordure blanche
+    // Bordure
     ctx.beginPath();
     ctx.arc(x, y, pointSize, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(255,255,255,0.8)";
@@ -1169,22 +1193,17 @@ function drawWeave(withBackground = false) {
         ctx.font = `bold ${fontSize}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        
         const textY = y - pointSize - 10;
-        
+
         ctx.strokeStyle = "rgba(0,0,0,0.8)";
         ctx.lineWidth = 6;
         ctx.strokeText(word.text, x, textY);
-        
-        // Couleur éclaircie pour le texte
         const brightColor = word.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/, (m, h, s, l) => {
             return `hsl(${h}, ${s}%, ${Math.min(90, parseInt(l) + 20)}%)`;
         });
-        
         ctx.fillStyle = brightColor;
         if (!isHeavy) {
-             ctx.shadowBlur = 10;
-             ctx.shadowColor = brightColor;
+            ctx.shadowBlur = 10; ctx.shadowColor = brightColor;
         }
         ctx.fillText(word.text, x, textY);
         ctx.shadowBlur = 0;
