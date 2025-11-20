@@ -173,6 +173,7 @@ body {
 .line-decoration { display: none; }
 
 /* ==================== 5. LISTE DES MOTS ==================== */
+/* ==================== 5. LISTE DES MOTS (VITESSE UNIFIÉE) ==================== */
 #words-panel {
     position: absolute;
     left: 2rem;
@@ -181,7 +182,7 @@ body {
     width: 300px;
     z-index: 20;
     
-    background: rgba(20, 28, 45, 0.85); /* Un peu plus opaque pour lisibilité */
+    background: rgba(20, 28, 45, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
@@ -189,9 +190,9 @@ body {
     padding: 1.5rem;
     display: flex; flex-direction: column;
     
-    /* Optimisation performance */
+    /* Transformation fluide standard */
     transform: translateX(0);
-    transition: transform 0.4s ease-in-out, opacity 0.4s ease;
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
 #words-panel h2 {
@@ -233,7 +234,7 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (SYNCHRONISATION PARFAITE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (FLUIDITÉ TOTALE) ==================== */
 #toggle-panel-button {
     position: fixed;
     z-index: 60;
@@ -252,12 +253,14 @@ body {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
+    /* Centrage vertical constant */
     transform: translateY(-50%);
     
-    /* LE SECRET : Une seule transition 'all' pour que taille et position bougent ENSEMBLE */
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    /* SECRET DE LA FLUIDITÉ : Même durée et courbe que le panneau */
+    transition: all 0.5s ease-in-out;
     
-    will-change: left, top, width, height;
+    /* Empêche le flou pendant le mouvement */
+    backface-visibility: hidden; 
 }
 
 #toggle-panel-button:hover { 
@@ -268,8 +271,7 @@ body {
 /* --- ÉTAT FERMÉ --- */
 #main-container.panel-hidden #toggle-panel-button {
     left: 1.5rem;
-    /* Utiliser 50vh au lieu de 50% évite parfois des sauts de calcul sur certains navigateurs */
-    top: 50vh; 
+    top: 50vh; /* Utilise vh pour éviter les sauts de pourcentage */
     
     width: 48px; height: 48px;
     background: #6366f1;
@@ -282,10 +284,10 @@ body {
     transform: translateY(-50%) scale(1.1);
 }
 
-/* La flèche tourne aussi à la même vitesse */
+/* La flèche tourne aussi de manière fluide */
 #main-container.panel-hidden #toggle-panel-button svg { 
     transform: rotate(180deg); 
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s ease-in-out;
 }
 
 @media (max-width: 767px) {
