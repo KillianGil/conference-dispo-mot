@@ -206,57 +206,26 @@ class Particle {
   }
 }
 
-// ==================== GÉNÉRATEUR DE COULEURS ====================
-// ==================== GÉNÉRATEUR DE COULEURS ====================
-// ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS (ALÉATOIRE & VIBRANT) ====================
 const colorGenerator = {
   mode: "auto",
   customColor: "#6366f1",
-  lastHues: [], // Éviter les répétitions
 
   getColor: function () {
     if (this.mode === "custom") {
       return this.customColor;
     }
+
+    // 1. Teinte : Absolument tout le spectre (0 à 360)
+    const hue = Math.floor(Math.random() * 360);
     
-    // 🔥 COULEURS DISTINCTES PAR ZONES
-    const colorZones = [
-      { name: "rouge", hue: [0, 20], sat: [60, 90], light: [45, 65] },
-      { name: "orange", hue: [20, 45], sat: [70, 95], light: [50, 70] },
-      { name: "jaune", hue: [45, 65], sat: [75, 100], light: [55, 75] },
-      { name: "vert clair", hue: [65, 120], sat: [50, 80], light: [45, 70] },
-      { name: "vert foncé", hue: [120, 150], sat: [60, 85], light: [35, 55] },
-      { name: "cyan", hue: [150, 190], sat: [55, 85], light: [50, 70] },
-      { name: "bleu clair", hue: [190, 220], sat: [60, 90], light: [55, 75] },
-      { name: "bleu foncé", hue: [220, 250], sat: [65, 90], light: [40, 60] },
-      { name: "violet", hue: [250, 280], sat: [60, 85], light: [50, 70] },
-      { name: "magenta", hue: [280, 320], sat: [65, 90], light: [45, 65] },
-      { name: "rose", hue: [320, 350], sat: [70, 95], light: [50, 70] }
-    ];
+    // 2. Saturation : Toujours élevée (entre 75% et 100%) pour l'effet "Néon"
+    const saturation = 75 + Math.random() * 25; 
     
-    // Éviter les 3 dernières teintes utilisées
-    let zone;
-    let attempts = 0;
-    do {
-      zone = colorZones[Math.floor(Math.random() * colorZones.length)];
-      attempts++;
-    } while (
-      this.lastHues.length > 0 && 
-      this.lastHues.some(h => Math.abs(h - zone.hue[0]) < 30) &&
-      attempts < 20
-    );
-    
-    const hue = zone.hue[0] + Math.random() * (zone.hue[1] - zone.hue[0]);
-    const saturation = zone.sat[0] + Math.random() * (zone.sat[1] - zone.sat[0]);
-    const lightness = zone.light[0] + Math.random() * (zone.light[1] - zone.light[0]);
-    
-    // Mémoriser pour éviter répétitions
-    this.lastHues.push(hue);
-    if (this.lastHues.length > 3) {
-      this.lastHues.shift();
-    }
-    
-    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
+    // 3. Luminosité : Brillante (entre 55% et 75%) pour ressortir sur le fond noir
+    const lightness = 55 + Math.random() * 20;
+
+    return `hsl(${hue}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
   },
 
   setCustomColor: function (color) {
