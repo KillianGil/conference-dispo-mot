@@ -45,29 +45,127 @@ body {
     pointer-events: auto;
 }
 
-/* ==================== 4. HEADER ==================== */
+/* ==================== 4. HEADER (TYPOGRAPHIE ÉLÉGANTE) ==================== */
 .header-minimal {
     position: absolute;
     top: 1.5rem; left: 50%; transform: translateX(-50%);
     z-index: 50;
-    min-width: 300px;
+    min-width: 350px;
     
-    background: rgba(20, 28, 45, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.2); 
+    background: rgba(20, 28, 45, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15); 
     border-radius: 50px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 40px rgba(99, 102, 241, 0.1);
+    backdrop-filter: blur(10px);
     
-    padding: 0.75rem 2rem; text-align: center;
-    transition: transform 0.3s ease;
+    padding: 1rem 2.5rem; text-align: center;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    overflow: hidden;
 }
-.header-minimal:hover { transform: translateX(-50%) translateY(2px); }
+
+.header-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    transition: left 0.6s ease;
+}
+
+.header-minimal:hover::before {
+    left: 100%;
+}
+
+.header-minimal:hover { 
+    transform: translateX(-50%) translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(99, 102, 241, 0.2);
+}
 
 .title-minimal {
-    font-size: 1.2rem; font-weight: 700; color: white; margin: 0;
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 1.5rem; 
+    font-weight: 500; 
+    color: white; 
+    margin: 0;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 0.75rem;
+    letter-spacing: 0.02em;
 }
-.title-separator { color: #818cf8; }
-.subtitle-minimal { font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
+
+.title-word {
+    position: relative;
+    display: inline-block;
+    animation: fadeInUp 0.8s ease forwards;
+    opacity: 0;
+}
+
+.title-word:first-child {
+    animation-delay: 0.1s;
+    font-weight: 300;
+}
+
+.title-word:last-child {
+    animation-delay: 0.3s;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.title-separator { 
+    color: #818cf8;
+    font-size: 1.2rem;
+    font-weight: 300;
+    opacity: 0.6;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.subtitle-minimal { 
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem; 
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.5); 
+    margin-top: 0.35rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: fadeIn 1s ease 0.5s forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+.subtitle-minimal::before,
+.subtitle-minimal::after {
+    content: '◆';
+    display: inline-block;
+    margin: 0 0.5rem;
+    font-size: 0.6rem;
+    color: #818cf8;
+    opacity: 0.4;
+}
+
 .line-decoration { display: none; }
 
 /* ==================== 5. LISTE DES MOTS ==================== */
