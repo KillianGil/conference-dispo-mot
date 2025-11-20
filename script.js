@@ -1,6 +1,5 @@
-// ==================== CONFIGURATION ====================
 const CONFIG = {
-  MAX_WORDS_PER_USER: 5000,
+  MAX_WORDS_PER_USER: 2,
   TARGET_FPS: 60,
   MAX_POOL_SIZE: 100,
   FETCH_INTERVAL: 2000,
@@ -8,7 +7,6 @@ const CONFIG = {
 
 
 
-// Descriptions des modes
 const MODE_DESCRIPTIONS = {
   chronological: "Les mots se connectent dans l'ordre d'ajout",
   random: "Chaque mot se connecte à un autre aléatoirement",
@@ -25,7 +23,6 @@ const MODE_DESCRIPTIONS = {
   flow: "Particule lumineuse voyageant à travers le tissage chronologique",
 };
 
-// ==================== UTILITAIRES ====================
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -88,7 +85,6 @@ function isForbidden(text) {
   );
 }
 
-// ==================== CLASSE PARTICLE ====================
 class Particle {
   constructor(x, y, color) {
     this.reset(x, y, color);
@@ -120,10 +116,6 @@ class Particle {
   }
 }
 
-// ==================== GÉNÉRATEUR DE COULEURS ====================
-// ==================== GÉNÉRATEUR DE COULEURS ====================
-// ==================== GÉNÉRATEUR DE COULEURS ====================
-// ==================== GÉNÉRATEUR DE COULEURS (PREMIUM & VARIÉ) ====================
 const colorGenerator = {
   mode: "auto",
   customColor: "#6366f1",
@@ -131,8 +123,7 @@ const colorGenerator = {
 
   getColor: function () {
     if (this.mode === "custom") return this.customColor;
-    
-    // PALETTE "IMPRESSIONNANTE" (Couleurs profondes et lumineuses)
+
     const colorZones = [
       { name: "rouge rubis", hue: [350, 10], sat: [75, 95], light: [55, 65] },
       { name: "orange solaire", hue: [20, 40], sat: [80, 100], light: [60, 70] },
@@ -144,8 +135,7 @@ const colorGenerator = {
       { name: "magenta vif", hue: [290, 315], sat: [75, 95], light: [55, 65] },
       { name: "rose poudré", hue: [325, 345], sat: [70, 90], light: [60, 75] }
     ];
-    
-    // Choix intelligent pour éviter les répétitions (Ta logique est parfaite ici)
+
     let zone;
     let attempts = 0;
     do {
@@ -154,7 +144,6 @@ const colorGenerator = {
     } while (
       this.lastHues.length > 0 && 
       this.lastHues.some(h => {
-          // Gestion du passage 360->0 pour le rouge
           let diff = Math.abs(h - zone.hue[0]);
           if (diff > 180) diff = 360 - diff;
           return diff < 30;
@@ -162,7 +151,6 @@ const colorGenerator = {
       attempts < 20
     );
     
-    // Calcul précis
     let hMin = zone.hue[0];
     let hMax = zone.hue[1];
     if (hMin > hMax) hMax += 360; // Cas du rouge qui traverse 0
@@ -183,7 +171,6 @@ const colorGenerator = {
   setMode: function (m) { this.mode = m; },
 };
 
-// ==================== ANIMATIONS D'APPARITION ====================
 const appearingWords = new Set();
 
 function animateWordAppearance(word) {
@@ -194,7 +181,6 @@ function animateWordAppearance(word) {
   }, 600);
 }
 
-// ==================== INITIALISATION DOM ====================
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("weave-canvas");
   const ctx = canvas.getContext("2d", { alpha: false });
@@ -206,7 +192,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadButton = document.getElementById("download-button");
   const resetButton = document.getElementById("reset-button");
 
-  // ==================== VARIABLES GLOBALES ====================
   let displayedWords = [];
   let animationFrame = null;
   let currentAnimatingConnection = null;
@@ -250,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
     globalScale: 1.0,         
   };
 
-  // --- Fonction de sécurité ---
 async function verifyPasswordOnServer(password) {
   try {
       const res = await fetch('/api/words', {
@@ -262,7 +246,6 @@ async function verifyPasswordOnServer(password) {
       return false;
   } catch(e) { return false; }
 }
-  // ==================== GESTION DU POOL DE PARTICULES ====================
   function getParticle(x, y, color) {
     if (particlePool.length > 0) {
       const p = particlePool.pop();
@@ -278,7 +261,6 @@ async function verifyPasswordOnServer(password) {
     }
   }
 
-  // ==================== VÉRIFICATION ET DÉBLOCAGE ====================
   async function checkAndUnblockUser() {
     try {
       const response = await fetch("/api/words");
@@ -306,7 +288,6 @@ async function verifyPasswordOnServer(password) {
 
   checkAndUnblockUser();
 
-  // ==================== CALCULS DE POSITION ====================
   function getAdaptiveMinDistance() {
     const container = document.getElementById("canvas-container");
     if (!container) return 0.3;
@@ -358,15 +339,12 @@ async function verifyPasswordOnServer(password) {
   }
 
   function isPositionValid(x, y, minDist) {
-    // Plus aucune limite de bordure (plus de x < 0.1...)
     
-    // On vérifie uniquement la distance avec les voisins
     for (const word of displayedWords) {
       const dx = word.x - x;
       const dy = word.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      // Si on est trop près d'un autre mot, c'est non
       if (dist < minDist) return false;
     }
     return true;
@@ -376,17 +354,11 @@ function findValidPosition() {
   const minDist = getAdaptiveMinDistance();
   const center = 0.5;
   
-  // La zone de jeu s'agrandit avec le nombre de mots
-  // Mais on peut placer n'importe où DANS cette zone
   let maxRadius = 0.3 + (displayedWords.length * 0.03);
 
-  // On tente 300 fois de trouver une place
   for (let i = 0; i < 300; i++) {
-      // Angle aléatoire
       const angle = Math.random() * Math.PI * 2;
       
-      // 🔥 VRAI ALÉATOIRE : Distance aléatoire entre 0 et le max
-      // Math.sqrt assure une distribution uniforme (pas de paquet au centre)
       const r = Math.sqrt(Math.random()) * maxRadius; 
       
       const x = center + r * Math.cos(angle);
@@ -397,7 +369,6 @@ function findValidPosition() {
       }
   }
 
-  // Si vraiment on a pas trouvé (très rare), on force un peu plus loin
   const angle = Math.random() * Math.PI * 2;
   const r = maxRadius + 0.2;
   return {
@@ -412,7 +383,6 @@ function findValidPosition() {
     );
   }
 
-  // ==================== CALCULS GÉOMÉTRIQUES ====================
   function distance(word1, word2) {
     const dx = word1.x - word2.x;
     const dy = word1.y - word2.y;
@@ -446,7 +416,6 @@ function findValidPosition() {
     );
   }
 
-  // ==================== CACHE DES OCCURRENCES ====================
   function getWordOccurrences() {
     const cacheKey = displayedWords.map((w) => w.text).join(",");
     if (wordOccurrencesCache.has(cacheKey)) {
@@ -463,11 +432,9 @@ function findValidPosition() {
     return counts;
   }
 
-  // ==================== STATISTIQUES AVANCÉES ====================
   function calculateAdvancedStats() {
     if (displayedWords.length === 0) return null;
 
-    // 1. CROISEMENTS DE TRAITS
     function doSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
       const det = (x2 - x1) * (y4 - y3) - (x4 - x3) * (y2 - y1);
       if (det === 0) return false;
@@ -495,7 +462,6 @@ function findValidPosition() {
       }
     }
 
-    // 2. INTENSITÉ LUMINEUSE
     function hslToLightness(hslString) {
       const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
       return match ? parseInt(match[3]) : 50;
@@ -507,7 +473,6 @@ function findValidPosition() {
                           avgLightness > 45 ? "Équilibrée ⚖️" : 
                           "Sombre 🌙";
 
-    // 3. PALETTE CHROMATIQUE
     const colorCounts = {};
     displayedWords.forEach(w => {
       const hue = w.color.match(/hsl\((\d+)/)[1];
@@ -525,7 +490,6 @@ function findValidPosition() {
         percentage: ((count / displayedWords.length) * 100).toFixed(1)
       }));
 
-    // 4. DISPERSION SPATIALE
     const centerX = displayedWords.reduce((sum, w) => sum + w.x, 0) / displayedWords.length;
     const centerY = displayedWords.reduce((sum, w) => sum + w.y, 0) / displayedWords.length;
     const avgDistance = displayedWords.reduce((sum, w) => {
@@ -538,7 +502,6 @@ function findValidPosition() {
                       avgDistance > 0.2 ? "Répartie 🎯" : 
                       "Concentrée 🔬";
 
-    // 5. DIVERSITÉ
     const wordOccurrences = getWordOccurrences();
     const uniqueWords = Object.keys(wordOccurrences).length;
     const diversity = ((uniqueWords / displayedWords.length) * 100).toFixed(0);
@@ -564,7 +527,6 @@ function findValidPosition() {
     return "Rose";
   }
 
-  // ==================== CALCUL DES CONNEXIONS (AVEC CACHE) ====================
   function calculateConnections(mode, words, width, height) {
     const cacheKey = `${mode}-${words.map((w) => w.timestamp).join(",")}`;
 
@@ -668,7 +630,6 @@ function findValidPosition() {
     return connections;
   }
 
-  // ==================== REDIMENSIONNEMENT CANVAS ====================
   function resizeCanvas() {
     const container = document.getElementById("canvas-container");
     if (!container) return;
@@ -706,7 +667,6 @@ function findValidPosition() {
     scheduleRedraw();
   }
 
-  // ==================== PLANIFICATION OPTIMISÉE DES REDRAWS ====================
   function scheduleRedraw() {
     if (!pendingDraws) {
       pendingDraws = true;
@@ -717,7 +677,6 @@ function findValidPosition() {
     }
   }
 
-  // ==================== ANIMATION PRINCIPALE ====================
   function animateWeaving(timestamp = 0) {
     if (timestamp - lastFrameTime < frameInterval) {
       animationFrame = requestAnimationFrame(animateWeaving);
@@ -740,8 +699,6 @@ function findValidPosition() {
     animationFrame = requestAnimationFrame(animateWeaving);
   }
 
-// ==================== DESSIN PRINCIPAL (HYBRIDE : BEAUTÉ vs PERF) ====================
-// ==================== DESSIN PRINCIPAL (ORIGINAL + MODE ANTI-LAG) ====================
 function drawWeave(withBackground = false) {
   if (!canDraw) return;
 
@@ -759,7 +716,6 @@ function drawWeave(withBackground = false) {
     return;
   }
 
-  // --- VÉRIFICATION DU MODE ANTI-LAG ---
   const usePerformance = settings.performanceMode === true;
 
   ctx.save();
@@ -792,7 +748,6 @@ function drawWeave(withBackground = false) {
 
   const time = Date.now() * 0.001;
 
-  // ==================== MODE 1 : FLOW ====================
   if (settings.linkMode === "flow") {
     const sortedWords = [...displayedWords].sort((a, b) => a.timestamp - b.timestamp);
 
@@ -831,7 +786,6 @@ function drawWeave(withBackground = false) {
             const py = y1 + (y2 - y1) * segProgress;
 
             ctx.save();
-            // On garde le glow ici même en mode perf car c'est vital pour l'effet flow
             ctx.shadowBlur = usePerformance ? 0 : 15;
             ctx.shadowColor = w2.color;
             ctx.fillStyle = "white";
@@ -858,7 +812,6 @@ function drawWeave(withBackground = false) {
     }
   }
 
-  // ==================== MODE 2 : WAVES ====================
   else if (settings.linkMode === "waves") {
     connections.forEach(([word1, word2]) => {
       const x1 = word1.x * width; const y1 = word1.y * height;
@@ -874,7 +827,6 @@ function drawWeave(withBackground = false) {
       const perpX = len > 0 ? (-dy / len) * offset : 0;
       const perpY = len > 0 ? (dx / len) * offset : 0;
 
-      // Halo (Désactivé en mode Perf)
       if (!usePerformance) {
         ctx.save();
         ctx.globalAlpha = 0.2 * settings.linesOpacity;
@@ -888,7 +840,6 @@ function drawWeave(withBackground = false) {
         ctx.stroke();
         ctx.restore();
       } else {
-        // Alternative rapide : Trait large transparent
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(midX + perpX, midY + perpY, x2, y2);
@@ -898,7 +849,6 @@ function drawWeave(withBackground = false) {
         ctx.stroke();
       }
 
-      // Trait principal
       ctx.save();
       ctx.shadowColor = usePerformance ? "transparent" : "rgba(255, 255, 255, 0.25)";
       ctx.shadowBlur = usePerformance ? 0 : 8;
@@ -922,7 +872,6 @@ function drawWeave(withBackground = false) {
     });
   }
 
-  // ==================== AUTRES MODES ====================
   else if (settings.linkMode === "constellation") {
     visibleWords.forEach((word) => {
       const x = word.x * width;
@@ -1007,7 +956,6 @@ function drawWeave(withBackground = false) {
           ctx.globalAlpha = 0.8 * settings.linesOpacity;
           ctx.stroke(); ctx.restore();
       } else {
-          // Mode perf : sans shadowBlur
           ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(spiralX, spiralY);
           const gradient = ctx.createLinearGradient(x, y, spiralX, spiralY);
           gradient.addColorStop(0, word.color); gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
@@ -1119,7 +1067,6 @@ function drawWeave(withBackground = false) {
     }
     ctx.globalAlpha = 1;
   } else {
-    // STANDARD
     connections.forEach(([word1, word2]) => {
       if (!word1.x || !word2.x) return;
 
@@ -1160,10 +1107,8 @@ function drawWeave(withBackground = false) {
     });
   }
 
-  // ==================== DESSIN DES POINTS (PARTICULES INCLUSES) ====================
   const wordOccurrences = getWordOccurrences();
 
-  // Gestion des particules (Toujours là par défaut, désactivées si bouton perf actif ou non coché)
   if (settings.enableParticles && !usePerformance) {
     const deadParticles = [];
     particles = particles.filter((p) => {
@@ -1192,7 +1137,6 @@ function drawWeave(withBackground = false) {
       return countA - countB;
     });
   
-  // Re-filtrage pour unicité stricte
   const uniqueWordsMap = new Map();
   sortedForDisplay.forEach((word) => {
     const key = word.text.toLowerCase();
@@ -1206,7 +1150,6 @@ function drawWeave(withBackground = false) {
     const highlightBonus = isHighlighted ? 6 : 0;
     const finalPointSize = (pointSize + highlightBonus) * settings.globalScale;
 
-    // Wobble (Désactivé en mode perf pour économiser CPU)
     const wobbleX = usePerformance ? 0 : Math.sin(time * 2 + word.timestamp * 0.001) * 3;
     const wobbleY = usePerformance ? 0 : Math.cos(time * 1.5 + word.timestamp * 0.001) * 3;
     const x = word.x * width + wobbleX;
@@ -1216,7 +1159,6 @@ function drawWeave(withBackground = false) {
       particles.push(getParticle(x, y, word.color));
     }
 
-    // Pulse Halo
     if (!usePerformance) {
         const pulseFactor = isHighlighted ? 6 : 4;
         const pulseSize = finalPointSize + 10 + Math.sin(time * (isHighlighted ? 4 : 3) + word.timestamp * 0.001) * pulseFactor;
@@ -1228,7 +1170,6 @@ function drawWeave(withBackground = false) {
         ctx.stroke();
     }
 
-    // Point central
     ctx.beginPath();
     ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
     ctx.fillStyle = word.color;
@@ -1237,14 +1178,12 @@ function drawWeave(withBackground = false) {
     ctx.shadowBlur = usePerformance ? 0 : (isHighlighted ? 28 : 20);
     ctx.fill();
 
-    // Contour
     ctx.beginPath();
     ctx.arc(x, y, finalPointSize, 0, Math.PI * 2);
     ctx.strokeStyle = isHighlighted ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)";
     ctx.lineWidth = isHighlighted ? 5 : 3;
     ctx.stroke();
 
-    // Reflet
     ctx.beginPath();
     ctx.arc(x, y, finalPointSize * 0.35, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
@@ -1277,7 +1216,6 @@ function drawWeave(withBackground = false) {
       const textPadding = Math.max(22, fontSize * 0.6);
       const textY = y - pointSize - textPadding;
 
-      // Ombre portée texte
       ctx.shadowColor = usePerformance ? "transparent" : "rgba(0, 0, 0, 0.7)";
       ctx.shadowBlur = usePerformance ? 0 : 12;
       ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
@@ -1299,7 +1237,6 @@ function drawWeave(withBackground = false) {
 
   ctx.restore();
 }
-  // ==================== STATISTIQUES ====================
   function updateStats() {
     const statsPanel = document.getElementById("stats-panel");
     if (statsPanel.classList.contains("hidden")) {
@@ -1444,13 +1381,11 @@ function drawWeave(withBackground = false) {
     document.getElementById("stats-content").innerHTML = html;
   }
 
- // ==================== DÉTECTION CHEVAUCHEMENTS (PUISSANCE MAX) ====================
 function detectAndResolveOverlaps() {
   const wordOccurrences = getWordOccurrences();
   const width = canvas.clientWidth || 800;
   const height = canvas.clientHeight || 600; // On prend aussi la hauteur
   
-  // Regrouper par mot unique
   const uniqueWords = new Map();
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
@@ -1459,7 +1394,6 @@ function detectAndResolveOverlaps() {
   
   const uniqueArray = Array.from(uniqueWords.values());
   
-  // 🔥 5 PASSES DE RÉSOLUTION (Pour bien démêler les grappes)
   for (let k = 0; k < 5; k++) {
       let hasMoved = false;
 
@@ -1471,14 +1405,11 @@ function detectAndResolveOverlaps() {
           const occurrences1 = wordOccurrences[word1.text.toLowerCase()] || 1;
           const occurrences2 = wordOccurrences[word2.text.toLowerCase()] || 1;
           
-          // Rayon en % de l'écran (approximatif pour la collision)
-          // On divise par la moyenne largeur/hauteur pour être cohérent
           const screenSize = (width + height) / 2;
           const radius1 = (getPointRadius(occurrences1) + 10) / screenSize; 
           const radius2 = (getPointRadius(occurrences2) + 10) / screenSize;
           
           const dx = word1.x - word2.x;
-          // Correction du ratio d'aspect pour que la distance soit visuellement juste
           const aspect = width / height;
           const dy = (word1.y - word2.y) / aspect; 
           
@@ -1491,7 +1422,6 @@ function detectAndResolveOverlaps() {
             const overlap = minDist - dist;
             const angle = Math.atan2(dy, dx);
             
-            // Force de repousse douce
             const moveX = Math.cos(angle) * overlap * 0.5;
             const moveY = Math.sin(angle) * overlap * 0.5 * aspect; // Rétablir l'aspect Y
 
@@ -1502,11 +1432,9 @@ function detectAndResolveOverlaps() {
           }
         }
       }
-      // Si rien n'a bougé cette passe, on arrête d'optimiser
       if (!hasMoved) break; 
   }
 
-  // Appliquer les nouvelles positions aux doublons
   uniqueArray.forEach(unique => {
       displayedWords.forEach(w => {
           if (w.text.toLowerCase() === unique.text.toLowerCase()) {
@@ -1516,7 +1444,6 @@ function detectAndResolveOverlaps() {
       });
   });
 }
-  // ==================== FETCH WORDS ====================
   async function fetchWords() {
     try {
       const controller = new AbortController();
@@ -1535,7 +1462,6 @@ function detectAndResolveOverlaps() {
         return;
       }
   
-      // Créer une map des mots existants pour préserver les modifications
       const existingWordsMap = new Map();
       displayedWords.forEach(word => {
         const key = `${word.text}-${word.timestamp}`;
@@ -1551,20 +1477,16 @@ function detectAndResolveOverlaps() {
         const key = `${fw.text}-${fw.timestamp}`;
         const existing = existingWordsMap.get(key);
         
-        // Si le mot existait déjà
         if (existing) {
-          // Préserver les couleurs si mélangées OU si couleur custom active
           if (colorsShuffled || colorGenerator.mode === 'custom') {
             fw.color = existing.color;
           }
           
-          // Préserver les positions si mélangées
           if (positionsShuffled) {
             fw.x = existing.x;
             fw.y = existing.y;
           }
         } else {
-          // Nouveau mot : appliquer la couleur custom si active
           if (colorGenerator.mode === 'custom') {
             fw.color = colorGenerator.customColor;
           }
@@ -1686,7 +1608,6 @@ function detectAndResolveOverlaps() {
     }
   }
 
-  // ==================== UPDATE WORD LIST ====================
   function updateWordList(newWords = []) {
     const existingItems = Array.from(
       wordsList.querySelectorAll(".word-item")
@@ -1733,8 +1654,6 @@ function detectAndResolveOverlaps() {
     });
   }
 
-// ==================== MISE À JOUR COULEURS LISTE ====================
-// ==================== MISE À JOUR COULEURS LISTE ====================
 function updateWordListColors(forceColor = null) {
   const wordItems = document.querySelectorAll('.word-item');
   
@@ -1742,19 +1661,15 @@ function updateWordListColors(forceColor = null) {
     let colorToApply;
 
     if (forceColor) {
-      // Mode Custom : on force la couleur choisie
       colorToApply = forceColor;
     } else {
-      // Mode Aléatoire : on cherche la couleur du mot
       const key = item.dataset.key;
       const word = displayedWords.find(w => `${w.text}-${w.timestamp}` === key);
       colorToApply = word ? word.color : '#ffffff';
     }
 
-    // Appliquer la couleur à la bordure
     item.style.borderLeft = `4px solid ${colorToApply}`;
     
-    // Appliquer la couleur au point (le cercle coloré)
     const colorDot = item.querySelector('span.w-3');
     if (colorDot) {
       colorDot.style.backgroundColor = colorToApply;
@@ -1762,7 +1677,6 @@ function updateWordListColors(forceColor = null) {
     }
   });
 }
-  // ==================== WORD FILTER ====================
   function setupWordFilter() {
     const filterInput = document.getElementById("word-filter");
     const filterCount = document.getElementById("filter-count");
@@ -1806,12 +1720,9 @@ function updateWordListColors(forceColor = null) {
     });
   }
 
- // ==================== ENREGISTREMENT TIME-LAPSE (MODIFIÉ) ====================
-// ==================== ENREGISTREMENT SÉCURISÉ ====================
 function startRecording() {
   if (isRecording) return;
 
-  // Fonction interne de démarrage (Ton code original inchangé)
   const executeStart = () => {
     recordedFrames = [];
     isRecording = true;
@@ -1838,13 +1749,11 @@ function startRecording() {
     }, 100);
   };
 
-  // Si déjà connecté, on lance direct
   if (localStorage.getItem("isRecordingAdmin") === "true") {
       executeStart();
       return;
   }
 
-  // TA MODALE (CODE EXACT CONSERVÉ)
   const passwordModal = document.createElement("div");
   passwordModal.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
   
@@ -1884,10 +1793,8 @@ function startRecording() {
   cancelBtn.onclick = closeModal;
   passwordModal.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
 
-  // --- LA SEULE PARTIE QUI CHANGE (Vérification Serveur) ---
   const checkPassword = async () => {
       const pwd = input.value.trim();
-      // On demande au serveur au lieu de regarder CONFIG
       const isValid = await verifyPasswordOnServer(pwd);
 
       if (isValid) {
@@ -2186,28 +2093,23 @@ function startRecording() {
     });
   }
 
-// ==================== ZOOM ET PAN (DÉBLOQUÉ) ====================
 function setupZoomAndPan() {
-  // Gestion Molette Souris
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     
-    // 🔥 CORRECTION : Limite min passée de 0.5 à 0.1 pour permettre un gros dézoom
     scale = Math.min(Math.max(0.1, scale * delta), 10);
     
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     
-    // Calcul pour zoomer vers la souris
     offsetX = mouseX - (mouseX - offsetX) * (scale / (scale/delta)); 
     offsetY = mouseY - (mouseY - offsetY) * (scale / (scale/delta));
     
     scheduleRedraw();
   }, { passive: false }); // Important pour éviter les warnings
 
-  // Gestion Tactile (Mobile/Tablette)
   canvas.addEventListener("touchstart", (e) => {
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -2231,7 +2133,6 @@ function setupZoomAndPan() {
       
       if (lastTouchDistance > 0) {
         const delta = dist / lastTouchDistance;
-        // 🔥 CORRECTION TACTILE AUSSI : 0.1
         const newScale = Math.min(Math.max(0.1, scale * delta), 10);
         
         const centerX = (touch1.clientX + touch2.clientX) / 2;
@@ -2259,7 +2160,6 @@ function setupZoomAndPan() {
     if (e.touches.length === 0) isDragging = false;
   });
 
-  // Gestion Souris (Click & Drag)
   canvas.addEventListener("mousedown", (e) => {
     isDragging = true;
     startX = e.clientX - offsetX;
@@ -2285,7 +2185,6 @@ function setupZoomAndPan() {
     canvas.style.cursor = "grab";
   });
 
-  // Double clic pour reset
   canvas.addEventListener("dblclick", () => {
     scale = 1;
     offsetX = 0;
@@ -2294,11 +2193,8 @@ function setupZoomAndPan() {
   });
 }
 
-// ==================== MODE PLEIN ÉCRAN ====================
-// ==================== MODE PLEIN ÉCRAN (CORRIGÉ POUR CACHER LE BOUTON) ====================
 function setupFullscreen() {
   const fullscreenButton = document.getElementById("fullscreen-button");
-  // On récupère le bouton toggle de la liste
   const toggleButton = document.getElementById("toggle-panel-button"); 
 
   if (fullscreenButton) {
@@ -2320,19 +2216,15 @@ function setupFullscreen() {
       const canvasContainer = document.getElementById("canvas-container");
       
       if (document.fullscreenElement) {
-        // 🎨 MODE IMMERSIF : On cache tout
         header.style.display = "none";
         footer.style.display = "none";
         wordsPanel.style.display = "none";
         
-        // 🔥 CORRECTION : On cache aussi le bouton toggle
         if (toggleButton) toggleButton.style.display = "none";
 
-        // Le canvas prend tout l'écran
         canvasContainer.style.width = "100%";
         canvasContainer.style.height = "100vh";
         
-        // Icône "Quitter"
         icon.innerHTML = `
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
@@ -2340,34 +2232,28 @@ function setupFullscreen() {
         fullscreenButton.title = "Quitter le plein écran (Échap)";
         
       } else {
-        // 🔙 RETOUR NORMAL
         header.style.display = "";
         footer.style.display = "";
         wordsPanel.style.display = "";
         canvasContainer.style.width = "";
         canvasContainer.style.height = "";
         
-        // 🔥 CORRECTION : On réaffiche le bouton toggle (sauf si mobile)
         if (toggleButton && window.innerWidth >= 768) {
              toggleButton.style.display = "";
         }
         
-        // Icône "Plein écran"
         icon.innerHTML = `
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
         `;
         fullscreenButton.title = "Plein écran";
       }
-      // Petit délai pour que le canvas s'adapte
       setTimeout(() => resizeCanvas(), 100);
     });
   }
 }
 
-  // ==================== EVENT LISTENERS ====================
 
-  // Ajoute ceci avec tes autres event listeners (vers ligne 1250)
 document.getElementById("performance-mode-toggle")?.addEventListener("change", (e) => {
   settings.performanceMode = e.target.checked;
   scheduleRedraw();
@@ -2380,8 +2266,6 @@ wordForm.addEventListener("submit", async (e) => {
 
   console.log("Tentative d'ajout de mot:", text);
 
-  // NOTE : La vérification des mots interdits (isForbidden) a été retirée ici.
-  // C'est maintenant l'API qui s'en charge pour la sécurité.
 
   if (!canUserAddWord()) {
     const count = getUserWordCount();
@@ -2442,11 +2326,9 @@ wordForm.addEventListener("submit", async (e) => {
       body: JSON.stringify(newWordPayload),
     });
 
-    // --- GESTION SÉCURISÉE DES ERREURS (REMPLACE LE CHECK LOCAL) ---
     if (!response.ok) {
       const data = await response.json();
       
-      // Si le serveur rejette le mot (Code 400 + message spécifique)
       if (response.status === 400 && (data.error.includes("inapproprié") || data.error.includes("interdit"))) {
            wordInput.value = "";
            wordInput.placeholder = "⚠️ Mot inapproprié";
@@ -2459,13 +2341,11 @@ wordForm.addEventListener("submit", async (e) => {
            throw new Error("Mot interdit par le serveur");
       }
 
-      // Autres erreurs
       let errorMsg = `Erreur serveur (${response.status})`;
       if (data && data.error) errorMsg = data.error;
       throw new Error(errorMsg);
     }
 
-    // --- SUCCÈS ---
     incrementUserWordCount();
     console.log("Mot ajouté avec succès");
 
@@ -2494,7 +2374,6 @@ wordForm.addEventListener("submit", async (e) => {
     await fetchWords();
   } catch (error) {
     console.error("Erreur d'ajout:", error);
-    // On affiche l'erreur dans le placeholder sauf si c'est déjà géré (mot interdit)
     if (error.message !== "Mot interdit par le serveur") {
         wordInput.placeholder = error.message;
         setTimeout(() => {
@@ -2511,7 +2390,6 @@ wordForm.addEventListener("submit", async (e) => {
   }
 });
 
-  // Stats button
   const statsButton = document.getElementById("stats-button");
   const statsPanel = document.getElementById("stats-panel");
   const closeStatsButton = document.getElementById("close-stats-button");
@@ -2527,7 +2405,6 @@ wordForm.addEventListener("submit", async (e) => {
     statsPanel.classList.add("hidden");
   });
 
-  // Settings modal
   const settingsButton = document.getElementById("settings-button");
   const settingsModal = document.getElementById("settings-modal");
   const closeSettingsButton = document.getElementById("close-settings-button");
@@ -2546,7 +2423,6 @@ wordForm.addEventListener("submit", async (e) => {
     }
   });
 
-  // Link mode selector
   const linkModeSelect = document.getElementById("link-mode-select");
   const modeDescription = document.getElementById("mode-description");
 
@@ -2565,59 +2441,48 @@ wordForm.addEventListener("submit", async (e) => {
     });
   }
 
-  // Slider opacité des traits
 document.getElementById("lines-opacity").addEventListener("input", (e) => {
   settings.linesOpacity = parseFloat(e.target.value) / 100;
   document.getElementById("lines-opacity-value").textContent = e.target.value + "%";
   scheduleRedraw();
 });
 
-// Slider taille globale
 document.getElementById("global-scale").addEventListener("input", (e) => {
   settings.globalScale = parseFloat(e.target.value) / 100;
   document.getElementById("global-scale-value").textContent = e.target.value + "%";
   scheduleRedraw();
 });
-// ==================== GESTION DES COULEURS ====================
   
-  // 1. Changement de Mode (Aléatoire vs Personnalisé)
   document.querySelectorAll('input[name="color-mode"]').forEach((radio) => {
     radio.addEventListener("change", (e) => {
       const customPicker = document.getElementById("custom-color-picker");
       
       if (e.target.value === "custom") {
-        // Activation du mode Custom
         customPicker.classList.remove("hidden");
         colorGenerator.setMode("custom");
         
         const customColor = document.getElementById("color-picker-input").value;
         
-        // Mettre à jour les données
         displayedWords.forEach(word => word.color = customColor);
         
-        // Mettre à jour le visuel
         scheduleRedraw();
         updateWordListColors(customColor); // 🔥 On force la couleur sur la liste
         
       } else {
-        // Retour au mode Aléatoire
         customPicker.classList.add("hidden");
         colorGenerator.setMode("auto");
         
-        // Régénérer les couleurs
         displayedWords.forEach(word => word.color = colorGenerator.getColor());
         
         colorsShuffled = false;
         geometryCache.clear();
         
-        // Mettre à jour le visuel
         scheduleRedraw();
         updateWordListColors(); // 🔥 On laisse la fonction chercher les couleurs aléatoires
       }
     });
   });
 
-  // 2. Sélecteur de couleur (Input)
   const colorPickerInput = document.getElementById("color-picker-input");
   const colorHexInput = document.getElementById("color-hex-input");
   const colorPreview = document.getElementById("color-preview");
@@ -2627,22 +2492,17 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
     const applyCustomColor = (color) => {
       colorGenerator.setCustomColor(color);
       
-      // Si on est en mode custom, on applique partout immédiatement
       const isCustomMode = document.querySelector('input[name="color-mode"]:checked').value === "custom";
       
       if (isCustomMode) {
-        // 1. Mettre à jour les données
         displayedWords.forEach(word => word.color = color);
         
-        // 2. Redessiner le canvas
         scheduleRedraw();
         
-        // 3. Mettre à jour la liste (C'EST ICI QUE ÇA SE JOUE)
         updateWordListColors(color);
       }
     };
 
-    // Événement quand on bouge le sélecteur
     colorPickerInput.addEventListener("input", (e) => {
       const color = e.target.value;
       colorHexInput.value = color;
@@ -2650,7 +2510,6 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
       applyCustomColor(color);
     });
 
-    // Événement quand on tape le code HEX
     colorHexInput.addEventListener("input", (e) => {
       let color = e.target.value.trim();
       if (color && !color.startsWith("#")) color = "#" + color;
@@ -2663,7 +2522,6 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
     });
   }
   
-  // Other toggles
   document
     .getElementById("show-words-toggle")
     .addEventListener("change", (e) => {
@@ -2713,13 +2571,11 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
     scheduleRedraw();
   });
 
-  // Panel toggle
   togglePanelButton.addEventListener("click", () => {
     mainContainer.classList.toggle("panel-hidden");
     setTimeout(() => resizeCanvas(), 350);
   });
 
-  // Download button
   downloadButton.addEventListener("click", () => {
     const oldScale = scale;
     const oldOffsetX = offsetX;
@@ -2740,7 +2596,6 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
     drawWeave(false);
   });
 
-  // Recording buttons
   const recordButton = document.getElementById("record-button");
   const stopRecordButton = document.getElementById("stop-record-button");
 
@@ -2760,7 +2615,6 @@ document.getElementById("global-scale").addEventListener("input", (e) => {
     });
   }
 
-// Shuffle colors
 document.getElementById("shuffle-colors-button")?.addEventListener("click", () => {
   const existingColors = displayedWords.map(w => w.color);
   
@@ -2787,9 +2641,7 @@ document.getElementById("shuffle-colors-button")?.addEventListener("click", () =
   setTimeout(() => { btn.style.transform = ""; }, 600);
 });
 
-// Shuffle positions
 document.getElementById("shuffle-positions-button")?.addEventListener("click", () => {
-  // 1. Identifier les mots uniques (1 seul par texte)
   const uniqueWordsMap = new Map();
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
@@ -2800,22 +2652,18 @@ document.getElementById("shuffle-positions-button")?.addEventListener("click", (
 
   const uniqueWords = Array.from(uniqueWordsMap.values());
   
-  // 2. Récupérer leurs positions actuelles
   const positions = uniqueWords.map(w => ({ x: w.x, y: w.y }));
   
-  // 3. Mélanger les positions (Fisher-Yates)
   for (let i = positions.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [positions[i], positions[j]] = [positions[j], positions[i]];
   }
   
-  // 4. Réassigner les nouvelles positions aux mots uniques
   uniqueWords.forEach((word, i) => {
     word.x = positions[i].x;
     word.y = positions[i].y;
   });
 
-  // 5. Propager ces positions à TOUS les doublons dans displayedWords
   displayedWords.forEach(word => {
     const key = word.text.toLowerCase();
     const uniqueWord = uniqueWordsMap.get(key);
@@ -2837,12 +2685,10 @@ document.getElementById("shuffle-positions-button")?.addEventListener("click", (
   setTimeout(() => { btn.style.transform = ""; }, 500);
 });
 
-// ==================== RESET SÉCURISÉ ====================
 resetButton.addEventListener("click", (e) => {
   e.preventDefault();
   e.stopPropagation();
 
-  // TA MODALE (CODE EXACT CONSERVÉ)
   const passwordModal = document.createElement("div");
   passwordModal.id = "password-reset-modal";
   passwordModal.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
@@ -2883,24 +2729,20 @@ resetButton.addEventListener("click", (e) => {
   cancelBtn.onclick = closeModal;
   passwordModal.onclick = (e) => { if (e.target === passwordModal) closeModal(); };
 
-  // --- LA PARTIE QUI CHANGE (Appel Serveur) ---
   const attemptReset = async () => {
     const enteredPassword = passwordInput.value.trim();
 
-    // 1. On vérifie le MDP
     const isValid = await verifyPasswordOnServer(enteredPassword);
 
     if (isValid) {
       closeModal();
 
       try {
-        // 2. On envoie la suppression AVEC le mot de passe en header
         await fetch("/api/words", { 
             method: "DELETE",
             headers: { 'x-admin-password': enteredPassword } 
         });
 
-        // Nettoyage local (Ton code original)
         displayedWords = [];
         wordsList.innerHTML = "";
         particles.forEach((p) => recycleParticle(p));
@@ -2924,7 +2766,6 @@ resetButton.addEventListener("click", (e) => {
         scheduleRedraw();
         updateStats();
 
-        // Notif centrée (comme demandé plus tôt)
         const confirmDiv = document.createElement("div");
         confirmDiv.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[110] animate-bounce font-bold text-center min-w-[300px]";
         confirmDiv.style.transform = "translateX(-50%)";
@@ -2953,7 +2794,6 @@ resetButton.addEventListener("click", (e) => {
   passwordInput.onkeypress = (e) => { if (e.key === "Enter") attemptReset(); };
 });
 
-  // QR Code modal
   const qrButton = document.getElementById("qr-code-button");
   const qrModal = document.getElementById("qr-modal");
   const closeModalButton = document.getElementById("close-modal-button");
@@ -2979,7 +2819,6 @@ resetButton.addEventListener("click", (e) => {
     if (e.target === qrModal) hideQrCode();
   });
 
-  // ==================== INITIALISATION ====================
   setupZoomAndPan();
   setupWordFilter();
   setupFullscreen();
