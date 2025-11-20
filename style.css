@@ -362,12 +362,27 @@ footer button:active {
     }
     
     #stats-panel {
-        top: auto;
-        bottom: 80px;
-        right: 0.5rem;
-        left: 0.5rem;
-        width: auto;
-        max-width: none;
+        /* On le centre au milieu de l'écran */
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        
+        /* On annule le positionnement du bas */
+        bottom: auto; 
+        right: auto;
+        
+        /* Dimensions contrôlées */
+        width: 90%;          /* Largeur : 90% de l'écran */
+        max-width: 400px;    /* Pas trop large sur les grands téléphones */
+        max-height: 80vh;    /* Hauteur Max : 80% de l'écran (laisse de la place pour fermer) */
+        
+        /* Activation du scroll */
+        overflow-y: auto; 
+        
+        /* Bordure et ombre pour bien le détacher */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 }
 

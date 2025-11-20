@@ -7,37 +7,90 @@ const CONFIG = {
   FETCH_INTERVAL: 2000,
 };
 
-// Liste de mots interdits
 const FORBIDDEN_WORDS = [
-  // Insultes
-  "merde",
-  "con",
-  "connard",
-  "connasse",
-  "salaud",
-  "salope",
-  "pute",
-  "enculé",
-  "batard",
-  "fdp",
-  "ntm",
-  // Grossièretés
-  "sexe",
-  "penis",
-  "vagin",
-  "cul",
-  "bite",
-  "couille",
-  "chatte",
-  // Injures
-  "nazi",
-  "facho",
-  "terroriste",
-  "raciste",
-  // Variantes
-  "pd",
-  "tapette",
-  "salop",
+
+  // Insultes courantes
+  "con", "connard", "connasse", "abruti", "idiot", "imbécile", "crétin",
+  "gogol", "clown", "bouffon", "guignol", "andouille", "glandeur",
+  "branleur", "clochard", "manchot", "nul", "minable", "raté", "pathétique",
+  "balourd", "tocard", "pauv' con", "sale con", "sale type", "pleutre",
+
+  // Insultes fortes
+  "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
+  "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
+  "ntm", "fils de pute", "ta gueule", "tg",
+
+
+  // Insultes fortes
+  "salaud", "salopard", "salop", "salope", "pute", "putain", "pétasse",
+  "petasse", "garce", "grognasse", "morue", "batard", "bâtard", "fdp",
+  "ntm", "fils de pute", "ta gueule", "tg", "enculé",
+
+  // Vulgarité / sexualité explicite
+  "merde", "bordel", "chiant", "chier", "faire chier", "chiotte",
+  "cul", "bite", "teub", "queue", "zizi", "couille", "couilles",
+  "chatte", "vagin", "pénis", "penis", "nichon", "nichons",
+  "sucer", "fellation", "branlette", "branler", "baiser", "baisé",
+  "éjaculation", "sperme", "foutre", "pénétration","paf", "paf",
+
+  // Violence / menaces
+  "tuer", "je vais te tuer", "crève", "crève sale con", "meurtre",
+  "massacre", "assassiner", "assassin", "frapper", "violence",
+  "viol", "agression", "décapiter", "étrangler", "tabasser",
+  "bombarder", "explosion", "arme", "fusillade",
+
+  // Troubles mentaux utilisés comme insultes génériques
+  "taré", "cinglé", "folle", "malade mental", "débile", "psychopathe",
+  "sociopathe", "timbré",
+
+  // Haine / hostilité
+  "haine", "je te hais", "je te déteste",
+  "ordure", "déchet", "parasite", "vermine",
+
+  // Extrémisme / idéologies violentes
+  "nazi", "nazisme", "facho", "fasciste",
+  "terroriste", "djihadiste", "extrémiste",
+
+  // Figures historiques liées à la violence (autorisé)
+  "hitler", "adolf hitler",
+  "himmler", "goebbels", "goering",
+  "staline", "lenine", "mao",
+  "ben laden", "osama ben laden",
+  "kadhafi", "saddam", "pol pot",
+  "pétain", "mussolini",
+
+  // Criminels connus (aucune restriction)
+  "dahmer", "bundy", "manson", "joachim kroll",
+  "fourniret", "zemmour" /* (politique polémique mais pas un slur) */,
+  "merah", "coulibaly", "abdeslam",
+
+  // Termes liés au crime / illégal
+  "drogue", "cocaïne", "coke", "heroine", "meth",
+  "dealer", "trafiquant", "cartel",
+  "kidnapping", "enlèvement",
+
+  // Termes morbides
+  "cadavre", "mort", "sang", "démembrement", "charogne",
+
+  // Harcèlement / intimidation
+  "suicide toi", "suicid", "tu sers à rien", "personne t'aime",
+  "t'es inutile", "t'es moche", "t'es laid", "t'es une merde",
+
+  // Disqualification / mépris
+  "va te faire voir", "va te faire foutre", "nique ta mère",
+  "nique ta race" /* grossier mais ne cible aucun groupe protégé */,
+  "j't'emmerde", "emmerdeur",
+
+  // Déshumanisation générique
+  "animal", "bête", "rat", "vermine", "porc", "cafard",
+  "clodo", "sdf", "pouilleux",
+
+  // Termes divers dégradants
+  "prostitué", "prostitution", "pute à fric",
+  "cassos", "cassosss", "cassossssss",
+  "bougnoul" , "negro", "nigga", "nigger", 
+  "pleurnicheur", "victimisation",
+  "gamin", "sale gosse",
 ];
 
 // Descriptions des modes
