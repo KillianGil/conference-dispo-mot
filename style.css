@@ -4,30 +4,37 @@ body {
     -webkit-tap-highlight-color: transparent;
     margin: 0;
     padding: 0;
-    background-color: #0a0f1a; /* Fond sombre de base */
-    overflow: hidden; /* Empêche le scroll global (seuls les panels scrollent) */
+    background-color: #0a0f1a; /* Fond sombre */
+    overflow: hidden;
 }
 
-/* ==================== CONTAINER PRINCIPAL ==================== */
+/* ==================== CONTAINER PRINCIPAL (STRUCTURE D'ORIGINE) ==================== */
+/* On garde le Flexbox pour que le canvas et le panel ne se chevauchent pas */
 #main-container {
-    position: relative;
+    display: flex;
+    flex-direction: column; /* Mobile : l'un sous l'autre */
     height: 100vh;
     width: 100vw;
-    /* On passe en block pour superposer les éléments (Z-index) */
-    display: block; 
+    position: relative;
 }
 
-/* ==================== CANVAS (ARRIÈRE-PLAN) ==================== */
-/* Le canvas est en absolute pour être derrière l'interface */
+@media (min-width: 768px) {
+    #main-container {
+        flex-direction: row; /* Desktop : côte à côte */
+    }
+}
+
+/* ==================== CANVAS (INTACT) ==================== */
+/* On ne touche PAS au positionnement absolu ici. 
+   Il reste dans son conteneur flexible */
 #canvas-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 1; /* Tout en bas */
-    overflow: visible;
+    position: relative;
+    flex-grow: 1; /* Prend tout l'espace restant */
+    height: 100%; 
+    z-index: 1;
     background: #0a0f1a;
+    overflow: hidden;
+    transition: width 0.3s ease; /* Juste pour l'ouverture/fermeture du panel */
 }
 
 #weave-canvas {
@@ -43,319 +50,275 @@ body {
     cursor: grabbing;
 }
 
-/* ==================== HEADER FLOTTANT (CAPSULE) ==================== */
+/* ==================== HEADER (NOUVEAU STYLE CAPSULE) ==================== */
 .header-minimal {
     position: absolute;
     top: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    min-width: 280px;
+    min-width: 300px;
     max-width: 90%;
     z-index: 60; /* Au-dessus de tout */
     
     /* Style Verre (Glassmorphism) */
-    background: rgba(17, 24, 39, 0.65);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(17, 24, 39, 0.75); /* Fond semi-transparent */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50px; /* Forme de pilule */
+    border-radius: 50px; /* Forme arrondie */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     
     padding: 0.75rem 2rem;
     text-align: center;
-    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: all 0.3s ease;
 }
 
 .header-minimal:hover {
-    background: rgba(17, 24, 39, 0.85);
-    transform: translateX(-50%) translateY(2px) scale(1.02);
+    background: rgba(17, 24, 39, 0.9);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(-50%) translateY(2px);
 }
 
 .title-minimal {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: white;
     margin: 0;
-    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
 }
 
-.title-separator {
-    color: #818cf8; /* Indigo-400 */
-}
-
+.title-separator { color: #818cf8; }
 .subtitle-minimal {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.6);
     margin-top: 2px;
-    font-weight: 400;
 }
-
 .line-decoration { display: none; }
 
-/* ==================== PANNEAU LISTE DES MOTS (DÉTACHÉ) ==================== */
+/* ==================== PANNEAU LISTE DES MOTS ==================== */
+/* On garde le positionnement flex, mais on change l'apparence */
 #words-panel {
-    position: absolute;
-    top: 7rem; /* Sous le header */
-    left: 2rem;
-    bottom: 7rem; /* Au-dessus du footer */
-    width: 320px;
-    z-index: 10; /* Au-dessus du canvas */
+    position: relative;
+    z-index: 20;
     
-    /* Style Carte Flottante */
-    background: rgba(20, 25, 40, 0.75);
+    /* Style Verre */
+    background: rgba(20, 25, 40, 0.85); /* Un peu plus transparent */
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 5px 0 30px rgba(0, 0, 0, 0.2);
     
-    padding: 1.5rem;
-    
-    /* Animation Entrée/Sortie fluide */
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
-                opacity 0.4s ease;
-    transform: translateX(0);
-    opacity: 1;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-#words-panel h2 {
-    font-size: 1.25rem;
-    margin-top: 0;
-}
-
-/* État caché (Slide vers la gauche) */
-#main-container.panel-hidden #words-panel {
-    transform: translateX(-120%);
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Items de la liste */
+/* Liste items */
 .word-item { 
     margin-bottom: 0.5rem;
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    border-radius: 12px;
     border-left-width: 4px !important;
-    
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Effet rebond */
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .word-item:hover {
     background: rgba(255, 255, 255, 0.08);
-    transform: translateX(6px) scale(1.02);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateX(4px); /* Petit mouvement simple */
 }
 
 /* Barre de recherche */
 #word-filter {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    transition: all 0.3s ease;
+    color: white;
 }
 
-#word-filter:focus {
-    background: rgba(0, 0, 0, 0.5);
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+/* Gestion Panel Caché (Garde le comportement d'origine) */
+#main-container.panel-hidden #words-panel {
+    margin-left: -100%; /* Ou width 0 selon ton JS, ici on simule la fermeture */
+    width: 0 !important;
+    padding: 0 !important;
+    opacity: 0;
+    overflow: hidden;
 }
 
-/* ==================== BOUTON TOGGLE PANEL ==================== */
-#toggle-panel-button {
-    /* Positionné par rapport au panel pour bouger avec lui sur mobile, 
-       ou rester fixe en desktop. Ici on le fixe à l'écran. */
-    position: absolute;
-    top: 7rem;
-    left: 23rem; /* Juste à droite du panel (320px + margin) */
-    z-index: 20;
-    
-    background: rgba(31, 41, 55, 0.9);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Quand le panel est caché, le bouton revient vers la gauche */
-#main-container.panel-hidden #toggle-panel-button {
-    left: 1.5rem;
-    background: rgba(99, 102, 241, 0.9); /* Devient bleu pour inciter au clic */
-}
-
-#main-container.panel-hidden #toggle-panel-button svg {
-    transform: rotate(180deg);
-}
-
-/* ==================== FOOTER (DÉTACHÉ) ==================== */
+/* ==================== FOOTER (FLOTTANT MAIS NON INTRUSIF) ==================== */
 footer {
-    position: absolute;
-    bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: auto;
-    max-width: 95%;
-    z-index: 50;
+    /* On le laisse en bas de la colonne flex pour ne pas couvrir le canvas */
+    position: relative; 
+    z-index: 30;
     
-    /* Style Verre */
-    background: rgba(17, 24, 39, 0.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    /* Style moderne */
+    background: rgba(17, 24, 39, 0.9);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
     
-    padding: 0.75rem;
+    padding: 1rem;
     display: flex;
-    gap: 0.75rem;
+    justify-content: center;
     align-items: center;
+    gap: 1rem;
 }
 
-/* ==================== BOUTONS & INPUTS (STYLE FLUIDE) ==================== */
-button {
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-button:active {
-    transform: scale(0.92);
+/* ==================== INPUTS & BOUTONS (TAILLE NORMALE) ==================== */
+#word-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 600px; /* Largeur max confortable */
 }
 
 #word-input {
-    background: rgba(0, 0, 0, 0.3);
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
+    border-radius: 8px; /* Arrondi standard */
     color: white;
-    transition: all 0.3s ease;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease;
 }
 
 #word-input:focus {
-    background: rgba(0, 0, 0, 0.5);
-    border-color: #818cf8;
-    transform: translateY(-1px);
+    border-color: #6366f1;
+    background: rgba(0, 0, 0, 0.6);
 }
 
+/* Bouton Tisser */
 #word-form button[type="submit"] {
-    border-radius: 14px;
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    border-radius: 8px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
 }
 
 #word-form button[type="submit"]:hover {
-    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
-    transform: translateY(-2px);
+    opacity: 0.9;
 }
 
 /* Boutons d'outils (rond/carré) */
 footer > div button {
-    border-radius: 14px;
-    background: rgba(55, 65, 81, 0.5);
+    background: rgba(55, 65, 81, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: background 0.2s;
 }
 
 footer > div button:hover {
-    background: rgba(75, 85, 99, 0.8);
-    transform: translateY(-3px);
+    background: rgba(75, 85, 99, 0.9);
 }
 
-/* ==================== SCROLLBARS PERSONNALISÉES ==================== */
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
-}
-
-/* ==================== STATS & MODALS ==================== */
-#stats-panel {
-    /* Positionnement fixe pour les stats aussi */
+/* ==================== BOUTON TOGGLE PANEL ==================== */
+#toggle-panel-button {
     position: absolute;
-    top: 7rem;
-    right: 2rem;
-    width: 300px;
-    max-height: calc(100vh - 10rem);
-    z-index: 55;
-    
-    background: rgba(20, 25, 40, 0.85);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    top: 1rem; /* Un peu en haut */
+    left: 1rem; /* À gauche par défaut (mobile) */
+    z-index: 50;
+    background: rgba(31, 41, 55, 0.9);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    color: white;
+    transition: transform 0.3s ease;
 }
 
-/* ==================== RESPONSIVE / MOBILE ==================== */
+/* Sur Desktop, le bouton suit le panneau */
+@media (min-width: 768px) {
+    #toggle-panel-button {
+        top: 50%;
+        left: auto;
+        /* On le place "sur" la bordure du panel */
+        margin-left: -20px; 
+        transform: translateY(-50%);
+    }
+    
+    /* Si le panel est caché, on déplace le bouton */
+    #main-container.panel-hidden #toggle-panel-button {
+        left: 1.5rem;
+        background: #6366f1;
+    }
+    #main-container.panel-hidden #toggle-panel-button svg {
+        transform: rotate(180deg);
+    }
+}
+
+/* ==================== MODALES & SCROLLBARS ==================== */
+/* Scrollbars propres */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+/* Stats Panel */
+#stats-panel {
+    position: absolute;
+    top: 5rem;
+    right: 1rem;
+    width: 300px;
+    max-height: 80vh;
+    z-index: 55;
+    background: rgba(20, 25, 40, 0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+/* QR & Settings */
+#settings-modal > div, #qr-modal > div {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Color picker */
+#color-picker-input {
+    appearance: none; -webkit-appearance: none; border: none;
+    width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
+    padding: 0;
+}
+#color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
+#color-picker-input::-webkit-color-swatch { border: none; }
+
+/* ==================== RESPONSIVE MOBILE ==================== */
 @media (max-width: 767px) {
-    /* Le header devient plus petit */
     .header-minimal {
-        top: 1rem;
-        width: 90%;
-        min-width: auto;
-        padding: 0.5rem 1rem;
+        top: 0.5rem;
+        width: 95%;
+        padding: 0.5rem;
     }
     
     .title-minimal { font-size: 1rem; }
-    .subtitle-minimal { display: none; } /* Gain de place */
+    .subtitle-minimal { display: none; }
 
-    /* Le Panel prend plus de place mais reste flottant */
-    #words-panel {
-        top: 5rem;
-        left: 1rem;
-        right: 1rem; /* Prend la largeur */
-        width: auto;
-        bottom: 6rem;
-        background: rgba(20, 25, 40, 0.95); /* Plus opaque pour lisibilité */
-    }
-    
-    /* Bouton toggle sur mobile */
-    #toggle-panel-button {
-        top: 5.5rem;
-        left: auto;
-        right: -10px; /* Cache le bouton ou le déplace */
-        /* En réalité sur mobile on peut vouloir le mettre ailleurs.
-           Ici on va le mettre en "overlay" sur le panel */
-        right: 1.5rem;
-        left: auto;
-        background: #4f46e5;
-    }
-    
-    #main-container.panel-hidden #toggle-panel-button {
-        left: 1rem;
-        right: auto;
-    }
-
-    /* Le footer colle au bas ou flotte très bas */
     footer {
-        bottom: 1rem;
-        width: 95%;
-        padding: 0.5rem;
-        border-radius: 20px;
         flex-wrap: wrap;
-        justify-content: center;
+        padding: 0.5rem;
     }
     
-    #word-form {
+    #word-form { width: 100%; }
+    footer > div { width: 100%; justify-content: space-between; display: flex; margin-top: 0.5rem;}
+    
+    /* Sur mobile, le panel prend de la hauteur mais reste flex pour ne pas couvrir le canvas */
+    #words-panel {
         width: 100%;
-        margin-bottom: 0.5rem;
+        height: 40vh; /* Prend 40% de l'écran en haut */
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-right: none;
     }
     
-    footer > div {
-        width: 100%;
-        justify-content: space-between;
-        display: flex;
+    #toggle-panel-button {
+        top: auto;
+        bottom: 1rem; /* Bouton en bas à droite du panel ? ou ailleurs */
+        right: 1rem;
+        left: auto;
     }
 }
