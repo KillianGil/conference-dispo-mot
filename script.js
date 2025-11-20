@@ -206,35 +206,67 @@ class Particle {
   }
 }
 
-// ==================== GÉNÉRATEUR DE COULEURS (ALÉATOIRE & VIBRANT) ====================
+// ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS ====================
+// ==================== GÉNÉRATEUR DE COULEURS (PREMIUM & VARIÉ) ====================
 const colorGenerator = {
   mode: "auto",
   customColor: "#6366f1",
+  lastHues: [], 
 
   getColor: function () {
-    if (this.mode === "custom") {
-      return this.customColor;
-    }
-
-    // 1. Teinte : Absolument tout le spectre (0 à 360)
-    const hue = Math.floor(Math.random() * 360);
+    if (this.mode === "custom") return this.customColor;
     
-    // 2. Saturation : Toujours élevée (entre 75% et 100%) pour l'effet "Néon"
-    const saturation = 75 + Math.random() * 25; 
+    // PALETTE "IMPRESSIONNANTE" (Couleurs profondes et lumineuses)
+    const colorZones = [
+      { name: "rouge rubis", hue: [350, 10], sat: [75, 95], light: [55, 65] },
+      { name: "orange solaire", hue: [20, 40], sat: [80, 100], light: [60, 70] },
+      { name: "or chaud", hue: [45, 55], sat: [85, 100], light: [50, 65] }, 
+      { name: "vert émeraude", hue: [130, 160], sat: [65, 85], light: [50, 65] }, // Plus classe que le fluo
+      { name: "cyan lagon", hue: [170, 190], sat: [75, 95], light: [55, 70] },
+      { name: "bleu profond", hue: [210, 240], sat: [70, 90], light: [55, 70] },
+      { name: "violet royal", hue: [260, 280], sat: [70, 90], light: [60, 70] },
+      { name: "magenta vif", hue: [290, 315], sat: [75, 95], light: [55, 65] },
+      { name: "rose poudré", hue: [325, 345], sat: [70, 90], light: [60, 75] }
+    ];
     
-    // 3. Luminosité : Brillante (entre 55% et 75%) pour ressortir sur le fond noir
-    const lightness = 55 + Math.random() * 20;
+    // Choix intelligent pour éviter les répétitions (Ta logique est parfaite ici)
+    let zone;
+    let attempts = 0;
+    do {
+      zone = colorZones[Math.floor(Math.random() * colorZones.length)];
+      attempts++;
+    } while (
+      this.lastHues.length > 0 && 
+      this.lastHues.some(h => {
+          // Gestion du passage 360->0 pour le rouge
+          let diff = Math.abs(h - zone.hue[0]);
+          if (diff > 180) diff = 360 - diff;
+          return diff < 30;
+      }) &&
+      attempts < 20
+    );
+    
+    // Calcul précis
+    let hMin = zone.hue[0];
+    let hMax = zone.hue[1];
+    if (hMin > hMax) hMax += 360; // Cas du rouge qui traverse 0
 
-    return `hsl(${hue}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
+    let hue = hMin + Math.random() * (hMax - hMin);
+    if (hue > 360) hue -= 360;
+
+    const saturation = zone.sat[0] + Math.random() * (zone.sat[1] - zone.sat[0]);
+    const lightness = zone.light[0] + Math.random() * (zone.light[1] - zone.light[0]);
+    
+    this.lastHues.push(hue);
+    if (this.lastHues.length > 4) this.lastHues.shift();
+    
+    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
   },
 
-  setCustomColor: function (color) {
-    this.customColor = color;
-  },
-
-  setMode: function (mode) {
-    this.mode = mode;
-  },
+  setCustomColor: function (c) { this.customColor = c; },
+  setMode: function (m) { this.mode = m; },
 };
 
 // ==================== ANIMATIONS D'APPARITION ====================
