@@ -3002,8 +3002,12 @@ document.getElementById("shuffle-positions-button")?.addEventListener("click", (
           updateStats();
 
           const confirmDiv = document.createElement("div");
+          // On utilise 'fixed' + 'inset-x-0' (tailwindcss) ou left/right 0 + margin auto pour être sûr
           confirmDiv.className =
-            "fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce";
+            "fixed top-24 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[110] animate-bounce font-bold text-center min-w-[300px]";
+          
+          confirmDiv.style.transform = "translateX(-50%)"; // Force le centrage JS au cas où Tailwind fail
+          
           confirmDiv.textContent =
             "✓ Tissage réinitialisé - Tous les compteurs remis à zéro";
           document.body.appendChild(confirmDiv);
