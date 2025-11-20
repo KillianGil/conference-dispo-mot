@@ -1960,23 +1960,12 @@ function updateWordListColors(forceColor = null) {
     });
   }
 
-  // ==================== ENREGISTREMENT TIME-LAPSE ====================
-  function startRecording() {
-    if (isRecording) return;
+ // ==================== ENREGISTREMENT TIME-LAPSE (MODIFIÉ) ====================
+ function startRecording() {
+  if (isRecording) return;
 
-    const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
-
-    if (!isAdmin) {
-      const password = prompt(
-        "🔒 Mot de passe administrateur pour l'enregistrement :"
-      );
-      if (password !== CONFIG.RESET_PASSWORD) {
-        alert("❌ Accès refusé");
-        return;
-      }
-      localStorage.setItem("isRecordingAdmin", "true");
-    }
-
+  // Fonction interne pour lancer vraiment l'enregistrement après validation
+  const executeStart = () => {
     recordedFrames = [];
     isRecording = true;
     recordingStartTime = Date.now();
@@ -1992,27 +1981,93 @@ function updateWordListColors(forceColor = null) {
 
     recordingInterval = setInterval(() => {
       if (!isRecording) return;
-    
       try {
         const frame = canvas.toDataURL("image/png");
         recordedFrames.push(frame);
-    
-        const estimatedSize =
-          recordedFrames.reduce((acc, f) => acc + f.length, 0) / 1024 / 1024;
-    
-        console.log(
-          `📸 Frame ${recordedFrames.length} • ${estimatedSize.toFixed(2)} MB`
-        );
-    
-        // 🔥 PLUS DE LIMITE - Enregistrement illimité
-        // (Supprimé : if (recordedFrames.length >= 600 || estimatedSize > 200))
+        // Logique de debug optionnelle...
       } catch (err) {
         console.error("❌ Erreur capture frame:", err);
         stopRecording();
-        alert("❌ Erreur mémoire - enregistrement arrêté");
       }
     }, 100);
+  };
+
+  const isAdmin = localStorage.getItem("isRecordingAdmin") === "true";
+
+  if (isAdmin) {
+    executeStart();
+    return;
   }
+
+  // --- CRÉATION DE LA MODALE (Même style que Reset) ---
+  const passwordModal = document.createElement("div");
+  passwordModal.className = "fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4";
+  
+  passwordModal.innerHTML = `
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full border border-gray-700">
+      <h3 class="text-xl font-bold text-white mb-4">🎥 Mode Créateur</h3>
+      <p class="text-gray-300 text-sm mb-4">Entrez le mot de passe pour lancer l'enregistrement :</p>
+      
+      <input type="password" id="record-password-input" 
+        class="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-gray-600"
+        placeholder="Mot de passe..."
+        autocomplete="off">
+        
+      <div class="flex gap-2">
+        <button type="button" id="cancel-record-auth" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition">
+          Annuler
+        </button>
+        <button type="button" id="confirm-record-auth" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition">
+          Valider
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(passwordModal);
+
+  const input = document.getElementById("record-password-input");
+  const confirmBtn = document.getElementById("confirm-record-auth");
+  const cancelBtn = document.getElementById("cancel-record-auth");
+
+  // Focus automatique
+  setTimeout(() => input.focus(), 100);
+
+  const closeModal = () => {
+    if (document.body.contains(passwordModal)) {
+      document.body.removeChild(passwordModal);
+    }
+  };
+
+  // Gestionnaires d'événements
+  cancelBtn.onclick = closeModal;
+  
+  passwordModal.onclick = (e) => {
+    if (e.target === passwordModal) closeModal();
+  };
+
+  const checkPassword = () => {
+    if (input.value.trim() === CONFIG.RESET_PASSWORD) {
+      localStorage.setItem("isRecordingAdmin", "true");
+      closeModal();
+      executeStart();
+    } else {
+      input.value = "";
+      input.placeholder = "❌ Mot de passe incorrect";
+      input.classList.add("border-2", "border-red-500");
+      setTimeout(() => {
+          input.classList.remove("border-2", "border-red-500");
+          input.placeholder = "Mot de passe...";
+      }, 2000);
+    }
+  };
+
+  confirmBtn.onclick = checkPassword;
+  
+  input.onkeypress = (e) => {
+    if (e.key === "Enter") checkPassword();
+  };
+}
 
   function stopRecording() {
     if (!isRecording) return;
