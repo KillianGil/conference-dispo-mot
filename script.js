@@ -1000,26 +1000,35 @@ function drawWeave(withBackground = false) {
 
   // ==================== AUTRES MODES (INCHANGÉS) ====================
   else if (settings.linkMode === "constellation") {
-    visibleWords.forEach((word) => {
-      const x = word.x * width;
-      const y = word.y * height;
-      const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
+    // A. DESSIN DES TRAITS (AJOUTÉ)
+    connections.forEach(([word1, word2]) => {
+        const x1 = word1.x * width; const y1 = word1.y * height;
+        const x2 = word2.x * width; const y2 = word2.y * height;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; // Traits fins blancs discrets
+        ctx.lineWidth = 1; // Très fin pour effet constellation
+        ctx.globalAlpha = settings.linesOpacity;
+        ctx.stroke();
+    });
 
-      for (let i = 0; i < 3; i++) {
+    // B. DESSIN DES ÉTOILES
+    visibleWords.forEach((word) => {
+      const x = word.x * width; const y = word.y * height;
+      const twinkle = Math.abs(Math.sin(time * 2 + word.timestamp * 0.001));
+      const starCount = isHeavy ? 1 : 3;
+      for (let i = 0; i < starCount; i++) {
         const angle = (time + (i * Math.PI * 2) / 3) * 0.5;
         const radius = 30 + Math.sin(time + i) * 10;
-        const starX = x + Math.cos(angle) * radius;
-        const starY = y + Math.sin(angle) * radius;
-
         ctx.beginPath();
-        ctx.arc(starX, starY, 2, 0, Math.PI * 2);
+        ctx.arc(x + Math.cos(angle)*radius, y + Math.sin(angle)*radius, 2, 0, Math.PI*2);
         ctx.fillStyle = word.color;
         ctx.globalAlpha = twinkle * 0.6 * settings.linesOpacity;
         ctx.fill();
       }
     });
-    ctx.globalAlpha = 1;
-  } else if (settings.linkMode === "ripple") {
+} else if (settings.linkMode === "ripple") {
     visibleWords.forEach((word, index) => {
       const x = word.x * width;
       const y = word.y * height;
@@ -2418,8 +2427,11 @@ function updateWordListColors(forceColor = null) {
   }
 
 // ==================== MODE PLEIN ÉCRAN ====================
+// ==================== MODE PLEIN ÉCRAN (CORRIGÉ POUR CACHER LE BOUTON) ====================
 function setupFullscreen() {
   const fullscreenButton = document.getElementById("fullscreen-button");
+  // On récupère le bouton toggle de la liste
+  const toggleButton = document.getElementById("toggle-panel-button"); 
 
   if (fullscreenButton) {
     fullscreenButton.addEventListener("click", () => {
@@ -2440,11 +2452,14 @@ function setupFullscreen() {
       const canvasContainer = document.getElementById("canvas-container");
       
       if (document.fullscreenElement) {
-        // 🎨 MODE IMMERSIF : On cache tout sauf le canvas
+        // 🎨 MODE IMMERSIF : On cache tout
         header.style.display = "none";
         footer.style.display = "none";
         wordsPanel.style.display = "none";
         
+        // 🔥 CORRECTION : On cache aussi le bouton toggle
+        if (toggleButton) toggleButton.style.display = "none";
+
         // Le canvas prend tout l'écran
         canvasContainer.style.width = "100%";
         canvasContainer.style.height = "100vh";
@@ -2456,18 +2471,18 @@ function setupFullscreen() {
         `;
         fullscreenButton.title = "Quitter le plein écran (Échap)";
         
-        // Redimensionner le canvas après l'application des styles
-        setTimeout(() => {
-          resizeCanvas();
-        }, 100);
-        
       } else {
-        // 🔙 RETOUR NORMAL : On réaffiche tout
+        // 🔙 RETOUR NORMAL
         header.style.display = "";
         footer.style.display = "";
         wordsPanel.style.display = "";
         canvasContainer.style.width = "";
         canvasContainer.style.height = "";
+        
+        // 🔥 CORRECTION : On réaffiche le bouton toggle (sauf si mobile)
+        if (toggleButton && window.innerWidth >= 768) {
+             toggleButton.style.display = "";
+        }
         
         // Icône "Plein écran"
         icon.innerHTML = `
@@ -2475,12 +2490,9 @@ function setupFullscreen() {
                 d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
         `;
         fullscreenButton.title = "Plein écran";
-        
-        // Redimensionner le canvas après le retour
-        setTimeout(() => {
-          resizeCanvas();
-        }, 100);
       }
+      // Petit délai pour que le canvas s'adapte
+      setTimeout(() => resizeCanvas(), 100);
     });
   }
 }
