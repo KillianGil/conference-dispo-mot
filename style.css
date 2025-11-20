@@ -414,6 +414,21 @@ footer button:hover {
         min-height: 44px;
         font-size: 16px;
         padding: 0.5rem 0.75rem;
+        background: rgba(55, 65, 81, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    #word-input:focus {
+        background: rgba(55, 65, 81, 0.7);
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1),
+                    0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    #word-input::placeholder {
+        color: rgba(156, 163, 175, 0.6);
     }
     
     #word-form button[type="submit"] {
