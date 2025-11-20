@@ -234,16 +234,16 @@ body {
     transform: translateX(-120%); opacity: 0; pointer-events: none;
 }
 
-/* ==================== 6. BOUTON TOGGLE (FLUIDITÉ TOTALE) ==================== */
+/* ==================== 6. BOUTON TOGGLE (MOTEUR GPU - ULTRA FLUIDE) ==================== */
 #toggle-panel-button {
     position: fixed;
     z-index: 60;
     
-    /* ETAT OUVERT (Haut droite de la liste) */
-    left: calc(2rem + 300px - 48px); 
-    top: 9rem; 
+    /* ON FIXE L'ORIGINE À 0,0 POUR TOUT GÉRER VIA TRANSFORM */
+    top: 0;
+    left: 0;
     
-    width: 32px; height: 32px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     
     background: rgba(255, 255, 255, 0.1);
@@ -253,43 +253,57 @@ body {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     
-    transform: translateY(-50%);
+    /* --- ÉTAT OUVERT --- */
+    /* Calcul précis : 2rem (marge) + 300px (liste) - 48px (bouton + écart) */
+    /* Y = 9.5rem (Un peu sous le haut de la liste) */
+    transform: translate3d(calc(2rem + 300px - 48px), 9.5rem, 0);
     
-    /* C'est ICI que ça se joue : on lisse le mouvement */
-    transition: left 0.5s ease-in-out, top 0.5s ease-in-out, width 0.3s, height 0.3s, background 0.3s;
+    /* C'est LE secret : on anime uniquement transform et les dimensions */
+    transition: 
+        transform 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+        width 0.3s ease,
+        height 0.3s ease,
+        background 0.3s ease;
+        
+    will-change: transform; /* Force l'accélération matérielle */
 }
 
 #toggle-panel-button:hover { 
-    transform: translateY(-50%) scale(1.1);
+    /* On garde la position calculée et on ajoute le scale */
+    /* Note : L'effet de hover peut être simplifié pour éviter les conflits */
     background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
 }
 
-/* ETAT FERMÉ (Flottant à gauche) */
+/* --- ÉTAT FERMÉ --- */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 1.5rem;
-    top: 50vh; /* vh est plus stable que % */
-    
     width: 48px; height: 48px;
+    
     background: #6366f1;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    
+    /* --- POSITION FERMÉE --- */
+    /* X = 1.5rem */
+    /* Y = 50vh (milieu écran) - 24px (moitié hauteur bouton) */
+    transform: translate3d(1.5rem, calc(50vh - 24px), 0);
 }
 
 #main-container.panel-hidden #toggle-panel-button:hover { 
-    background: #818cf8; 
-    transform: translateY(-50%) scale(1.1);
+    background: #818cf8;
+    transform: translate3d(1.5rem, calc(50vh - 24px), 0) scale(1.1);
 }
 
-/* La flèche tourne */
+/* Animation de la flèche */
 #main-container.panel-hidden #toggle-panel-button svg { 
     transform: rotate(180deg); 
-    transition: transform 0.5s ease-in-out;
+    transition: transform 0.5s ease;
 }
 
+/* Mobile : Toujours caché */
 @media (max-width: 767px) {
     #toggle-panel-button { display: none !important; }
 }
-
 /* ==================== 7. STATS ==================== */
 #stats-panel {
     position: absolute;
