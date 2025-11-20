@@ -4,36 +4,28 @@ body {
     -webkit-tap-highlight-color: transparent;
     margin: 0;
     padding: 0;
-    background-color: #0a0f1a; /* Fond sombre */
+    background-color: #0a0f1a;
     overflow: hidden;
 }
 
-/* ==================== LAYOUT PRINCIPAL (STRUCTURE FLEX) ==================== */
-/* On garde le Flexbox pour que le canvas reste à droite sans être recouvert */
+/* ==================== LAYOUT SUPERPOSÉ (POUR LA TRANSPARENCE) ==================== */
 #main-container {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     height: 100vh;
     width: 100vw;
-    position: relative;
+    display: block; /* Permet la superposition */
 }
 
-@media (min-width: 768px) {
-    #main-container {
-        flex-direction: row; /* Desktop : Panneau à gauche, Canvas à droite */
-        align-items: stretch;
-    }
-}
-
-/* ==================== CANVAS (INTACT) ==================== */
+/* ==================== CANVAS (FOND D'ÉCRAN) ==================== */
 #canvas-container {
-    position: relative;
-    flex-grow: 1; /* Prend tout l'espace restant */
-    height: 100%; 
-    z-index: 1;
-    background: #0a0f1a;
+    position: absolute; /* Prend tout l'écran derrière */
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1; /* Niveau 1 : Tout au fond */
+    background: #0a0f1a; /* Fond noir profond */
     overflow: hidden;
-    transition: width 0.3s ease;
 }
 
 #weave-canvas {
@@ -49,7 +41,7 @@ body {
     cursor: grabbing;
 }
 
-/* ==================== HEADER (STYLE POP & GLOW) ==================== */
+/* ==================== HEADER (STYLE POP) ==================== */
 .header-minimal {
     position: absolute;
     top: 1.5rem;
@@ -58,20 +50,17 @@ body {
     width: auto;
     min-width: 300px;
     max-width: 90%;
-    z-index: 60;
+    z-index: 60; /* Au-dessus du canvas et de la liste */
     
-    /* Fond plus opaque et contrasté */
     background: rgba(20, 28, 45, 0.9); 
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     
-    /* Bordure blanche plus visible */
     border: 1px solid rgba(255, 255, 255, 0.25); 
     border-radius: 50px;
     
-    /* Lueur externe (Glow) */
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2), /* Glow Indigo */
-                0 8px 32px rgba(0, 0, 0, 0.5);   /* Ombre portée */
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2), 
+                0 8px 32px rgba(0, 0, 0, 0.5);
     
     padding: 0.75rem 2rem;
     text-align: center;
@@ -106,22 +95,22 @@ body {
 }
 .line-decoration { display: none; }
 
-/* ==================== PANNEAU LISTE (CORRIGÉ & DÉTACHÉ) ==================== */
+/* ==================== PANNEAU LISTE (FLOTTANT & TRANSPARENT) ==================== */
 #words-panel {
-    position: relative;
+    position: absolute; /* Flotte par-dessus le canvas */
     z-index: 20;
     width: 320px;
-    flex-shrink: 0;
+    left: 2rem;
     
-    /* Placement "Détaché" */
-    margin: 1.5rem;
-    margin-right: 0; /* Collé vers l'intérieur */
-    margin-top: 7rem; /* Espace pour le header */
-    margin-bottom: 7rem; /* Espace pour le footer */
+    /* Placement vertical ajusté (plus d'espace) */
+    top: 6.5rem; 
+    bottom: 7.5rem; 
     
-    /* Fond corrigé (Uniforme) */
-    background: rgba(20, 28, 45, 0.8); 
-    backdrop-filter: blur(16px);
+    /* Style Verre Uniformisé */
+    background: rgba(20, 28, 45, 0.75); /* Transparence visible */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 24px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
@@ -130,7 +119,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
 }
 
 #words-panel h2 {
@@ -182,15 +171,12 @@ body {
 
 /* Gestion Panneau Caché */
 #main-container.panel-hidden #words-panel {
-    width: 0;
-    margin-left: 0;
-    margin-right: 0;
-    padding: 0;
+    transform: translateX(-150%); /* Sort complètement de l'écran */
     opacity: 0;
-    border: none;
+    pointer-events: none;
 }
 
-/* ==================== FOOTER (STYLE POP & BOUNCY) ==================== */
+/* ==================== FOOTER (STYLE POP) ==================== */
 footer {
     position: absolute;
     bottom: 1.5rem;
@@ -200,13 +186,11 @@ footer {
     width: auto;
     max-width: 95%;
     
-    /* Fond plus opaque et contrasté */
     background: rgba(20, 28, 45, 0.9);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 24px;
     
-    /* Lueur externe */
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.2),
                 0 10px 40px rgba(0, 0, 0, 0.5);
     
@@ -216,10 +200,8 @@ footer {
     align-items: center;
 }
 
-/* Animation "Bouncy" sur les boutons */
-button {
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+/* Animation Bounce */
+button { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 footer > div button {
     background: rgba(55, 65, 81, 0.7);
@@ -231,15 +213,12 @@ footer > div button {
 footer > div button:hover {
     background: rgba(99, 102, 241, 0.3);
     border-color: rgba(99, 102, 241, 0.5);
-    transform: translateY(-5px) scale(1.1); /* Effet Bounce */
+    transform: translateY(-5px) scale(1.1);
     box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
 }
 
-footer > div button:active {
-    transform: scale(0.95);
-}
+footer > div button:active { transform: scale(0.95); }
 
-/* Bouton Tisser */
 #word-form button[type="submit"] {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border-radius: 12px;
@@ -254,11 +233,7 @@ footer > div button:active {
     box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
 }
 
-/* Input (Taille Standard conservée) */
-#word-form {
-    display: flex;
-    gap: 0.5rem;
-}
+#word-form { display: flex; gap: 0.5rem; }
 
 #word-input {
     background: rgba(0, 0, 0, 0.5);
@@ -266,7 +241,7 @@ footer > div button:active {
     border-radius: 12px;
     color: white;
     padding: 0.75rem 1rem;
-    width: 250px; /* Taille fixe confortable */
+    width: 250px;
     outline: none;
     font-size: 1rem;
 }
@@ -276,22 +251,22 @@ footer > div button:active {
     background: rgba(0, 0, 0, 0.7);
 }
 
-/* ==================== BOUTON TOGGLE (REPLACÉ CORRECTEMENT) ==================== */
+/* ==================== BOUTON TOGGLE (PLACEMENT) ==================== */
 #toggle-panel-button {
     position: absolute;
     z-index: 30;
     
-    /* PLACEMENT : Collé en haut à droite du panneau */
-    top: 7rem; 
-    left: 340px; /* 320px (largeur panneau) + 20px (espace visuel) */
+    /* Collé à droite du panneau, aligné en haut */
+    top: 6.5rem; 
+    left: 340px; /* 320px (largeur panneau) + 2rem (marge gauche) */
     
     width: 36px;
     height: 36px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     
-    background: rgba(99, 102, 241, 1); /* Indigo plein pour visibilité */
-    border: 2px solid rgba(20, 28, 45, 1); /* Contour sombre */
+    background: rgba(99, 102, 241, 1);
+    border: 2px solid rgba(20, 28, 45, 1);
     color: white;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     
@@ -304,43 +279,70 @@ footer > div button:active {
     background: #818cf8;
 }
 
-/* Quand le panneau est caché */
+/* Quand caché */
 #main-container.panel-hidden #toggle-panel-button {
-    left: 1.5rem; /* Revient à gauche */
+    left: 1.5rem;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255,255,255,0.2);
 }
 
-#main-container.panel-hidden #toggle-panel-button:hover {
-    background: #6366f1;
+#main-container.panel-hidden #toggle-panel-button:hover { background: #6366f1; }
+#main-container.panel-hidden #toggle-panel-button svg { transform: rotate(180deg); }
+
+/* CACHER LE BOUTON EN PLEIN ÉCRAN */
+:fullscreen #toggle-panel-button { display: none !important; }
+body.is-fullscreen #toggle-panel-button { display: none !important; }
+
+/* ==================== MODALES (UNIFIÉES AVEC LE RESTE) ==================== */
+/* Fond sombre flouté derrière la modale pour cacher le header */
+#settings-modal, #qr-modal, #stats-panel-overlay {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 100; /* Très haut pour couvrir le header */
 }
 
-#main-container.panel-hidden #toggle-panel-button svg {
-    transform: rotate(180deg);
+/* Le conteneur de la modale (la boîte elle-même) */
+#settings-modal > div, 
+#qr-modal > div, 
+#stats-panel {
+    background: rgba(20, 28, 45, 0.95) !important; /* Même bleu-gris que Header */
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.15), 
+                0 20px 50px rgba(0, 0, 0, 0.6) !important;
+    color: white;
 }
 
-/* ==================== SCROLLBARS & MODALES ==================== */
+/* Stats Panel spécifique */
+#stats-panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px; 
+    max-height: 80vh;
+    z-index: 101;
+    padding: 1.5rem;
+    overflow-y: auto;
+    /* On annule les positions top/right précédentes pour centrer comme une modale */
+    right: auto; 
+}
+
+#settings-modal h3, #qr-modal h3, #stats-panel h3 {
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
-#stats-panel {
-    position: absolute;
-    top: 7rem; right: 2rem;
-    width: 300px; max-height: 80vh;
-    z-index: 55;
-    background: rgba(20, 28, 45, 0.9);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 24px;
-    padding: 1.5rem;
-    overflow-y: auto;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-}
-
-#settings-modal > div, #qr-modal > div { max-height: 80vh; overflow-y: auto; }
-#color-picker-input { width: 50px; height: 50px; border: none; border-radius: 8px; overflow: hidden; padding: 0; }
+/* Color picker */
+#color-picker-input { width: 50px; height: 50px; border: none; border-radius: 12px; overflow: hidden; padding: 0; }
 #color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
 #color-picker-input::-webkit-color-swatch { border: none; }
 
@@ -349,20 +351,19 @@ footer > div button:active {
     .header-minimal { top: 0.5rem; padding: 0.5rem 1rem; width: 90%; min-width: auto; }
     .subtitle-minimal { display: none; }
 
-    /* Sur mobile, le panel passe en overlay mais garde le style */
     #words-panel {
-        position: absolute;
-        top: 5rem; left: 1rem; right: 1rem;
-        width: auto; height: auto; max-height: 40vh;
-        margin: 0; 
+        left: 1rem; right: 1rem;
+        width: auto; 
+        top: 5.5rem;
+        bottom: auto;
+        max-height: 40vh;
         z-index: 40;
-        background: rgba(20, 28, 45, 0.95);
     }
     
-    /* Le bouton toggle descend */
     #toggle-panel-button {
-        top: auto; bottom: 1rem; /* Bas droite du panel */
-        right: 1rem; left: auto;
+        top: auto; bottom: -20px; 
+        right: 0; left: auto;
+        transform: translateY(50%);
     }
 
     footer {
