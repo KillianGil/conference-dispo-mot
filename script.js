@@ -2360,7 +2360,7 @@ wordForm.addEventListener("submit", async (e) => {
         remaining > 1 ? "s" : ""
       }...`;
     } else {
-      wordInput.placeholder = "Limite atteinte (5 mots max)";
+      wordInput.placeholder = "Limite atteinte (1 mot max)";
     }
 
     setTimeout(() => {
