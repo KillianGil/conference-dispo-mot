@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 BASE_URL = "https://tissage-de-mot.vercel.app"
 API_ENDPOINT = f"{BASE_URL}/api/words"
 
-TOTAL_WORDS = 60        
+TOTAL_WORDS = 15        
 CONCURRENT_USERS = 5    
 # =================================================
 
